@@ -1,366 +1,283 @@
-import React, { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import { Calendar, Clock, MapPin, DollarSign, Users, Save, X } from 'lucide-react';
-import '../../styles/components.css';
+import React, { useEffect, useRef, useState } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import axios from "axios";
+import LocationInput from "./LocationInput";
+import { apiClient } from "../../services/apiClient";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface EventCreatorProps {
-  onEventCreated: () => void;
+  mode: "create" | "edit";
+  eventData?: any;
+  onEventCreated?: () => void;
+  onEventUpdated?: (updatedEvent: any) => void;  // ✅ updated
 }
 
-interface EventFormData {
-  name: string;
-  description: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  clubId: string;
-  capacity: number;
-  ticketTiers: Array<{
-    name: string;
-    price: number;
-    quantity: number;
-    description: string;
-  }>;
-}
 
-const EventCreator: React.FC<EventCreatorProps> = ({ onEventCreated }) => {
-  const { user } = useAuth();
-  const [formData, setFormData] = useState<EventFormData>({
-    name: '',
-    description: '',
-    date: '',
-    startTime: '21:00',
-    endTime: '03:00',
-    clubId: user?.clubId || '',
-    capacity: 500,
-    ticketTiers: [
-      { name: 'General Admission', price: 25, quantity: 200, description: 'Standard entry' },
-      { name: 'VIP', price: 75, quantity: 50, description: 'VIP access with premium benefits' }
-    ]
-  });
+const EventCreator: React.FC<EventCreatorProps> = ({ 
+  eventData, 
+  mode = "create", 
+  onEventCreated, 
+  onEventUpdated 
+}) => {
+  const { user, token } = useAuth();
+  const [eventName, setEventName] = useState("");
+  const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("");
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [endTime, setEndTime] = useState<Date | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const eventRef = useRef(null);
 
-  const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+  useEffect(() => {
+    if (mode === "edit" && eventData) {
+      setEventName(eventData?.eventName || "");
+      setLocation(eventData?.location || "");
+      setStartTime(eventData?.startTime ? new Date(eventData?.startTime) : null);
+      setEndTime(eventData?.endTime ? new Date(eventData?.endTime) : null);
+      setDescription(eventData?.description || "");
+      setImageFile(eventData?.imageUrl || "");
+    }
+  }, [mode, eventData]);
+
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setImageFile(e.target.files[0]);
     }
   };
-
-  const handleTicketTierChange = (index: number, field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      ticketTiers: prev.ticketTiers.map((tier, i) => 
-        i === index ? { ...tier, [field]: value } : tier
-      )
-    }));
+  
+// helper: convert File -> Blob (like mobile's fetchImageFromUri)
+  const fetchImageFromFile = async (file: File): Promise<Blob> => {
+    return file instanceof Blob ? file : new Blob([file]);
   };
 
-  const addTicketTier = () => {
-    setFormData(prev => ({
-      ...prev,
-      ticketTiers: [...prev.ticketTiers, { name: '', price: 0, quantity: 0, description: '' }]
-    }));
-  };
-
-  const removeTicketTier = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      ticketTiers: prev.ticketTiers.filter((_, i) => i !== index)
-    }));
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.name.trim()) newErrors.name = 'Event name is required';
-    if (!formData.description.trim()) newErrors.description = 'Description is required';
-    if (!formData.date) newErrors.date = 'Event date is required';
-    if (!formData.startTime) newErrors.startTime = 'Start time is required';
-    if (!formData.endTime) newErrors.endTime = 'End time is required';
-    if (formData.capacity <= 0) newErrors.capacity = 'Capacity must be greater than 0';
-    if (formData.ticketTiers.length === 0) newErrors.ticketTiers = 'At least one ticket tier is required';
-
-    formData.ticketTiers.forEach((tier, index) => {
-      if (!tier.name.trim()) newErrors[`tier_${index}_name`] = 'Ticket name is required';
-      if (tier.price <= 0) newErrors[`tier_${index}_price`] = 'Price must be greater than 0';
-      if (tier.quantity <= 0) newErrors[`tier_${index}_quantity`] = 'Quantity must be greater than 0';
-    });
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-
-    setLoading(true);
+  // main uploader
+  const handleImagePicked = async (
+    file: File,
+    signedUrlFromUpdate: string | null,
+    eventId?: string
+  ) => {
     try {
-      // Mock API call - in real app, this would save to backend
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      alert('Event created successfully!');
-      onEventCreated();
-    } catch (error) {
-      console.error('Failed to create event:', error);
-      alert('Failed to create event. Please try again.');
+      setLoading(true);
+
+      let signedUrl = signedUrlFromUpdate;
+
+      if (!signedUrl && eventId) {
+        const response = await apiClient.getImageUploadUrl(eventId);
+
+        // ✅ handle both shapes
+        if (response?.payLoad?.signedUrl) {
+          signedUrl = response.payLoad.signedUrl;
+        } else if (response?.signedUrl) {
+          signedUrl = response.signedUrl;
+        } else {
+          console.error("❌ No signedUrl found in response", response);
+          return;
+        }
+      }
+
+      const blob = await fetchImageFromFile(file);
+
+      await fetch(signedUrl, {
+        method: "PUT",
+        body: blob,
+        headers: { "Content-Type": "application/octet-stream" },
+      });
+
+      console.log("✅ Image uploaded successfully");
+    } catch (err) {
+      console.error("❌ Image upload failed", err);
+      alert("Something went wrong while uploading the image");
     } finally {
       setLoading(false);
     }
   };
 
+
+
+ const handleSubmit = async (e: React.FormEvent) => {
+   e.preventDefault();
+
+   if (!eventName || !location || !startTime || !endTime) {
+     alert("Please fill all required fields");
+     return;
+   }
+
+   try {
+     setLoading(true);
+
+     const payload = {
+       eventName,
+       description,
+       location,
+       startTime: startTime.toISOString(),
+       endTime: endTime.toISOString(),
+       socialMedia: {},
+       clubId: user?.club?.id || "default-club-id",
+       facebookUrl: "",
+       instagramUrl: "",
+       youtubeUrl: "",
+       tiktokUrl: "",
+     };
+
+
+     if (mode === "create") {
+        // 🔹 Create event
+        const createdEvent = await apiClient.createEvent(payload);
+        onEventCreated?.();
+        eventRef.current = createdEvent?.payLoad; // ✅ ensure we store payload not whole response
+        if (imageFile && eventRef.current?.id) {
+          await handleImagePicked(
+            imageFile,
+            createdEvent?.payLoad?.signedUrl || null,
+            eventRef.current.id
+          );
+        }
+
+        alert("Event created successfully!");
+        if (onEventCreated) onEventCreated();
+      } else {
+        // 🔹 Update event
+        const updatedEvent = await apiClient.updateEvent(eventData.id, {
+          eventName,
+          description,
+          location,
+          startTime: startTime?.toISOString(),
+          endTime: endTime?.toISOString(),
+        });
+        //onEventUpdated?.();
+        eventRef.current = updatedEvent?.payLoad; // ✅ ensure we store payload not whole response
+      if (imageFile && eventRef.current?.id) {
+        await handleImagePicked(
+          imageFile,
+          updatedEvent?.payLoad?.signedUrl || null,
+          eventRef.current.id
+        );
+      }
+        alert("Event updated successfully!");
+        if (onEventUpdated) onEventUpdated(eventRef.current); // ✅ pass updated event back
+      }
+     
+   } catch (err: any) {
+     console.error("❌ Event creation failed", err);
+
+   } finally {
+     setLoading(false);
+   }
+ };
+
+
   return (
-    <div>
-      <div className="card">
-        <div className="card-header">
-          <h2 className="card-title">
-            <Calendar size={24} style={{ display: 'inline-block', marginRight: '8px', color: '#405189' }} />
-            Create New Event
-          </h2>
-          <p className="card-subtitle">Set up a new event with ticket tiers and details</p>
+    <div className="card" style={{ maxWidth: 600, margin: "20px auto", padding: "20px" }}>
+      <h2>{mode === "create" ? "Create Event" : "Update Event"}</h2>
+
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label className="form-label">Event Name *</label>
+          <input
+            className="form-input"
+            value={eventName}
+            onChange={(e) => setEventName(e.target.value)}
+            required
+          />
         </div>
 
-        <form onSubmit={handleSubmit}>
-          {/* Basic Event Information */}
-          <div style={{ marginBottom: '32px' }}>
-            <h3 style={{ color: '#1e293b', fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
-              Event Details
-            </h3>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
-              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <label className="form-label">Event Name *</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  placeholder="Saturday Night Fever"
-                />
-                {errors.name && <span style={{ color: '#ef4444', fontSize: '11px' }}>{errors.name}</span>}
-              </div>
+        <div className="form-group">
+          <label className="form-label">Location *</label>
+          <LocationInput value={location} onChange={setLocation} />
+        </div>
 
-              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <label className="form-label">Description *</label>
-                <textarea
-                  className="form-input form-textarea"
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  placeholder="Describe your event, music style, special features..."
-                  rows={3}
-                />
-                {errors.description && <span style={{ color: '#ef4444', fontSize: '11px' }}>{errors.description}</span>}
-              </div>
+        <div className="form-group">
+          <label className="form-label">Start Date & Time *</label>
+          <DatePicker
+            selected={startTime}
+            onChange={(date) => setStartTime(date)}
+            showTimeSelect
+            timeFormat="HH:mm"
+            dateFormat="yyyy-MM-dd HH:mm"
+            className="form-input"
+          />
+        </div>
 
-              <div className="form-group">
-                <label className="form-label">Event Date *</label>
-                <input
-                  type="date"
-                  className="form-input"
-                  value={formData.date}
-                  onChange={(e) => handleInputChange('date', e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                />
-                {errors.date && <span style={{ color: '#ef4444', fontSize: '11px' }}>{errors.date}</span>}
-              </div>
+        <div className="form-group">
+          <label className="form-label">End Date & Time *</label>
+          <DatePicker
+            selected={endTime}
+            onChange={(date) => setEndTime(date)}
+            showTimeSelect
+            timeFormat="HH:mm"
+            dateFormat="yyyy-MM-dd HH:mm"
+            className="form-input"
+          />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Description</label>
+          <textarea
+            className="form-input"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={4}
+            placeholder="Write a short description about your event..."
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              border: "1px solid #ccc",
+              borderRadius: "8px",
+              resize: "vertical",
+              fontSize: "14px",
+              fontFamily: "inherit",
+              outline: "none",
+              transition: "border-color 0.2s",
+            }}
+            onFocus={(e) => (e.target.style.borderColor = "#007bff")}
+            onBlur={(e) => (e.target.style.borderColor = "#ccc")}
+          />
+        </div>
 
-              <div className="form-group">
-                <label className="form-label">Start Time *</label>
-                <input
-                  type="time"
-                  className="form-input"
-                  value={formData.startTime}
-                  onChange={(e) => handleInputChange('startTime', e.target.value)}
-                />
-                {errors.startTime && <span style={{ color: '#ef4444', fontSize: '11px' }}>{errors.startTime}</span>}
-              </div>
 
-              <div className="form-group">
-                <label className="form-label">End Time *</label>
-                <input
-                  type="time"
-                  className="form-input"
-                  value={formData.endTime}
-                  onChange={(e) => handleInputChange('endTime', e.target.value)}
-                />
-                {errors.endTime && <span style={{ color: '#ef4444', fontSize: '11px' }}>{errors.endTime}</span>}
-              </div>
+        <div className="form-group">
+          <label className="form-label">Event Flyer *</label>
+          <input
+            type="file"
+            className="form-input"
+            accept="image/*"
+            onChange={handleFileChange}
+          />
 
-              {user?.userType === 'super_admin' && (
-                <div className="form-group">
-                  <label className="form-label">Club *</label>
-                  <select
-                    className="form-select"
-                    value={formData.clubId}
-                    onChange={(e) => handleInputChange('clubId', e.target.value)}
-                  >
-                    <option value="">Select Club</option>
-                    <option value="1">Club Paradise</option>
-                    <option value="2">Electric Nights</option>
-                    <option value="3">Neon Dreams</option>
-                  </select>
-                </div>
-              )}
-
-              <div className="form-group">
-                <label className="form-label">Capacity *</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  value={formData.capacity}
-                  onChange={(e) => handleInputChange('capacity', parseInt(e.target.value) || 0)}
-                  min="1"
-                />
-                {errors.capacity && <span style={{ color: '#ef4444', fontSize: '11px' }}>{errors.capacity}</span>}
-              </div>
+          {/* ✅ Show preview if imageFile exists */}
+          {imageFile && (
+            <div style={{ marginTop: "10px" }}>
+              <img
+                src={
+                  typeof imageFile === "string"
+                    ? `${imageFile}?t=${new Date().getTime()}` // 👈 force refresh if it's a DB URL
+                    : URL.createObjectURL(imageFile)          // 👈 still works for new uploads
+                }
+                alt="Event Flyer Preview"
+                style={{ maxWidth: "200px", borderRadius: "8px" }}
+              />
             </div>
-          </div>
+          )}
 
-          {/* Ticket Tiers */}
-          <div style={{ marginBottom: '32px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ color: '#1e293b', fontSize: '18px', fontWeight: '600', margin: 0 }}>
-                Ticket Tiers
-              </h3>
-              <button
-                type="button"
-                onClick={addTicketTier}
-                className="btn btn-secondary"
-              >
-                <DollarSign size={16} />
-                Add Tier
-              </button>
-            </div>
+        </div>
 
-            {formData.ticketTiers.map((tier, index) => (
-              <div key={index} style={{ 
-                border: '1px solid #e2e8f0', 
-                borderRadius: '8px', 
-                padding: '16px', 
-                marginBottom: '16px',
-                background: '#f8fafc'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <h4 style={{ color: '#1e293b', fontSize: '14px', fontWeight: '600', margin: 0 }}>
-                    Ticket Tier {index + 1}
-                  </h4>
-                  {formData.ticketTiers.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeTicketTier(index)}
-                      style={{
-                        background: '#fef2f2',
-                        border: '1px solid #fecaca',
-                        color: '#dc2626',
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        fontSize: '11px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <X size={12} />
-                      Remove
-                    </button>
-                  )}
-                </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Tier Name *</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={tier.name}
-                      onChange={(e) => handleTicketTierChange(index, 'name', e.target.value)}
-                      placeholder="General Admission"
-                    />
-                    {errors[`tier_${index}_name`] && (
-                      <span style={{ color: '#ef4444', fontSize: '11px' }}>{errors[`tier_${index}_name`]}</span>
-                    )}
-                  </div>
+        <button className="btn btn-primary" type="submit" disabled={loading}>
+          {loading 
+            ? mode === "create" 
+              ? "Creating..." 
+              : "Updating..."
+            : mode === "create" 
+              ? "Create Event" 
+              : "Update Event"}
+        </button>
 
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Price ($) *</label>
-                    <input
-                      type="number"
-                      className="form-input"
-                      value={tier.price}
-                      onChange={(e) => handleTicketTierChange(index, 'price', parseFloat(e.target.value) || 0)}
-                      min="0"
-                      step="0.01"
-                    />
-                    {errors[`tier_${index}_price`] && (
-                      <span style={{ color: '#ef4444', fontSize: '11px' }}>{errors[`tier_${index}_price`]}</span>
-                    )}
-                  </div>
-
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Quantity *</label>
-                    <input
-                      type="number"
-                      className="form-input"
-                      value={tier.quantity}
-                      onChange={(e) => handleTicketTierChange(index, 'quantity', parseInt(e.target.value) || 0)}
-                      min="1"
-                    />
-                    {errors[`tier_${index}_quantity`] && (
-                      <span style={{ color: '#ef4444', fontSize: '11px' }}>{errors[`tier_${index}_quantity`]}</span>
-                    )}
-                  </div>
-
-                  <div className="form-group" style={{ margin: 0, gridColumn: '1 / -1' }}>
-                    <label className="form-label">Description</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={tier.description}
-                      onChange={(e) => handleTicketTierChange(index, 'description', e.target.value)}
-                      placeholder="What's included with this ticket..."
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {errors.ticketTiers && (
-              <span style={{ color: '#ef4444', fontSize: '11px' }}>{errors.ticketTiers}</span>
-            )}
-          </div>
-
-          {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
-            <button
-              type="button"
-              onClick={onEventCreated}
-              className="btn btn-secondary"
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <div className="loading-spinner" style={{ width: '16px', height: '16px' }}></div>
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Save size={16} />
-                  Create Event
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
+      </form>
     </div>
+
   );
 };
 

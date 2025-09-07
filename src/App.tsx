@@ -30,6 +30,21 @@ const App: React.FC = () => {
   const AuthDependentContent: React.FC = () => {
     const { isAuthenticated, user } = useAuth();
     const [activeModule, setActiveModule] = useState('dashboard');
+    const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
+
+    const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+    const [pastEvents, setPastEvents] = useState<any[]>([]);
+
+    const handleEventUpdated = (updatedEvent: any) => {
+      setUpcomingEvents(prev =>
+        prev.map(ev => ev.id === updatedEvent.id ? { ...ev, ...updatedEvent } : ev)
+      );
+      setPastEvents(prev =>
+        prev.map(ev => ev.id === updatedEvent.id ? { ...ev, ...updatedEvent } : ev)
+      );
+    };
+
+
 
     if (!isAuthenticated) {
       return <LoginForm />;
@@ -58,16 +73,48 @@ const App: React.FC = () => {
     };
 
     const renderModule = () => {
-      debugger
       switch (activeModule) {
         case 'dashboard':
           return <Dashboard />;
-        case 'events':
-          return <EventsManager onModuleChange={setActiveModule} />;
+        case "events":
+          return (
+            <EventsManager
+              onModuleChange={setActiveModule}
+              onEditEvent={(event) => {
+                setSelectedEvent(event);
+                setActiveModule("edit-event");
+              }}
+              upcomingEvents={upcomingEvents}
+              pastEvents={pastEvents}
+            />
+          );
+
+
         case 'bookings':
           return <BookingsManager />;
-        case 'create-event':
-          return <EventCreator onEventCreated={() => setActiveModule('events')} />;
+        case "create-event":
+          return (
+            <EventCreator 
+              mode="create" 
+              onEventCreated={() => setActiveModule("events")} 
+            />
+          );
+
+        case "edit-event":
+          return (
+            <EventCreator
+              mode="edit"
+              eventData={selectedEvent}
+              onEventUpdated={(updatedEvent) => {
+                handleEventUpdated(updatedEvent);   // update state here
+                setActiveModule("events");          // go back to list
+              }}
+            />
+          );
+
+
+
+
         case 'clubs':
           return user?.userType === 'super_admin' ? <ClubManager /> : <Dashboard />;
         case 'staff':

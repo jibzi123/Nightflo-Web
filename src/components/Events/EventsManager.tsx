@@ -124,11 +124,17 @@ const TicketEditor: React.FC<TicketEditorProps> = ({ ticket, isOpen, onClose, on
 
 interface EventsManagerProps {
   onModuleChange?: (module: string) => void;
+  onEditEvent: (event: any) => void;
+  upcomingEvents: any[];
+  pastEvents: any[];
 }
 
-const EventsManager: React.FC<EventsManagerProps> = ({ onModuleChange }) => {
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
+const EventsManager: React.FC<EventsManagerProps> = ({
+  onModuleChange,
+  onEditEvent,
+  upcomingEvents,
+  pastEvents
+}) => {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [clubFilter, setClubFilter] = useState('all');
@@ -145,110 +151,151 @@ const EventsManager: React.FC<EventsManagerProps> = ({ onModuleChange }) => {
   const [summaryEvent, setSummaryEvent] = useState<Event | null>(null);
   const [showTables, setShowTables] = useState(false);
 
+  const [upcomingEventsList, setUpcomingEvents] = useState<any[]>([]);
+  const [pastEventsList, setPastEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingDeleteId, setLoadingDeleteId] = useState<string | null>(null);
+
   useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setLoading(true);
+        const [upcomingRes, pastRes] = await Promise.all([
+          apiClient.getUpcomingEvents(),
+          apiClient.getPastEvents(),
+        ]);
+
+        setUpcomingEvents(upcomingRes.payLoad || []);
+        setPastEvents(pastRes.payLoad || []);
+      } catch (error) {
+        console.error("Failed to fetch events:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchEvents();
   }, []);
 
-  const fetchEvents = async () => {
-    try {
-      setLoading(true);
-      const response = await apiClient.getEvents();
-      setEvents(response.data || []);
-    } catch (error) {
-      console.error('Failed to fetch events:', error);
-      // Mock data for demonstration
-      setEvents([
-        {
-          id: '1',
-          clubId: '1',
-          name: 'Saturday Night Fever',
-          description: 'The hottest party of the weekend with top DJs',
-          date: '2025-01-25',
-          startTime: '22:00',
-          endTime: '04:00',
-          status: 'published',
-          totalSales: 15000,
-          attendees: 250,
-          ticketTiers: [
-            { id: '1', name: 'General Admission', price: 25, quantity: 200, sold: 180, description: 'Standard entry with access to main floor' },
-            { id: '2', name: 'VIP', price: 75, quantity: 50, sold: 35, description: 'VIP table, premium drinks, and priority entry' },
-            { id: '3', name: 'Early Bird', price: 20, quantity: 100, sold: 100, description: 'Limited time discount pricing' }
-          ],
-          tableBookings: [
-            { id: 'tb1', tableNumber: 'VIP-1', capacity: 6, price: 500, booked: true, customerName: 'Alice Smith', customerEmail: 'alice.smith@email.com' },
-            { id: 'tb2', tableNumber: 'VIP-2', capacity: 8, price: 800, booked: true, customerName: 'Bob Johnson', customerEmail: 'bob.johnson@email.com' },
-            { id: 'tb3', tableNumber: 'VIP-3', capacity: 4, price: 400, booked: false },
-            { id: 'tb4', tableNumber: 'T-1', capacity: 4, price: 200, booked: false },
-            { id: 'tb5', tableNumber: 'T-2', capacity: 6, price: 300, booked: true, customerName: 'Carol Williams', customerEmail: 'carol.w@email.com' }
-          ]
-        },
-        {
-          id: '2',
-          clubId: '1',
-          name: 'EDM Explosion',
-          description: 'Electronic music festival featuring international artists',
-          date: '2025-02-01',
-          startTime: '20:00',
-          endTime: '03:00',
-          status: 'draft',
-          totalSales: 0,
-          attendees: 0,
-          ticketTiers: [
-            { id: '4', name: 'Standard', price: 30, quantity: 300, sold: 0, description: 'General admission to all areas' },
-            { id: '5', name: 'Premium', price: 60, quantity: 100, sold: 0, description: 'Premium viewing area and complimentary drinks' }
-          ],
-          tableBookings: [
-            { id: 'tb6', tableNumber: 'VIP-1', capacity: 6, price: 600, booked: false },
-            { id: 'tb7', tableNumber: 'VIP-2', capacity: 8, price: 900, booked: false },
-            { id: 'tb8', tableNumber: 'T-1', capacity: 4, price: 250, booked: false }
-          ]
-        },
-        {
-          id: '3',
-          clubId: '2',
-          name: 'Hip Hop Night',
-          description: 'Best hip hop artists and DJs in the city',
-          date: '2025-01-28',
-          startTime: '21:00',
-          endTime: '02:00',
-          status: 'published',
-          totalSales: 8500,
-          attendees: 180,
-          ticketTiers: [
-            { id: '6', name: 'General', price: 20, quantity: 150, sold: 120, description: 'Standard entry' },
-            { id: '7', name: 'VIP', price: 50, quantity: 40, sold: 25, description: 'VIP experience' }
-          ],
-          tableBookings: [
-            { id: 'tb9', tableNumber: 'VIP-1', capacity: 6, price: 400, booked: true, customerName: 'Daniel Kim', customerEmail: 'daniel.k@email.com' },
-            { id: 'tb10', tableNumber: 'T-1', capacity: 4, price: 150, booked: false }
-          ]
-        },
-        {
-          id: '4',
-          clubId: '2',
-          name: 'Techno Underground',
-          description: 'Underground techno experience',
-          date: '2025-02-05',
-          startTime: '23:00',
-          endTime: '05:00',
-          status: 'published',
-          totalSales: 12000,
-          attendees: 300,
-          ticketTiers: [
-            { id: '8', name: 'Standard', price: 35, quantity: 250, sold: 200, description: 'General admission' },
-            { id: '9', name: 'VIP', price: 80, quantity: 60, sold: 45, description: 'VIP access' }
-          ],
-          tableBookings: [
-            { id: 'tb11', tableNumber: 'VIP-1', capacity: 8, price: 800, booked: true, customerName: 'Maria Garcia', customerEmail: 'maria.g@email.com' },
-            { id: 'tb12', tableNumber: 'VIP-2', capacity: 6, price: 600, booked: false },
-            { id: 'tb13', tableNumber: 'T-1', capacity: 4, price: 200, booked: false }
-          ]
-        }
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // 👇 Watch for updatedEvent coming from App.tsx
+  // useEffect(() => {
+  //   if (updatedEvent) {
+  //     setUpcomingEvents(prev =>
+  //       prev.map(ev => ev.id === updatedEvent.id ? { ...ev, ...updatedEvent } : ev)
+  //     );
+
+  //     setPastEvents(prev =>
+  //       prev.map(ev => ev.id === updatedEvent.id ? { ...ev, ...updatedEvent } : ev)
+  //     );
+
+  //   }
+  // }, [updatedEvent]);
+
+
+  // useEffect(() => {
+  //   fetchEvents();
+  // }, []);
+
+  // const fetchEvents = async () => {
+  //   try {
+  //     setLoading(true);
+  //     const response = await apiClient.getEvents();
+  //     setEvents(response.data || []);
+  //   } catch (error) {
+  //     console.error('Failed to fetch events:', error);
+  //     // Mock data for demonstration
+  //     setEvents([
+  //       {
+  //         id: '1',
+  //         clubId: '1',
+  //         name: 'Saturday Night Fever',
+  //         description: 'The hottest party of the weekend with top DJs',
+  //         date: '2025-01-25',
+  //         startTime: '22:00',
+  //         endTime: '04:00',
+  //         status: 'published',
+  //         totalSales: 15000,
+  //         attendees: 250,
+  //         ticketTiers: [
+  //           { id: '1', name: 'General Admission', price: 25, quantity: 200, sold: 180, description: 'Standard entry with access to main floor' },
+  //           { id: '2', name: 'VIP', price: 75, quantity: 50, sold: 35, description: 'VIP table, premium drinks, and priority entry' },
+  //           { id: '3', name: 'Early Bird', price: 20, quantity: 100, sold: 100, description: 'Limited time discount pricing' }
+  //         ],
+  //         tableBookings: [
+  //           { id: 'tb1', tableNumber: 'VIP-1', capacity: 6, price: 500, booked: true, customerName: 'Alice Smith', customerEmail: 'alice.smith@email.com' },
+  //           { id: 'tb2', tableNumber: 'VIP-2', capacity: 8, price: 800, booked: true, customerName: 'Bob Johnson', customerEmail: 'bob.johnson@email.com' },
+  //           { id: 'tb3', tableNumber: 'VIP-3', capacity: 4, price: 400, booked: false },
+  //           { id: 'tb4', tableNumber: 'T-1', capacity: 4, price: 200, booked: false },
+  //           { id: 'tb5', tableNumber: 'T-2', capacity: 6, price: 300, booked: true, customerName: 'Carol Williams', customerEmail: 'carol.w@email.com' }
+  //         ]
+  //       },
+  //       {
+  //         id: '2',
+  //         clubId: '1',
+  //         name: 'EDM Explosion',
+  //         description: 'Electronic music festival featuring international artists',
+  //         date: '2025-02-01',
+  //         startTime: '20:00',
+  //         endTime: '03:00',
+  //         status: 'draft',
+  //         totalSales: 0,
+  //         attendees: 0,
+  //         ticketTiers: [
+  //           { id: '4', name: 'Standard', price: 30, quantity: 300, sold: 0, description: 'General admission to all areas' },
+  //           { id: '5', name: 'Premium', price: 60, quantity: 100, sold: 0, description: 'Premium viewing area and complimentary drinks' }
+  //         ],
+  //         tableBookings: [
+  //           { id: 'tb6', tableNumber: 'VIP-1', capacity: 6, price: 600, booked: false },
+  //           { id: 'tb7', tableNumber: 'VIP-2', capacity: 8, price: 900, booked: false },
+  //           { id: 'tb8', tableNumber: 'T-1', capacity: 4, price: 250, booked: false }
+  //         ]
+  //       },
+  //       {
+  //         id: '3',
+  //         clubId: '2',
+  //         name: 'Hip Hop Night',
+  //         description: 'Best hip hop artists and DJs in the city',
+  //         date: '2025-01-28',
+  //         startTime: '21:00',
+  //         endTime: '02:00',
+  //         status: 'published',
+  //         totalSales: 8500,
+  //         attendees: 180,
+  //         ticketTiers: [
+  //           { id: '6', name: 'General', price: 20, quantity: 150, sold: 120, description: 'Standard entry' },
+  //           { id: '7', name: 'VIP', price: 50, quantity: 40, sold: 25, description: 'VIP experience' }
+  //         ],
+  //         tableBookings: [
+  //           { id: 'tb9', tableNumber: 'VIP-1', capacity: 6, price: 400, booked: true, customerName: 'Daniel Kim', customerEmail: 'daniel.k@email.com' },
+  //           { id: 'tb10', tableNumber: 'T-1', capacity: 4, price: 150, booked: false }
+  //         ]
+  //       },
+  //       {
+  //         id: '4',
+  //         clubId: '2',
+  //         name: 'Techno Underground',
+  //         description: 'Underground techno experience',
+  //         date: '2025-02-05',
+  //         startTime: '23:00',
+  //         endTime: '05:00',
+  //         status: 'published',
+  //         totalSales: 12000,
+  //         attendees: 300,
+  //         ticketTiers: [
+  //           { id: '8', name: 'Standard', price: 35, quantity: 250, sold: 200, description: 'General admission' },
+  //           { id: '9', name: 'VIP', price: 80, quantity: 60, sold: 45, description: 'VIP access' }
+  //         ],
+  //         tableBookings: [
+  //           { id: 'tb11', tableNumber: 'VIP-1', capacity: 8, price: 800, booked: true, customerName: 'Maria Garcia', customerEmail: 'maria.g@email.com' },
+  //           { id: 'tb12', tableNumber: 'VIP-2', capacity: 6, price: 600, booked: false },
+  //           { id: 'tb13', tableNumber: 'T-1', capacity: 4, price: 200, booked: false }
+  //         ]
+  //       }
+  //     ]);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const handleCreateEvent = () => {
     if (onModuleChange) {
@@ -299,6 +346,22 @@ const EventsManager: React.FC<EventsManagerProps> = ({ onModuleChange }) => {
     }
   };
 
+  const deleteEvent = async (eventId: string) => {
+    try {
+      setLoadingDeleteId(eventId);
+      await apiClient.deleteEvent(`${eventId}`);
+      alert("Your event has been deleted.");
+
+      // remove from UI
+      setUpcomingEvents(prev => prev.filter(ev => ev.id !== eventId));
+      setPastEvents(prev => prev.filter(ev => ev.id !== eventId));
+    } catch (err) {
+      alert("Failed to delete event");
+      console.error(err);
+    } finally {
+      setLoadingDeleteId(null);
+    }
+  };
   const handleManageStaff = (event: Event) => {
     setStaffManagerEvent(event);
     setShowStaffManager(true);
@@ -328,29 +391,29 @@ const EventsManager: React.FC<EventsManagerProps> = ({ onModuleChange }) => {
     return clubs[clubId] || 'Unknown Club';
   };
 
-  const filteredEvents = events.filter(event => {
+  const filteredEvents = pastEventsList.filter(event => {
     const matchesFilter = filter === 'all' || event.status === filter;
-    const matchesSearch = event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         event.description.toLowerCase().includes(searchTerm.toLowerCase());
+    // const matchesSearch = event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    //                      event.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesClub = clubFilter === 'all' || event.clubId === clubFilter;
     const matchesDate = !dateFilter || event.date === dateFilter;
-    return matchesFilter && matchesSearch && matchesClub && matchesDate;
+    return matchesFilter && matchesClub && matchesDate;
   });
 
   // Calculate stats based on current filters
   const getFilteredStats = () => {
-    const eventsToCalculate = clubFilter === 'all' ? events : events.filter(e => e.clubId === clubFilter);
+    const eventsToCalculate = clubFilter === 'all' ? pastEventsList : pastEventsList.filter(e => e.clubId === clubFilter);
     
     const totalEvents = eventsToCalculate.length;
-    const totalTicketsSold = eventsToCalculate.reduce((sum, event) => 
-      sum + event.ticketTiers.reduce((tierSum, tier) => tierSum + (tier.sold || 0), 0), 0
-    );
+    // const totalTicketsSold = eventsToCalculate.reduce((sum, event) => 
+    //   sum + event.ticketTiers.reduce((tierSum, tier) => tierSum + (tier.sold || 0), 0), 0
+    // );
     const totalRevenue = eventsToCalculate.reduce((sum, event) => sum + event.totalSales, 0);
     const upcomingEvents = eventsToCalculate.filter(event => 
       new Date(event.date) > new Date() && event.status === 'published'
     ).length;
 
-    return { totalEvents, totalTicketsSold, totalRevenue, upcomingEvents };
+    return { totalEvents, totalRevenue, upcomingEvents };
   };
 
   const stats = getFilteredStats();
@@ -396,7 +459,7 @@ const EventsManager: React.FC<EventsManagerProps> = ({ onModuleChange }) => {
             <span className="stat-title">Tickets Sold</span>
             <UserCheck size={20} style={{ color: '#10b981' }} />
           </div>
-          <div className="stat-value">{stats.totalTicketsSold.toLocaleString()}</div>
+          {/* <div className="stat-value">{stats.totalTicketsSold.toLocaleString()}</div> */}
           <div className="stat-change positive">
             <TrendingUp size={14} />
             +15.2% from last month
@@ -479,75 +542,120 @@ const EventsManager: React.FC<EventsManagerProps> = ({ onModuleChange }) => {
         />
       </div>
 
+      <div>
+      {/* 🔹 Upcoming Events */}
+      <h2 style={{ margin: "20px 0" }}>Upcoming Events</h2>
       <div className="events-grid">
-        {filteredEvents.map((event) => (
-          <div key={event.id} className="event-card">
-            <div className="event-image">
-              {event.name}
-            </div>
-            <div className="event-content">
-              <h3 className="event-title">{event.name}</h3>
-              <p className="event-description">{event.description}</p>
-              
-              <div className="event-meta">
-                <span className="event-date">
-                  {new Date(event.date).toLocaleDateString()} at {event.startTime}
-                </span>
-                <span className={`event-status ${event.status}`}>
-                  {event.status}
-                </span>
-              </div>
+        {upcomingEventsList.length === 0 ? (
+          <p style={{ color: "#64748b" }}>No upcoming events.</p>
+        ) : (
+          upcomingEventsList.map((event) => (
+            <div key={event.id} className="event-card">
+              <div className="event-image">
+                <img
+                src={`${event.imageUrl}?t=${new Date().getTime()}`}
+                alt={event.name}
+                className="event-image"
+              />
 
-              <div style={{ marginBottom: '12px', fontSize: '12px', color: '#64748b' }}>
-                <Building2 size={12} style={{ display: 'inline-block', marginRight: '4px' }} />
-                {getClubName(event.clubId)}
               </div>
+              <div className="event-content">
+                <h3 className="event-title">{event.eventName}</h3>
+                <p className="event-description">{event.description}</p>
 
-              <div className="event-stats">
-                <div className="event-stat">
-                  <div className="event-stat-value">${event.totalSales.toLocaleString()}</div>
-                  <div className="event-stat-label">Revenue</div>
+                <div className="event-meta">
+                  <span className="event-date">
+                    {new Date(event.eventDate).toLocaleDateString()} at{" "}
+                    {new Date(event.startTime).toLocaleTimeString()}
+                  </span>
                 </div>
-                <div className="event-stat">
-                  <div className="event-stat-value">{event.attendees}</div>
-                  <div className="event-stat-label">Attendees</div>
-                </div>
-                <div className="event-stat">
-                  <div className="event-stat-value">{event.ticketTiers.length}</div>
-                  <div className="event-stat-label">Ticket Tiers</div>
-                </div>
-              </div>
 
-              <div className="event-actions">
-                <button className="event-action-button" onClick={() => handleViewSummary(event)}>
-                  <Eye size={14} />
-                  Summary
-                </button>
-                <button className="event-action-button" onClick={() => handleViewTickets(event)}>
-                  <Eye size={14} />
-                  Tickets
-                </button>
-                <button className="event-action-button" onClick={() => handleViewGuestList(event)}>
-                  <Users size={14} />
-                  Guests
-                </button>
-                <button className="event-action-button" onClick={() => handleViewTables(event)}>
-                  <MapPin size={14} />
-                  Tables
-                </button>
-                <button className="event-action-button" onClick={() => handleManageStaff(event)}>
-                  <Users size={14} />
-                  Staff
-                </button>
-                <button className="event-action-button">
-                  <Edit size={14} />
-                  Edit
-                </button>
+                <div
+                  style={{
+                    marginBottom: "12px",
+                    fontSize: "12px",
+                    color: "#64748b",
+                  }}
+                >
+                  {event.club?.name} - {event.club?.location}
+                </div>
+
+                <div className="d-flex flex-wrap gap-2 mt-3">
+                  <button className="btn btn-outline-primary btn-sm rounded-pill">Summary</button>
+                  <button className="btn btn-outline-secondary btn-sm rounded-pill">Tickets</button>
+                  <button className="btn btn-outline-success btn-sm rounded-pill">Guests</button>
+                  <button className="btn btn-outline-warning btn-sm rounded-pill">Tables</button>
+                  <button className="btn btn-outline-info btn-sm rounded-pill">Staff</button>
+                  <button
+                    className="btn btn-outline-dark btn-sm rounded-pill"
+                    onClick={() => onEditEvent(event)}   // ✅ now defined
+                  >
+                    Edit
+                  </button>
+
+
+                  <button
+                    className="btn btn-danger btn-sm rounded-pill"
+                    onClick={() => deleteEvent(event.id)} // ✅ pass event.id directly
+                    disabled={loadingDeleteId === event.id} // ✅ disable only this one
+                  >
+                    {loadingDeleteId === event.id ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
+
+
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
+
+      {/* 🔹 Past Events */}
+      <h2 style={{ margin: "20px 0" }}>Past Events</h2>
+      <div className="events-grid">
+        {pastEventsList.length === 0 ? (
+          <p style={{ color: "#64748b" }}>No past events.</p>
+        ) : (
+          pastEventsList.map((event) => (
+            <div key={event.id} className="event-card">
+              <div className="event-image">
+                <img src={event.imageUrl} alt={event.eventName} />
+              </div>
+              <div className="event-content">
+                <h3 className="event-title">{event.eventName}</h3>
+                <p className="event-description">{event.description}</p>
+
+                <div className="event-meta">
+                  <span className="event-date">
+                    {new Date(event.eventDate).toLocaleDateString()} at{" "}
+                    {new Date(event.startTime).toLocaleTimeString()}
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    marginBottom: "12px",
+                    fontSize: "12px",
+                    color: "#64748b",
+                  }}
+                >
+                  {event.club?.name} - {event.club?.location}
+                </div>
+
+                <div className="event-actions">
+                  <button>Summary</button>
+                  <button>Tickets</button>
+                  <button>Guests</button>
+                  <button>Tables</button>
+                  <button>Staff</button>
+                  <button>Edit</button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
 
       {filteredEvents.length === 0 && (
         <div className="empty-state">

@@ -25,6 +25,9 @@ import './styles/layout.css';
 import './styles/auth.css';
 import './styles/events.css';
 import './styles/dashboard.css';
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 
 const App: React.FC = () => {
   const AuthDependentContent: React.FC = () => {
@@ -160,6 +163,19 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <AuthDependentContent />
+      <ToastContainer 
+        position="bottom-right" 
+        autoClose={1500}    // ✅ 1.5 seconds
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
+
     </AuthProvider>
   );
 };

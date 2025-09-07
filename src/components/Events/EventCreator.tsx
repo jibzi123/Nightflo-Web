@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import axios from "axios";
 import LocationInput from "./LocationInput";
 import { apiClient } from "../../services/apiClient";
 import { useAuth } from "../../contexts/AuthContext";
+import { toast } from "react-toastify";
+
 
 interface EventCreatorProps {
   mode: "create" | "edit";
@@ -90,7 +91,7 @@ const EventCreator: React.FC<EventCreatorProps> = ({
       console.log("✅ Image uploaded successfully");
     } catch (err) {
       console.error("❌ Image upload failed", err);
-      alert("Something went wrong while uploading the image");
+      toast.error("Something went wrong while uploading the image");
     } finally {
       setLoading(false);
     }
@@ -102,7 +103,7 @@ const EventCreator: React.FC<EventCreatorProps> = ({
    e.preventDefault();
 
    if (!eventName || !location || !startTime || !endTime) {
-     alert("Please fill all required fields");
+     toast.error("Please fill all required fields");
      return;
    }
 
@@ -136,9 +137,12 @@ const EventCreator: React.FC<EventCreatorProps> = ({
             eventRef.current.id
           );
         }
-
-        alert("Event created successfully!");
-        if (onEventCreated) onEventCreated();
+        if (onEventCreated) {
+          toast.success("Event created successfully!");
+          setTimeout(() => {
+            onEventCreated();
+          }, 1000);
+        }
       } else {
         // 🔹 Update event
         const updatedEvent = await apiClient.updateEvent(eventData.id, {
@@ -147,18 +151,25 @@ const EventCreator: React.FC<EventCreatorProps> = ({
           location,
           startTime: startTime?.toISOString(),
           endTime: endTime?.toISOString(),
+          imageUrl: imageFile 
+            ? undefined // will be replaced after upload
+            : eventData.imageUrl, // keep old one if not changed
         });
         //onEventUpdated?.();
         eventRef.current = updatedEvent?.payLoad; // ✅ ensure we store payload not whole response
-      if (imageFile && eventRef.current?.id) {
+      if (imageFile && eventRef.current?.id && imageFile !== eventData.imageUrl) {
         await handleImagePicked(
           imageFile,
           updatedEvent?.payLoad?.signedUrl || null,
           eventRef.current.id
         );
       }
-        alert("Event updated successfully!");
-        if (onEventUpdated) onEventUpdated(eventRef.current); // ✅ pass updated event back
+        if (onEventUpdated) {
+          toast.success("Event updated successfully!");
+          setTimeout(() => {
+            onEventUpdated(eventRef.current)
+          }, 1000);
+        }
       }
      
    } catch (err: any) {

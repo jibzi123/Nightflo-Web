@@ -7,6 +7,7 @@ import GuestList from './GuestList';
 import EventSummary from './EventSummary';
 import '../../styles/events.css';
 import '../../styles/components.css';
+import { toast } from "react-toastify";
 
 interface TicketEditorProps {
   ticket: TicketTier | null;
@@ -155,6 +156,7 @@ const EventsManager: React.FC<EventsManagerProps> = ({
   const [pastEventsList, setPastEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingDeleteId, setLoadingDeleteId] = useState<string | null>(null);
+  
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -350,13 +352,13 @@ const EventsManager: React.FC<EventsManagerProps> = ({
     try {
       setLoadingDeleteId(eventId);
       await apiClient.deleteEvent(`${eventId}`);
-      alert("Your event has been deleted.");
+      toast.success("Your event has been deleted.");
 
       // remove from UI
       setUpcomingEvents(prev => prev.filter(ev => ev.id !== eventId));
       setPastEvents(prev => prev.filter(ev => ev.id !== eventId));
     } catch (err) {
-      alert("Failed to delete event");
+      toast.error("Failed to delete event");
       console.error(err);
     } finally {
       setLoadingDeleteId(null);

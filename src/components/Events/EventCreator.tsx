@@ -12,6 +12,7 @@ interface EventCreatorProps {
   eventData?: any;
   onEventCreated?: () => void;
   onEventUpdated?: (updatedEvent: any) => void;  // ✅ updated
+  onBack: () => void;
 }
 
 
@@ -19,7 +20,8 @@ const EventCreator: React.FC<EventCreatorProps> = ({
   eventData, 
   mode = "create", 
   onEventCreated, 
-  onEventUpdated 
+  onEventUpdated,
+  onBack
 }) => {
   const { user, token } = useAuth();
   const [eventName, setEventName] = useState("");
@@ -182,7 +184,11 @@ const EventCreator: React.FC<EventCreatorProps> = ({
 
 
   return (
+    
     <div className="card" style={{ maxWidth: 600, margin: "20px auto", padding: "20px" }}>
+      <button className="btn btn-secondary mb-3" onClick={onBack}>
+        ⬅ Back to Events
+      </button>
       <h2>{mode === "create" ? "Create Event" : "Update Event"}</h2>
 
       <form onSubmit={handleSubmit}>

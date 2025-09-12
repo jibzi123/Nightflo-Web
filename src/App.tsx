@@ -27,6 +27,7 @@ import './styles/events.css';
 import './styles/dashboard.css';
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import TicketsManager from './components/Tickets/TicketManager';
 
 
 const App: React.FC = () => {
@@ -71,6 +72,7 @@ const App: React.FC = () => {
         'create-event': 'Create Event',
         compliance: 'Compliance Management',
         subscriptions: 'Subscription Management',
+        tickets: 'Tickets Management',
       };
       return titles[module] || 'Dashboard';
     };
@@ -100,6 +102,7 @@ const App: React.FC = () => {
             <EventCreator 
               mode="create" 
               onEventCreated={() => setActiveModule("events")} 
+              onBack={() => setActiveModule("events")}
             />
           );
 
@@ -108,15 +111,20 @@ const App: React.FC = () => {
             <EventCreator
               mode="edit"
               eventData={selectedEvent}
+              onBack={() => setActiveModule("events")}
               onEventUpdated={(updatedEvent) => {
                 handleEventUpdated(updatedEvent);   // update state here
                 setActiveModule("events");          // go back to list
               }}
             />
           );
-
-
-
+        case "tickets":
+        return (
+          <TicketsManager
+            eventId={selectedEvent?.id}
+            onBack={() => setActiveModule("events")}
+          />
+        );
 
         case 'clubs':
           return user?.userType === 'super_admin' ? <ClubManager /> : <Dashboard />;

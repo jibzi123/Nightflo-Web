@@ -6,7 +6,8 @@ const AuthContext = createContext<any>(null);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<any>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // for login/logout actions
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true); //To check initial load
 
   // ✅ check if we have saved token on refresh
   useEffect(() => {
@@ -17,9 +18,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setToken(savedToken);
       setUser(JSON.parse(savedUser));
     }
+    setIsCheckingAuth(false);
   }, []);
 
-  const login = async (credentials: { email: string; password: string; isRememberMe?: boolean }) => {
+  const login = async (credentials: {
+    email: string;
+    password: string;
+    isRememberMe?: boolean;
+  }) => {
     setIsLoading(true);
     try {
       const response = await apiClient.login(credentials);
@@ -42,10 +48,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem("userData");
   };
 
-  const isAuthenticated = !!user; // ✅ expose this
+  const isAuthenticated = !!user;
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading, isAuthenticated }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        login,
+        logout,
+        isLoading,
+        isAuthenticated,
+        isCheckingAuth,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

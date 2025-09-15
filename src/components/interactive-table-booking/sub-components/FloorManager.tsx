@@ -1,12 +1,5 @@
 import React from "react";
-
-type Floor = {
-  id: string;
-  name: string;
-  backgroundImage?: string;
-  tables: { id: string }[];
-  pointsOfInterest: { id: string }[];
-};
+import { Floor } from "../types";
 
 type Position = {
   x: number;
@@ -48,7 +41,7 @@ const FloorManager: React.FC<FloorManagerProps> = ({
   return (
     <div>
       <div className="form-group">
-        <label className="form-label">Current Floor: {activeFloor.name}</label>
+        <label className="form-label">Current Floor: {activeFloor?.name}</label>
 
         <div className="file-upload">
           <input
@@ -66,7 +59,7 @@ const FloorManager: React.FC<FloorManagerProps> = ({
           </label>
         </div>
 
-        {activeFloor.backgroundImage && (
+        {activeFloor?.backgroundImage && (
           <div className="background-controls">
             <div className="form-group">
               <label className="form-label">Background Scale</label>
@@ -89,7 +82,7 @@ const FloorManager: React.FC<FloorManagerProps> = ({
                 <label className="form-label">Position X</label>
                 <input
                   type="number"
-                  className="form-input"
+                  className="form-input-field"
                   value={backgroundPosition.x}
                   onChange={(e) =>
                     setBackgroundPosition({
@@ -103,7 +96,7 @@ const FloorManager: React.FC<FloorManagerProps> = ({
                 <label className="form-label">Position Y</label>
                 <input
                   type="number"
-                  className="form-input"
+                  className="form-input-field"
                   value={backgroundPosition.y}
                   onChange={(e) =>
                     setBackgroundPosition({
@@ -135,13 +128,13 @@ const FloorManager: React.FC<FloorManagerProps> = ({
 
       <div className="form-group">
         <label className="form-label">Floor List</label>
-        {floors.map((floor) => (
+        {floors?.map((floor) => (
           <div key={floor.id} className="floor-item">
             <div className="customer-name">{floor.name}</div>
             <div className="reservation-details">
-              {floor.tables.length} tables, {floor.pointsOfInterest.length} POIs
+              {floor?.tables?.length} tables
             </div>
-            {floors.length > 1 && (
+            {floors?.length > 1 && (
               <button
                 className="btn-danger-small"
                 onClick={() => onDeleteFloor(floor.id)}
@@ -159,7 +152,7 @@ const FloorManager: React.FC<FloorManagerProps> = ({
           <div className="form-group">
             <input
               type="text"
-              className="form-input"
+              className="form-input-field"
               placeholder="Floor name"
               value={newFloorName}
               onChange={(e) => setNewFloorName(e.target.value)}

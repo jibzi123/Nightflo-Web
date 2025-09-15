@@ -1,21 +1,11 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { Table } from "../types";
 
 // --- Types ---
 export type TableCategory = "standard" | "vip" | "premium";
 export type TableStatus = "available" | "reserved" | "occupied";
 
-export interface Table {
-  id: string;
-  name: string;
-  category: TableCategory;
-  specialFeatures?: string;
-  price: number;
-  capacity: number;
-  width: number;
-  height: number;
-  status: TableStatus;
-}
-
+//
 export interface PointOfInterest {
   id: string;
   name: string;
@@ -25,13 +15,15 @@ export interface PointOfInterest {
 }
 
 export interface NewTableData {
-  name: string;
+  tableNumber: string;
   price: number | string;
   capacity: number | string;
-  category: TableCategory;
+  // tableType: TableCategory;
+  tableType: string;
   width: number | string;
   height: number | string;
-  specialFeatures?: string;
+  description?: string[];
+  tableCount: number;
 }
 
 export interface NewPoiData {
@@ -69,26 +61,82 @@ interface ElementPropertiesProps {
   newPoiData: NewPoiData;
   setNewPoiData: (d: NewPoiData) => void;
   handleAddPoi: () => void;
+  handleUpdateTable: () => void;
+  editableTable: any;
+  setEditableTable: any;
 }
 
 const TableElementProperties: React.FC<ElementPropertiesProps> = ({
   selectedElement,
   selectedTable,
-  selectedPoi,
+  // selectedPoi,
   updateSelectedTable,
-  updateSelectedPoi,
+  // updateSelectedPoi,
   handleDeleteSelected,
   newTableData,
   setNewTableData,
   handleAddTable,
-  newPoiData,
-  setNewPoiData,
-  handleAddPoi,
+  // newPoiData,
+  // setNewPoiData,
+  // handleAddPoi,
+  handleUpdateTable,
+  editableTable,
+  setEditableTable,
 }) => {
+  const [editTableErrors, setEditTableErrors] = useState<{
+    [key: string]: string;
+  }>({});
+  const [newTableErrors, setNewTableErrors] = useState<{
+    [key: string]: string;
+  }>({});
+
+  const validateEditableTable = (): boolean => {
+    const newErrors: { [key: string]: string } = {};
+    if (!editableTable?.tableNumber)
+      newErrors.tableNumber = "Table Name is required";
+    if (!editableTable?.tableType) newErrors.tableType = "Category is required";
+    if (!editableTable?.price) newErrors.price = "Required";
+    if (!editableTable?.capacity) newErrors.capacity = "Required";
+    if (!editableTable?.width) newErrors.width = "Required";
+    if (!editableTable?.height) newErrors.height = "Required";
+
+    setEditTableErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleUpdateClick = () => {
+    if (validateEditableTable()) {
+      handleUpdateTable();
+    }
+  };
+
+  const validateNewTable = (): boolean => {
+    const tableErrors: { [key: string]: string } = {};
+    if (!newTableData.tableNumber)
+      tableErrors.tableNumber = "Table Name is required";
+    if (!newTableData.tableType) tableErrors.tableType = "Category is required";
+    if (!newTableData.price) tableErrors.price = "Required";
+    if (!newTableData.capacity) tableErrors.capacity = "Required";
+    if (!newTableData.width) tableErrors.width = "Required";
+    if (!newTableData.height) tableErrors.height = "Required";
+
+    setNewTableErrors(tableErrors);
+    return Object.keys(tableErrors).length === 0;
+  };
+
+  const handleAddClick = () => {
+    if (validateNewTable()) {
+      handleAddTable();
+    }
+  };
+  useEffect(() => {
+    setNewTableErrors({});
+    setEditTableErrors({});
+  }, [selectedElement, selectedTable]);
   return (
     <div>
       {/* --- Selected element properties (Table or POI) --- */}
-      {selectedElement && (selectedTable || selectedPoi) && (
+      {selectedElement && selectedTable && (
         <div className="element-properties">
           <div className="property-title">
             {selectedTable ? "Table Properties" : "Point of Interest"}
@@ -100,38 +148,48 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                 <label className="form-label">Table Name</label>
                 <input
                   type="text"
-                  className="form-input"
-                  value={selectedTable.name}
+                  className="form-input-field"
+                  value={editableTable?.tableNumber || ""}
                   onChange={(e) =>
-                    updateSelectedTable({ name: e.target.value })
+                    setEditableTable((prev) =>
+                      prev ? { ...prev, tableNumber: e.target.value } : prev
+                    )
                   }
                 />
+                {editTableErrors.tableNumber && (
+                  <div className="error">{editTableErrors.tableNumber}</div>
+                )}
               </div>
 
               <div className="form-group">
                 <label className="form-label">Category</label>
                 <select
-                  className="form-select"
-                  value={selectedTable.category}
+                  className="form-select-field"
+                  value={editableTable?.tableType || "standard"}
                   onChange={(e) =>
-                    updateSelectedTable({
-                      category: e.target.value as Table["category"],
-                    })
+                    setEditableTable((prev) =>
+                      prev ? { ...prev, tableType: e.target.value } : prev
+                    )
                   }
                 >
-                  <option value="standard">🪑 Standard</option>
-                  <option value="vip">👑 VIP</option>
-                  <option value="premium">⭐ Premium</option>
+                  <option value="standard">Standard</option>
+                  <option value="vip">VIP</option>
+                  <option value="premium">Premium</option>
                 </select>
+                {editTableErrors.tableType && (
+                  <div className="error">{editTableErrors.tableType}</div>
+                )}
               </div>
 
               <div className="form-group">
                 <label className="form-label">Special Features</label>
                 <textarea
                   className="form-textarea"
-                  value={selectedTable.specialFeatures || ""}
+                  value={editableTable?.description || ""}
                   onChange={(e) =>
-                    updateSelectedTable({ specialFeatures: e.target.value })
+                    setEditableTable((prev) =>
+                      prev ? { ...prev, description: e.target.value } : prev
+                    )
                   }
                   placeholder="Describe special features, location benefits, etc."
                   rows={3}
@@ -143,23 +201,33 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                   <label className="form-label">Price (Dh)</label>
                   <input
                     type="number"
-                    className="form-input"
-                    value={selectedTable.price}
+                    className="form-input-field"
+                    value={editableTable?.price || ""}
                     onChange={(e) =>
-                      updateSelectedTable({ price: Number(e.target.value) })
+                      setEditableTable((prev) =>
+                        prev ? { ...prev, price: e.target.value } : prev
+                      )
                     }
                   />
+                  {editTableErrors.price && (
+                    <div className="error">{editTableErrors.price}</div>
+                  )}
                 </div>
                 <div className="form-group">
                   <label className="form-label">Capacity</label>
                   <input
                     type="number"
-                    className="form-input"
-                    value={selectedTable.capacity}
+                    className="form-input-field"
+                    value={editableTable?.capacity || ""}
                     onChange={(e) =>
-                      updateSelectedTable({ capacity: Number(e.target.value) })
+                      setEditableTable((prev) =>
+                        prev ? { ...prev, capacity: e.target.value } : prev
+                      )
                     }
                   />
+                  {editTableErrors.capacity && (
+                    <div className="error">{editTableErrors.capacity}</div>
+                  )}
                 </div>
               </div>
 
@@ -168,33 +236,39 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                   <label className="form-label">Width</label>
                   <input
                     type="number"
-                    className="form-input"
-                    value={selectedTable.width}
+                    className="form-input-field"
+                    value={editableTable.width}
                     onChange={(e) =>
-                      updateSelectedTable({ width: Number(e.target.value) })
+                      setEditableTable({ width: Number(e.target.value) })
                     }
                   />
+                  {editTableErrors.width && (
+                    <div className="error">{editTableErrors.width}</div>
+                  )}
                 </div>
                 <div className="form-group">
                   <label className="form-label">Height</label>
                   <input
                     type="number"
-                    className="form-input"
-                    value={selectedTable.height}
+                    className="form-input-field"
+                    value={editableTable.height}
                     onChange={(e) =>
-                      updateSelectedTable({ height: Number(e.target.value) })
+                      setEditableTable({ height: Number(e.target.value) })
                     }
                   />
+                  {editTableErrors.height && (
+                    <div className="error">{editTableErrors.height}</div>
+                  )}
                 </div>
               </div>
 
               <div className="form-group">
                 <label className="form-label">Status</label>
                 <select
-                  className="form-select"
-                  value={selectedTable.status}
+                  className="form-select-field"
+                  value={editableTable.status}
                   onChange={(e) =>
-                    updateSelectedTable({
+                    setEditableTable({
                       status: e.target.value as Table["status"],
                     })
                   }
@@ -203,17 +277,20 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                   <option value="reserved">Reserved</option>
                   <option value="occupied">Occupied</option>
                 </select>
+                {editTableErrors.status && (
+                  <div className="error">{editTableErrors.status}</div>
+                )}
               </div>
             </>
           )}
 
-          {selectedPoi && (
+          {/* {selectedPoi && (
             <>
               <div className="form-group">
                 <label className="form-label">Name</label>
                 <input
                   type="text"
-                  className="form-input"
+                  className="form-input-field"
                   value={selectedPoi.name}
                   onChange={(e) => updateSelectedPoi({ name: e.target.value })}
                 />
@@ -222,7 +299,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
               <div className="form-group">
                 <label className="form-label">Type</label>
                 <select
-                  className="form-select"
+                  className="form-select-field"
                   value={selectedPoi.type}
                   onChange={(e) =>
                     updateSelectedPoi({
@@ -244,7 +321,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                   <label className="form-label">Width</label>
                   <input
                     type="number"
-                    className="form-input"
+                    className="form-input-field"
                     value={selectedPoi.width}
                     onChange={(e) =>
                       updateSelectedPoi({ width: Number(e.target.value) })
@@ -255,7 +332,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                   <label className="form-label">Height</label>
                   <input
                     type="number"
-                    className="form-input"
+                    className="form-input-field"
                     value={selectedPoi.height}
                     onChange={(e) =>
                       updateSelectedPoi({ height: Number(e.target.value) })
@@ -264,11 +341,15 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                 </div>
               </div>
             </>
-          )}
-
-          <button className="btn-danger" onClick={handleDeleteSelected}>
-            Delete Selected
-          </button>
+          )} */}
+          <div className="action-btns">
+            <button className="btn-danger" onClick={handleDeleteSelected}>
+              Delete
+            </button>
+            <button className="btn-primary" onClick={handleUpdateClick}>
+              Update
+            </button>
+          </div>
         </div>
       )}
 
@@ -280,19 +361,25 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
             <label className="form-label">Table Name</label>
             <input
               type="text"
-              className="form-input"
+              className="form-input-field"
               placeholder="Table name"
-              value={newTableData.name}
+              value={newTableData.tableNumber}
               onChange={(e) =>
-                setNewTableData({ ...newTableData, name: e.target.value })
+                setNewTableData({
+                  ...newTableData,
+                  tableNumber: e.target.value,
+                })
               }
             />
+            {newTableErrors.tableNumber && (
+              <div className="error">{newTableErrors.tableNumber}</div>
+            )}
           </div>
           <div className="form-group">
             <label className="form-label">Price (Dh)</label>
             <input
               type="number"
-              className="form-input"
+              className="form-input-field"
               placeholder="Price"
               value={newTableData.price}
               onChange={(e) =>
@@ -302,6 +389,9 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                 })
               }
             />
+            {newTableErrors.price && (
+              <div className="error">{newTableErrors.price}</div>
+            )}
           </div>
         </div>
 
@@ -310,7 +400,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
             <label className="form-label">Capacity</label>
             <input
               type="number"
-              className="form-input"
+              className="form-input-field"
               placeholder="Capacity"
               value={newTableData.capacity}
               onChange={(e) =>
@@ -320,23 +410,29 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                 })
               }
             />
+            {newTableErrors.capacity && (
+              <div className="error">{newTableErrors.capacity}</div>
+            )}
           </div>
           <div className="form-group">
             <label className="form-label">Category</label>
             <select
-              className="form-select"
-              value={newTableData.category}
+              className="form-select-field"
+              value={newTableData.tableType}
               onChange={(e) =>
                 setNewTableData({
                   ...newTableData,
-                  category: e.target.value as Table["category"],
+                  tableType: e.target.value,
                 })
               }
             >
-              <option value="standard">🪑 Standard</option>
-              <option value="vip">👑 VIP</option>
-              <option value="premium">⭐ Premium</option>
+              <option value="standard">Standard</option>
+              <option value="vip">VIP</option>
+              <option value="premium">Premium</option>
             </select>
+            {newTableErrors.tableType && (
+              <div className="error">{newTableErrors.tableType}</div>
+            )}
           </div>
         </div>
 
@@ -345,7 +441,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
             <label className="form-label">Width</label>
             <input
               type="number"
-              className="form-input"
+              className="form-input-field"
               placeholder="Width"
               value={newTableData.width}
               onChange={(e) =>
@@ -355,12 +451,15 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                 })
               }
             />
+            {newTableErrors.width && (
+              <div className="error">{newTableErrors.width}</div>
+            )}
           </div>
           <div className="form-group">
             <label className="form-label">Height</label>
             <input
               type="number"
-              className="form-input"
+              className="form-input-field"
               placeholder="Height"
               value={newTableData.height}
               onChange={(e) =>
@@ -370,6 +469,9 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                 })
               }
             />
+            {newTableErrors.height && (
+              <div className="error">{newTableErrors.height}</div>
+            )}
           </div>
         </div>
 
@@ -378,31 +480,31 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
           <textarea
             className="form-textarea"
             placeholder="Describe special features, location benefits, etc."
-            value={newTableData.specialFeatures || ""}
+            value={newTableData.description || ""}
             onChange={(e) =>
               setNewTableData({
                 ...newTableData,
-                specialFeatures: e.target.value,
+                description: e.target.value,
               })
             }
             rows={2}
           />
         </div>
 
-        <button className="btn-primary" onClick={handleAddTable}>
+        <button className="btn-primary" onClick={handleAddClick}>
           Add Table
         </button>
       </div>
 
       {/* --- Add POI --- */}
-      <div className="form-group">
+      {/* <div className="form-group">
         <label className="form-label">Add Point of Interest</label>
         <div className="form-row">
           <div className="form-group">
             <label className="form-label">POI Name</label>
             <input
               type="text"
-              className="form-input"
+              className="form-input-field"
               placeholder="POI name"
               value={newPoiData.name}
               onChange={(e) =>
@@ -413,7 +515,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
           <div className="form-group">
             <label className="form-label">Type</label>
             <select
-              className="form-select"
+              className="form-select-field"
               value={newPoiData.type}
               onChange={(e) =>
                 setNewPoiData({
@@ -435,7 +537,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
         <button className="btn-primary" onClick={handleAddPoi}>
           Add POI
         </button>
-      </div>
+      </div> */}
     </div>
   );
 };

@@ -47,7 +47,7 @@ const ClientBookingPanel: React.FC<ClientBookingPanelProps> = ({
           <label className="form-label">Select Date</label>
           <input
             type="date"
-            className="form-input"
+            className="form-input-field"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
             min={new Date().toISOString().split("T")[0]}
@@ -57,7 +57,7 @@ const ClientBookingPanel: React.FC<ClientBookingPanelProps> = ({
         <div className="form-group">
           <label className="form-label">Time Slot</label>
           <select
-            className="form-select"
+            className="form-select-field"
             value={selectedTimeSlot}
             onChange={(e) => setSelectedTimeSlot(e.target.value)}
           >
@@ -75,7 +75,7 @@ const ClientBookingPanel: React.FC<ClientBookingPanelProps> = ({
           <label className="form-label">Number of Guests</label>
           <input
             type="number"
-            className="form-input"
+            className="form-input-field"
             value={bookingGuests}
             onChange={(e) => setBookingGuests(parseInt(e.target.value))}
             min="1"
@@ -87,7 +87,7 @@ const ClientBookingPanel: React.FC<ClientBookingPanelProps> = ({
           <label className="form-label">Your Name</label>
           <input
             type="text"
-            className="form-input"
+            className="form-input-field"
             value={customerInfo.name}
             onChange={(e) =>
               setCustomerInfo({ ...customerInfo, name: e.target.value })
@@ -100,7 +100,7 @@ const ClientBookingPanel: React.FC<ClientBookingPanelProps> = ({
           <label className="form-label">Phone Number</label>
           <input
             type="tel"
-            className="form-input"
+            className="form-input-field"
             value={customerInfo.phone}
             onChange={(e) =>
               setCustomerInfo({ ...customerInfo, phone: e.target.value })

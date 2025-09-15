@@ -1,4 +1,8 @@
 import axiosInstance from "../axios";
+import {
+  ApiResponse,
+  Floor,
+} from "../../components/interactive-table-booking/types";
 
 interface FLoorBody {
   name: String;
@@ -10,17 +14,16 @@ interface UpdateFloorParam {
 }
 
 export const CreateFloor = (param: FLoorBody) => {
-  return axiosInstance.post(`/floor/create`, param);
+  return axiosInstance.post<ApiResponse<Floor[]>>(`/floor/create`, param);
 };
 
-export const GetFloorById = (floorID: Number) => {
+export const GetFloorById = (floorID: String) => {
   return axiosInstance.get(`/floor/${floorID}`);
 };
 
-export const GetFloorByClub = (clubID: String) => {
-  return axiosInstance.get(`/floor/getByClub/${clubID}`);
+export const GetFloorByClub = (clubId: string) => {
+  return axiosInstance.get<ApiResponse<Floor[]>>(`/floor/getByClub/${clubId}`);
 };
-
 export const GetActiveFloorByClub = (clubID: Number) => {
   return axiosInstance.get(`/floor/getActiveByClub/${clubID}`);
 };

@@ -1,25 +1,18 @@
-interface Table {
-  tableNumber: String;
-  price: String;
-  capacity: Number;
-  // "floorId": "",
-  tableCount: Number;
-  description: [String];
-  clubId: String;
-  // "eventId": String,
-  tableType: String;
-}
+import {
+  ApiResponse,
+  Table,
+} from "../../components/interactive-table-booking/types";
 import axiosInstance from "../axios";
 
 export const CreateTable = (param: Table) => {
-  return axiosInstance.post(`/tables/create`, param);
+  return axiosInstance.post<ApiResponse<Table>>(`/tables/create`, param);
 };
 
 export const GetTable = (tableId: Number) => {
   return axiosInstance.get(`/tables/getTable?tableId=${tableId}`);
 };
-export const UpdateTable = () => {
-  return axiosInstance.post(`/tables/update}`);
+export const UpdateTable = (params: any) => {
+  return axiosInstance.post(`/tables/update`, params);
 };
 
 export const GetTableTimeSlots = (tableId: Number, date: String) => {
@@ -32,8 +25,10 @@ export const GetTableByEvent = (eventId: String) => {
   return axiosInstance.get(`/tables/getAllByEvent?eventId=${eventId}`);
 };
 
-export const GetTableByClub = (clubID: Number) => {
-  return axiosInstance.get(`/tables/club?clubId=${clubID}`);
+export const GetTableByClub = (clubID: string) => {
+  return axiosInstance.get<ApiResponse<Table[]>>(
+    `/tables/club?clubId=${clubID}`
+  );
 };
 
 export const GetTableCountByFloor = (floorID: number) => {
@@ -42,6 +37,6 @@ export const GetTableCountByFloor = (floorID: number) => {
   );
 };
 
-export const DeleteTable = (tableID: number) => {
-  return axiosInstance.delete(`/tables/delete/${tableID}`);
+export const DeleteTable = (params: any) => {
+  return axiosInstance.delete(`/tables/delete`, { data: params });
 };

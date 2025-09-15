@@ -1,5 +1,5 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { Floor, Table, PointOfInterest } from './../types';
+import React, { useRef, useEffect, useState, useCallback } from "react";
+import { Floor, Table, PointOfInterest } from "./../types";
 
 interface FloorCanvasProps {
   floor: Floor;
@@ -8,7 +8,7 @@ interface FloorCanvasProps {
   onElementSelect: (id: string | null) => void;
   backgroundScale: number;
   backgroundPosition: { x: number; y: number };
-  viewMode: 'admin' | 'client';
+  viewMode: "admin" | "client";
   onTableBooking: (tableId: string) => void;
 }
 
@@ -20,7 +20,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
   backgroundScale,
   backgroundPosition,
   viewMode,
-  onTableBooking
+  onTableBooking,
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -30,136 +30,162 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
   const [initialSize, setInitialSize] = useState({ width: 0, height: 0 });
   const [initialMousePos, setInitialMousePos] = useState({ x: 0, y: 0 });
 
-  const handleElementMouseDown = useCallback((
-    e: React.MouseEvent,
-    elementId: string,
-    elementType: 'table' | 'poi'
-  ) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (viewMode === 'client' && elementType === 'table') {
-      onElementSelect(elementId);
-      return;
-    }
-    
-    if (viewMode === 'client') return;
-    
-    const target = e.currentTarget as HTMLElement;
-    const rect = target.getBoundingClientRect();
-    const canvasRect = canvasRef.current?.getBoundingClientRect();
-    
-    if (!canvasRect) return;
-    
-    setDragOffset({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    });
-    
-    setIsDragging(true);
-    onElementSelect(elementId);
-  }, [onElementSelect]);
+  const handleElementMouseDown = useCallback(
+    (e: React.MouseEvent, elementId: string, elementType: "table" | "poi") => {
+      e.preventDefault();
+      e.stopPropagation();
 
-  const handleResizeStart = useCallback((e: React.MouseEvent, handle: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!selectedElement) return;
-    
-    const element = [...floor.tables, ...floor.pointsOfInterest].find(el => el.id === selectedElement);
-    if (!element) return;
-    
-    setIsResizing(true);
-    setResizeHandle(handle);
-    setInitialSize({ width: element.width, height: element.height });
-    setInitialMousePos({ x: e.clientX, y: e.clientY });
-  }, [selectedElement, floor]);
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    debugger
-    if (viewMode === 'client') return;
-    
-    if (!selectedElement || !canvasRef.current) return;
-    
-    if (isResizing && resizeHandle) {
-      const deltaX = e.clientX - initialMousePos.x;
-      const deltaY = e.clientY - initialMousePos.y;
-      
-      let newWidth = initialSize.width;
-      let newHeight = initialSize.height;
-      
-      switch (resizeHandle) {
-        case 'se':
-          newWidth = Math.max(30, initialSize.width + deltaX);
-          newHeight = Math.max(20, initialSize.height + deltaY);
-          break;
-        case 'sw':
-          newWidth = Math.max(30, initialSize.width - deltaX);
-          newHeight = Math.max(20, initialSize.height + deltaY);
-          break;
-        case 'ne':
-          newWidth = Math.max(30, initialSize.width + deltaX);
-          newHeight = Math.max(20, initialSize.height - deltaY);
-          break;
-        case 'nw':
-          newWidth = Math.max(30, initialSize.width - deltaX);
-          newHeight = Math.max(20, initialSize.height - deltaY);
-          break;
+      if (viewMode === "client" && elementType === "table") {
+        onElementSelect(elementId);
+        return;
       }
-      
+
+      if (viewMode === "client") return;
+
+      const target = e.currentTarget as HTMLElement;
+      const rect = target.getBoundingClientRect();
+      const canvasRect = canvasRef.current?.getBoundingClientRect();
+
+      if (!canvasRect) return;
+
+      setDragOffset({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+
+      setIsDragging(true);
+      onElementSelect(elementId);
+    },
+    [onElementSelect]
+  );
+
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent, handle: string) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (!selectedElement) return;
+
+      const element = [...floor?.tables].find(
+        (el) => el.id === selectedElement
+      );
+      if (!element) return;
+
+      setIsResizing(true);
+      setResizeHandle(handle);
+      setInitialSize({ width: element.width, height: element.height });
+      setInitialMousePos({ x: e.clientX, y: e.clientY });
+    },
+    [selectedElement, floor]
+  );
+
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (viewMode === "client") return;
+
+      if (!selectedElement || !canvasRef.current) return;
+
+      if (isResizing && resizeHandle) {
+        const deltaX = e.clientX - initialMousePos.x;
+        const deltaY = e.clientY - initialMousePos.y;
+
+        let newWidth = initialSize.width;
+        let newHeight = initialSize.height;
+
+        switch (resizeHandle) {
+          case "se":
+            newWidth = Math.max(30, initialSize.width + deltaX);
+            newHeight = Math.max(20, initialSize.height + deltaY);
+            break;
+          case "sw":
+            newWidth = Math.max(30, initialSize.width - deltaX);
+            newHeight = Math.max(20, initialSize.height + deltaY);
+            break;
+          case "ne":
+            newWidth = Math.max(30, initialSize.width + deltaX);
+            newHeight = Math.max(20, initialSize.height - deltaY);
+            break;
+          case "nw":
+            newWidth = Math.max(30, initialSize.width - deltaX);
+            newHeight = Math.max(20, initialSize.height - deltaY);
+            break;
+        }
+
+        const updatedFloor = { ...floor };
+        const tableIndex = updatedFloor.tables.findIndex(
+          (t) => t.id === selectedElement
+        );
+        // const poiIndex = updatedFloor.pointsOfInterest.findIndex(
+        //   (p) => p.id === selectedElement
+        // );
+
+        if (tableIndex >= 0) {
+          updatedFloor.tables[tableIndex] = {
+            ...updatedFloor.tables[tableIndex],
+            width: newWidth,
+            height: newHeight,
+          };
+        }
+        //  else if (poiIndex >= 0) {
+        //   updatedFloor.pointsOfInterest[poiIndex] = {
+        //     ...updatedFloor.pointsOfInterest[poiIndex],
+        //     width: newWidth,
+        //     height: newHeight,
+        //   };
+        // }
+
+        onFloorUpdate(updatedFloor);
+        return;
+      }
+
+      if (!isDragging) return;
+
+      const canvasRect = canvasRef.current.getBoundingClientRect();
+      const newX = e.clientX - canvasRect.left - dragOffset.x;
+      const newY = e.clientY - canvasRect.top - dragOffset.y;
+
+      // Snap to grid
+      const gridSize = 10;
+      const snappedX = Math.round(newX / gridSize) * gridSize;
+      const snappedY = Math.round(newY / gridSize) * gridSize;
+
       const updatedFloor = { ...floor };
-      const tableIndex = updatedFloor.tables.findIndex(t => t.id === selectedElement);
-      const poiIndex = updatedFloor.pointsOfInterest.findIndex(p => p.id === selectedElement);
-      
+      const tableIndex = updatedFloor.tables.findIndex(
+        (t) => t.id === selectedElement
+      );
+      // const poiIndex = updatedFloor.pointsOfInterest.findIndex(
+      //   (p) => p.id === selectedElement
+      // );
+
       if (tableIndex >= 0) {
         updatedFloor.tables[tableIndex] = {
           ...updatedFloor.tables[tableIndex],
-          width: newWidth,
-          height: newHeight
-        };
-      } else if (poiIndex >= 0) {
-        updatedFloor.pointsOfInterest[poiIndex] = {
-          ...updatedFloor.pointsOfInterest[poiIndex],
-          width: newWidth,
-          height: newHeight
+          x: Math.max(0, snappedX),
+          y: Math.max(0, snappedY),
         };
       }
-      
+      // else if (poiIndex >= 0) {
+      //   updatedFloor.pointsOfInterest[poiIndex] = {
+      //     ...updatedFloor.pointsOfInterest[poiIndex],
+      //     x: Math.max(0, snappedX),
+      //     y: Math.max(0, snappedY),
+      //   };
+      // }
+
       onFloorUpdate(updatedFloor);
-      return;
-    }
-    
-    if (!isDragging) return;
-    
-    const canvasRect = canvasRef.current.getBoundingClientRect();
-    const newX = e.clientX - canvasRect.left - dragOffset.x;
-    const newY = e.clientY - canvasRect.top - dragOffset.y;
-    
-    // Snap to grid
-    const gridSize = 10;
-    const snappedX = Math.round(newX / gridSize) * gridSize;
-    const snappedY = Math.round(newY / gridSize) * gridSize;
-    
-    const updatedFloor = { ...floor };
-    const tableIndex = updatedFloor.tables.findIndex(t => t.id === selectedElement);
-    const poiIndex = updatedFloor.pointsOfInterest.findIndex(p => p.id === selectedElement);
-    
-    if (tableIndex >= 0) {
-      updatedFloor.tables[tableIndex] = {
-        ...updatedFloor.tables[tableIndex],
-        x: Math.max(0, snappedX),
-        y: Math.max(0, snappedY)
-      };
-    } else if (poiIndex >= 0) {
-      updatedFloor.pointsOfInterest[poiIndex] = {
-        ...updatedFloor.pointsOfInterest[poiIndex],
-        x: Math.max(0, snappedX),
-        y: Math.max(0, snappedY)
-      };
-    }
-    
-    onFloorUpdate(updatedFloor);
-  }, [isDragging, isResizing, selectedElement, floor, onFloorUpdate, dragOffset, resizeHandle, initialSize, initialMousePos]);
+    },
+    [
+      isDragging,
+      isResizing,
+      selectedElement,
+      floor,
+      onFloorUpdate,
+      dragOffset,
+      resizeHandle,
+      initialSize,
+      initialMousePos,
+    ]
+  );
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -167,27 +193,33 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
     setResizeHandle(null);
   }, []);
 
-  const handleCanvasClick = useCallback((e: React.MouseEvent) => {
-    if (e.target === canvasRef.current) {
-      onElementSelect(null);
-    }
-  }, [onElementSelect]);
+  const handleCanvasClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.target === canvasRef.current) {
+        onElementSelect(null);
+      }
+    },
+    [onElementSelect]
+  );
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'vip': return '👑';
-      case 'premium': return '⭐';
-      default: return '🪑';
+      case "vip":
+        return "👑";
+      case "premium":
+        return "⭐";
+      default:
+        return "🪑";
     }
   };
   useEffect(() => {
     if (isDragging || isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+
       return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
       };
     }
   }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
@@ -199,22 +231,24 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
         className="canvas"
         onClick={handleCanvasClick}
         style={{
-          backgroundImage: floor.backgroundImage ? `url(${floor.backgroundImage})` : 'none',
+          backgroundImage: floor?.backgroundImage
+            ? `url(${floor.backgroundImage})`
+            : "none",
           backgroundSize: `${backgroundScale * 100}%`,
           backgroundPosition: `${backgroundPosition.x}px ${backgroundPosition.y}px`,
-          backgroundRepeat: 'no-repeat'
+          backgroundRepeat: "no-repeat",
         }}
       >
         {/* Grid overlay */}
         <svg
           style={{
-            position: 'absolute',
+            position: "absolute",
             top: 0,
             left: 0,
-            width: '100%',
-            height: '100%',
-            pointerEvents: 'none',
-            opacity: 0.1
+            width: "100%",
+            height: "100%",
+            pointerEvents: "none",
+            opacity: 0.1,
           }}
         >
           <defs>
@@ -236,96 +270,102 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
         </svg>
 
         {/* Tables */}
-        {floor.tables.map((table) => (
+        {floor?.tables?.map((table) => (
           <div
             key={table.id}
             className={`table-element ${table.status} ${
-              selectedElement === table.id ? 'selected' : ''
-            } ${table.category} ${viewMode === 'client' ? 'client-mode' : ''}`}
+              selectedElement === table.id ? "selected" : ""
+            } ${table.tableType} ${viewMode === "client" ? "client-mode" : ""}`}
             style={{
               left: table.x,
               top: table.y,
               width: table.width,
               height: table.height,
-              transform: `rotate(${table.rotation}deg)`
+              transform: `rotate(${table.rotation}deg)`,
             }}
-            onMouseDown={(e) => handleElementMouseDown(e, table.id, 'table')}
-            title={viewMode === 'client' && table.specialFeatures ? table.specialFeatures : undefined}
+            onMouseDown={(e) => handleElementMouseDown(e, table?.id, "table")}
+            title={
+              viewMode === "client" && table.description[0]
+                ? table.description[0]
+                : undefined
+            }
           >
             <div className="table-content">
               <div className="table-header">
-                <span className="table-category-icon">{getCategoryIcon(table.category)}</span>
-                <span className="table-name">{table.name}</span>
+                <span className="table-category-icon">
+                  {getCategoryIcon(table.tableType)}
+                </span>
+                <span className="table-name">{table.tableNumber}</span>
               </div>
               <div className="table-details">
                 <div className="table-capacity">👥 {table.capacity}</div>
                 <div className="table-price">Dh {table.price}</div>
               </div>
             </div>
-            
-            {selectedElement === table.id && viewMode === 'admin' && (
+
+            {selectedElement === table.id && viewMode === "admin" && (
               <>
                 <div
                   className="resize-handle nw"
-                  onMouseDown={(e) => handleResizeStart(e, 'nw')}
+                  onMouseDown={(e) => handleResizeStart(e, "nw")}
                 />
                 <div
                   className="resize-handle ne"
-                  onMouseDown={(e) => handleResizeStart(e, 'ne')}
+                  onMouseDown={(e) => handleResizeStart(e, "ne")}
                 />
                 <div
                   className="resize-handle sw"
-                  onMouseDown={(e) => handleResizeStart(e, 'sw')}
+                  onMouseDown={(e) => handleResizeStart(e, "sw")}
                 />
                 <div
                   className="resize-handle se"
-                  onMouseDown={(e) => handleResizeStart(e, 'se')}
+                  onMouseDown={(e) => handleResizeStart(e, "se")}
                 />
               </>
             )}
           </div>
         ))}
 
-        {/* Points of Interest */}
-        {floor.pointsOfInterest.map((poi) => (
+        {/* Points of Interest
+        {floor?.pointsOfInterest?.map((poi) => (
           <div
             key={poi.id}
             className={`poi-element ${
-              selectedElement === poi.id ? 'selected' : ''
+              selectedElement === poi.id ? "selected" : ""
             }`}
             style={{
               left: poi.x,
               top: poi.y,
               width: poi.width,
               height: poi.height,
-              transform: `rotate(${poi.rotation}deg)`
+              transform: `rotate(${poi.rotation}deg)`,
             }}
-            onMouseDown={(e) => handleElementMouseDown(e, poi.id, 'poi')}
+            onMouseDown={(e) => handleElementMouseDown(e, poi.id, "poi")}
           >
             <span>{poi.name}</span>
-            
-            {selectedElement === poi.id && viewMode === 'admin' && (
+
+            {selectedElement === poi.id && viewMode === "admin" && (
               <>
                 <div
                   className="resize-handle nw"
-                  onMouseDown={(e) => handleResizeStart(e, 'nw')}
+                  onMouseDown={(e) => handleResizeStart(e, "nw")}
                 />
                 <div
                   className="resize-handle ne"
-                  onMouseDown={(e) => handleResizeStart(e, 'ne')}
+                  onMouseDown={(e) => handleResizeStart(e, "ne")}
                 />
                 <div
                   className="resize-handle sw"
-                  onMouseDown={(e) => handleResizeStart(e, 'sw')}
+                  onMouseDown={(e) => handleResizeStart(e, "sw")}
                 />
                 <div
                   className="resize-handle se"
-                  onMouseDown={(e) => handleResizeStart(e, 'se')}
+                  onMouseDown={(e) => handleResizeStart(e, "se")}
                 />
               </>
             )}
           </div>
-        ))}
+        ))} */}
       </div>
     </div>
   );

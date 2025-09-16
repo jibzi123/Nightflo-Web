@@ -163,12 +163,13 @@ export const apiClient = {
 
   async deleteTicket(ticketId: string) {
     const token = localStorage.getItem("authToken");
-    const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}`, {
-      method: "DELETE",
+    const response = await fetch(`${API_BASE_URL}/tickets/delete`, {
+      method: "DELETE", // ✅ keep DELETE
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
+      body: JSON.stringify({ ticketId }), // ✅ send JSON body
     });
 
     if (!response.ok) {
@@ -178,6 +179,7 @@ export const apiClient = {
 
     return response.json();
   },
+
 
   async updateTicket(ticketData: any) {
     const token = localStorage.getItem("authToken");

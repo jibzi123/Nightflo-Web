@@ -421,17 +421,31 @@ const EventsManager: React.FC<EventsManagerProps> = ({
   };
 
 
-  const handleDeleteTicket = (ticketId: string) => {
+  const handleDeleteTicket = async (ticket: TicketTier) => {
     if (!selectedEvent) return;
-    
-    if (confirm('Are you sure you want to delete this ticket tier?')) {
-      const updatedEvent = {
-        ...selectedEvent,
-        ticketTiers: selectedEvent.ticketTiers.filter(t => t.id !== ticketId)
-      };
-      
-      setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
-      setSelectedEvent(updatedEvent);
+
+    if (confirm("Are you sure you want to delete this ticket tier?")) {
+      try {
+        await apiClient.deleteTicket(ticket.id); // ✅ just pass ticketId
+        setSelectedTicket(ticket);
+        toast.success("Ticket has been deleted.");
+
+        // update event tickets list
+        const updatedEvent = {
+          ...selectedEvent,
+          ticketTiers: selectedEvent.ticketTiers.filter((t) => t.id !== ticket.id),
+        };
+
+        setUpcomingEvents((prev) =>
+          prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e))
+        );
+        setSelectedEvent(updatedEvent);
+      } catch (err) {
+        toast.error("Failed to delete ticket");
+        console.error(err);
+      } finally {
+        setLoadingDeleteId(null);
+      }
     }
   };
 
@@ -762,7 +776,7 @@ const EventsManager: React.FC<EventsManagerProps> = ({
                   <button>Staff</button>
                   <button>Edit</button>
                 </div> */}
-                <div className="event-actions">
+                <div className="event-actions" style={{ display: 'none' }}>
                   <button className="event-action-button" onClick={() => handleViewSummary(event)}>
                     <Eye size={14} />
                     Summary
@@ -780,7 +794,7 @@ const EventsManager: React.FC<EventsManagerProps> = ({
                     Tables
                   </button>
                 </div>
-                <div className="event-actions" style={{ marginTop: '8px' }}>
+                <div className="event-actions" style={{ marginTop: '8px', display: 'none' }}>
                   <button className="event-action-button" onClick={() => handleManageStaff(event)}>
                     <Users size={14} />
                     Staff
@@ -896,7 +910,7 @@ const EventsManager: React.FC<EventsManagerProps> = ({
                             <button 
                               className="btn btn-danger" 
                               style={{ padding: '4px 8px', fontSize: '11px' }}
-                              onClick={() => handleDeleteTicket(ticket.id)}
+                              onClick={() => handleDeleteTicket(ticket)}
                             >
                               <Trash2 size={10} /> Delete
                             </button>

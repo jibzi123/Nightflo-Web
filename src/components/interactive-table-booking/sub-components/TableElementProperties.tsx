@@ -94,11 +94,14 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
     const newErrors: { [key: string]: string } = {};
     if (!editableTable?.tableNumber)
       newErrors.tableNumber = "Table Name is required";
-    if (!editableTable?.tableType) newErrors.tableType = "Category is required";
-    if (!editableTable?.price) newErrors.price = "Required";
-    if (!editableTable?.capacity) newErrors.capacity = "Required";
-    if (!editableTable?.width) newErrors.width = "Required";
-    if (!editableTable?.height) newErrors.height = "Required";
+    if (!editableTable?.tableType)
+      newErrors.tableType = "Table type is required";
+    if (!editableTable?.price) newErrors.price = "Price is Required";
+    if (!editableTable?.capacity) newErrors.capacity = "Capacity is Required";
+    if (!editableTable?.width) newErrors.width = "Width is Required";
+    if (!editableTable?.height) newErrors.height = "Height is Required";
+    if (!editableTable?.description)
+      newErrors.description = "Description is Required";
 
     setEditTableErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -114,11 +117,14 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
     const tableErrors: { [key: string]: string } = {};
     if (!newTableData.tableNumber)
       tableErrors.tableNumber = "Table Name is required";
-    if (!newTableData.tableType) tableErrors.tableType = "Category is required";
-    if (!newTableData.price) tableErrors.price = "Required";
-    if (!newTableData.capacity) tableErrors.capacity = "Required";
-    if (!newTableData.width) tableErrors.width = "Required";
-    if (!newTableData.height) tableErrors.height = "Required";
+    if (!newTableData.tableType)
+      tableErrors.tableType = "Table type is required";
+    if (!newTableData.price) tableErrors.price = "Price is Required";
+    if (!newTableData.capacity) tableErrors.capacity = "Capacity is Required";
+    if (!newTableData.width) tableErrors.width = "Width is Required";
+    if (!newTableData.height) tableErrors.height = "Height is Required";
+    if (!newTableData?.description)
+      tableErrors.description = "Description is Required";
 
     setNewTableErrors(tableErrors);
     return Object.keys(tableErrors).length === 0;
@@ -162,19 +168,18 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
               </div>
 
               <div className="form-group">
-                <label className="form-label">Category</label>
+                <label className="form-label">Table Type</label>
                 <select
                   className="form-select-field"
-                  value={editableTable?.tableType || "standard"}
+                  value={editableTable?.tableType || "circle"}
                   onChange={(e) =>
                     setEditableTable((prev: []) =>
                       prev ? { ...prev, tableType: e.target.value } : prev
                     )
                   }
                 >
-                  <option value="standard">Standard</option>
-                  <option value="vip">VIP</option>
-                  <option value="premium">Premium</option>
+                  <option value="circle">Circle</option>
+                  <option value="box">Box</option>
                 </select>
                 {editTableErrors.tableType && (
                   <div className="error">{editTableErrors.tableType}</div>
@@ -194,6 +199,9 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                   placeholder="Describe special features, location benefits, etc."
                   rows={3}
                 />
+                {editTableErrors.description && (
+                  <div className="error">{editTableErrors.description}</div>
+                )}
               </div>
 
               <div className="form-row">
@@ -415,7 +423,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
             )}
           </div>
           <div className="form-group">
-            <label className="form-label">Category</label>
+            <label className="form-label">Table Type</label>
             <select
               className="form-select-field"
               value={newTableData.tableType ?? ""}
@@ -426,9 +434,8 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                 })
               }
             >
-              <option value="standard">Standard</option>
-              <option value="vip">VIP</option>
-              <option value="premium">Premium</option>
+              <option value="circle">Circle</option>
+              <option value="box">Box</option>
             </select>
             {newTableErrors.tableType && (
               <div className="error">{newTableErrors.tableType}</div>
@@ -489,6 +496,9 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
             }
             rows={2}
           />
+          {newTableErrors.description && (
+            <div className="error">{newTableErrors.description}</div>
+          )}
         </div>
 
         <button className="btn-primary" onClick={handleAddClick}>

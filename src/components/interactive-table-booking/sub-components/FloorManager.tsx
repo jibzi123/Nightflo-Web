@@ -1,6 +1,5 @@
 import React from "react";
 import { Floor } from "../types";
-import { UpdateFloorParam } from "../../../services/table-booking-apis/floor";
 
 type Position = {
   x: number;
@@ -25,7 +24,7 @@ interface FloorManagerProps {
   onAddFloor: (name: string) => void;
   editFloorName: string;
   setEditFloorName: (d: any) => void;
-  handleUpdateFloor: (floorId: string, params: UpdateFloorParam) => void;
+  handleUpdateFloor: (floorId: string, params: { name: string }) => void;
 }
 
 const FloorManager: React.FC<FloorManagerProps> = ({

@@ -13,17 +13,8 @@ import {
   UserData,
   Table,
 } from "./types";
-import {
-  CreateFloor,
-  DeleteFloor,
-  GetFloorByClub,
-  GetFloorById,
-  UpdateFloor,
-  UpdateFloorParam,
-} from "../../services/table-booking-apis/floor";
-import { AxiosResponse } from "axios";
-import { GetTableByClub } from "../../services/table-booking-apis/tables";
 import { mergeFloorsAndTables } from "../../utils/table-booking-util";
+import { useApi } from "../../utils/custom-hooks/useApi";
 
 function InteractiveTableBooking() {
   const [viewMode, setViewMode] = useState<"admin" | "client">("admin");
@@ -61,6 +52,7 @@ function InteractiveTableBooking() {
   const UserData: UserData | null = storedUser
     ? (JSON.parse(storedUser) as UserData)
     : null;
+  const { loading, callApi } = useApi();
 
   const [reservations] = useState<Reservation[]>([
     {
@@ -90,41 +82,16 @@ function InteractiveTableBooking() {
     setHasUnsavedChanges(true);
   };
 
-  const getFloorsByClub = async (clubId: string) => {
-    if (!UserData) {
-      throw new Error("User not found in localStorage");
-    }
-    try {
-      const response: AxiosResponse<FloorsResponse> = await GetFloorByClub(
-        clubId
-      );
-      if (response.data.statusCode >= 200 || response.data.statusCode < 300) {
-        setFloors(response.data.payLoad);
-        // const activeFlor =
-        //   response.data.payLoad?.find((f: any) => f.id === activeFloorId) ||
-        //   floors[0];
-        // setActiveFloorId(response.data.payLoad[0].id);
-
-        // setActiveFloor(activeFlor);
-        console.log("Active Floor", { activeFloor, Floor: response.data });
-      }
-    } catch (err: any) {
-      console.error(
-        "Error fetching floors:",
-        err.response?.data || err.message
-      );
-    }
-  };
 
   const fetchFloorsAndTables = async (clubId: string) => {
     try {
       const [floorsRes, tablesRes] = await Promise.all([
-        GetFloorByClub(clubId), // all floors of club
-        GetTableByClub(clubId), // all tables of club
+        callApi("GET", `/floor/getByClub/${clubId}`), // all floors of club
+        callApi("GET", `/tables/club?clubId=${clubId}`), // all tables of club
       ]);
 
-      const floors: Floor[] = floorsRes.data?.payLoad;
-      const tables: Table[] = tablesRes.data?.payLoad;
+      const floors: Floor[] = floorsRes.payLoad;
+      const tables: Table[] = tablesRes.payLoad;
 
       const mergedFloors = mergeFloorsAndTables(floors, tables);
       console.log(mergedFloors, "XY");
@@ -169,63 +136,52 @@ function InteractiveTableBooking() {
     if (!UserData) {
       throw new Error("User not found in localStorage");
     }
-    const newFloor: NewFloor = {
-      name,
-      club: UserData.club.id,
-    };
-    try {
-      const response = await CreateFloor(newFloor);
-      if (response.status >= 200 || response.status < 300) {
-        if (!UserData) {
-          return;
-        }
-        // setActiveFloorId(response?.data?.payLoad?.id);
-        setHasUnsavedChanges(true);
-        fetchFloorsAndTables(UserData.club.id);
-        console.log("Floor created:", response.data);
+
+    await callApi(
+      "POST",
+      `/floor/create`,
+      {
+        name,
+        club: UserData.club.id,
+      },
+      {
+        onSuccess: (data) => {
+          if (!UserData) {
+            return;
+          }
+          console.log(data, "data");
+          setActiveFloorId(data?.payLoad?.id);
+          setHasUnsavedChanges(true);
+          fetchFloorsAndTables(UserData.club.id);
+        },
+        onError: (err) => console.error("Error:", err),
       }
-    } catch (error: any) {
-      console.error(
-        "Error creating floor:",
-        error.response?.data || error.message
-      );
-    }
+    );
   };
+
   const handleUpdateFloor = async (
     floorId: string,
-    params: UpdateFloorParam
+    params: { name: string }
   ) => {
-    try {
-      const response = await UpdateFloor(floorId, params);
-      if (response.status >= 200 && response.status < 300) {
-        console.log("Floor updated:", response.data);
+    await callApi("PUT", `/floor/${floorId}`, params, {
+      onSuccess: (data) => {
         if (!UserData) return;
         fetchFloorsAndTables(UserData.club.id);
         setHasUnsavedChanges(true);
-      }
-    } catch (error: any) {
-      console.error(
-        "Error Updating floor:",
-        error.response?.data || error.message
-      );
-    }
+      },
+      onError: (err) => console.error("Error:", err),
+    });
   };
   const handleDeleteFloor = async (floorId: string) => {
-    try {
-      const response = await DeleteFloor(floorId);
-
-      if (response.status >= 200 && response.status < 300) {
-        console.log("Floor deleted:", response.data);
+    await callApi("DELETE", `/floor/${floorId}`, null, {
+      onSuccess: (data) => {
+        console.log("delete success");
         if (!UserData) return;
-        getFloorsByClub(UserData?.club.id);
+        fetchFloorsAndTables(UserData.club.id);
         setHasUnsavedChanges(true);
-      }
-    } catch (error: any) {
-      console.error(
-        "Error deleting floor:",
-        error.response?.data || error.message
-      );
-    }
+      },
+      onError: (err) => console.error("Error:", err),
+    });
   };
   const deleteFloor = (floorId: string) => {
     if (floors.length > 1) {

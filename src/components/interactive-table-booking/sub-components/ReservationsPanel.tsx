@@ -1,4 +1,4 @@
-import React, { act } from "react";
+import React from "react";
 import { Reservation, Floor } from "./../types";
 
 interface ReservationsPanelProps {
@@ -247,7 +247,7 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
                     <div className="customer-name">
                       {reservation.customerName}
                     </div>
-                    <div claFloorManagerssName="reservation-details">
+                    <div className="reservation-details">
                       Table: {reservation.tableId} • {reservation.guests} guests
                       <br />
                       {reservation.time} •{" "}

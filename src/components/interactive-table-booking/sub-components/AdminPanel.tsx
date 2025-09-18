@@ -2,12 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Floor, Table, ClubHours, UserData } from "../types";
 import TableElementProperties from "./TableElementProperties";
 import FloorManager from "./FloorManager";
-import {
-  CreateTable,
-  DeleteTable,
-  UpdateTable,
-} from "../../../services/table-booking-apis/tables";
-import { UpdateFloorParam } from "../../../services/table-booking-apis/floor";
+import { useApi } from "../../../utils/custom-hooks/useApi";
 
 interface AdminPanelProps {
   floors: Floor[];
@@ -28,7 +23,7 @@ interface AdminPanelProps {
   setActiveTab: React.Dispatch<
     React.SetStateAction<"floors" | "tables" | "settings">
   >;
-  handleUpdateFloor: (floorId: string, params: UpdateFloorParam) => void;
+  handleUpdateFloor: (floorId: string, params: { name: String }) => void;
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -55,6 +50,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   // );
   const [newFloorName, setNewFloorName] = useState("");
   const [editFloorName, setEditFloorName] = useState("");
+  const { loading, callApi } = useApi();
 
   const [newTableData, setNewTableData] = useState({
     tableNumber: "",
@@ -113,7 +109,19 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   };
 
-  const handleAddTable = async () => {
+  useEffect(() => {
+    if (selectedTable) {
+      console.log(selectedTable);
+      setEditableTable({ ...selectedTable });
+    }
+  }, [selectedTable]);
+
+  useEffect(() => {
+    if (activeFloor) {
+      setEditFloorName({ id: activeFloor?.id, name: activeFloor?.name });
+    }
+  }, [activeFloor]);
+  const createTable = async () => {
     const newTable: Table = {
       tableNumber: newTableData.tableNumber,
       x: 100,
@@ -130,36 +138,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       floorId: activeFloor.id,
       clubId: UserData?.club.id,
     };
-    try {
-      const response = await CreateTable(newTable);
-      if (response.status >= 200 || response.status < 300) {
-        console.log("Table Added:", response.data);
+
+    await callApi("POST", "/tables/create", newTable, {
+      onSuccess: (data) => {
+        console.log("Table Added:", data);
         setNewTableData({});
 
         if (!UserData) return;
         fetchFloorsAndTables(UserData?.club.id);
-      }
-    } catch (error: any) {
-      console.error(
-        "Error creating floor:",
-        error.response?.data || error.message
-      );
-    }
+      },
+      onError: (err) => console.error("Error:", err),
+    });
   };
-  useEffect(() => {
-    if (selectedTable) {
-      console.log(selectedTable);
-      setEditableTable({ ...selectedTable });
-    }
-  }, [selectedTable]);
-
-  useEffect(() => {
-    if (activeFloor) {
-      console.log(activeFloor, "Active Floor");
-      setEditFloorName({ id: activeFloor?.id, name: activeFloor?.name });
-    }
-  }, [activeFloor]);
-
   const handleUpdateTable = async () => {
     if (!editableTable) return;
     const params = {
@@ -172,18 +162,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       description: editableTable.description,
       status: editableTable?.status,
     };
-    try {
-      const response = await UpdateTable(params);
-      if (response.status >= 200 && response.status < 300) {
+    await callApi("POST", "/tables/update", params, {
+      onSuccess: (data) => {
         if (!UserData) return;
         fetchFloorsAndTables(UserData?.club.id); // refresh
-      }
-    } catch (error: any) {
-      console.error(
-        "Error updating table:",
-        error.response?.data || error.message
-      );
-    }
+      },
+      onError: (err) => console.error("Error:", err),
+    });
   };
 
   // const handleAddPoi = () => {
@@ -209,34 +194,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const handleDeleteSelected = async () => {
     if (!selectedElement) return;
-    console.log(selectedElement, "selectedElement");
-    try {
-      const param = { tableId: selectedElement };
-      const response = await DeleteTable(param);
-
-      if (response.status >= 200 && response.status < 300) {
-        console.log("Floor deleted:", response.data);
-        if (!UserData) return;
-        fetchFloorsAndTables(UserData?.club.id);
-        // getFloorsByClub(UserData?.club.id);
-        // setHasUnsavedChanges(true);
+    await callApi(
+      "DELETE",
+      `/tables/delete`,
+      { tableId: selectedElement },
+      {
+        onSuccess: (data) => {
+          if (!UserData) return;
+          fetchFloorsAndTables(UserData?.club.id); // refresh
+        },
+        onError: (err) => console.error("Error:", err),
       }
-    } catch (error: any) {
-      console.error(
-        "Error deleting Table:",
-        error.response?.data || error.message
-      );
-    }
-
-    // const updatedFloor = { ...activeFloor };
-    // updatedFloor.tables =
-    //   updatedFloor.tables &&
-    //   updatedFloor.tables.filter((t) => t.id !== selectedElement);
-    // updatedFloor.pointsOfInterest = updatedFloor.pointsOfInterest.filter(
-    //   (p) => p.id !== selectedElement
-    // );
-
-    // onFloorUpdate(updatedFloor);
+    );
     onElementSelect(null);
   };
 
@@ -299,7 +268,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             handleDeleteSelected={handleDeleteSelected}
             newTableData={newTableData}
             setNewTableData={setNewTableData}
-            handleAddTable={handleAddTable}
+            handleAddTable={createTable}
             // newPoiData={newPoiData}
             // setNewPoiData={setNewPoiData}
             // handleAddPoi={handleAddPoi}

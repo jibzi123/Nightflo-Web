@@ -515,7 +515,14 @@ body {
 
 .form-row .form-group {
   flex: 1;
-  margin: auto;
+  /* margin: auto; */
+  margin-bottom: 2px; /* same as .form-group */
+}
+.error {
+  color: #00d4aa;
+  font-size: 12px;
+  margin-top: 4px;
+  min-height: 16px;
 }
 
 .file-upload {
@@ -940,8 +947,4 @@ body {
 .action-btns {
   display: flex;
   justify-content: space-around;
-}
-
-.error {
-  color: #00d4aa;
 }

@@ -7,6 +7,7 @@ import {
   DeleteTable,
   UpdateTable,
 } from "../../../services/table-booking-apis/tables";
+import { UpdateFloorParam } from "../../../services/table-booking-apis/floor";
 
 interface AdminPanelProps {
   floors: Floor[];
@@ -23,6 +24,11 @@ interface AdminPanelProps {
   setBackgroundPosition: (position: { x: number; y: number }) => void;
   onRemoveBackground: () => void;
   fetchFloorsAndTables: (id: string) => void;
+  activeTab: "floors" | "tables" | "settings";
+  setActiveTab: React.Dispatch<
+    React.SetStateAction<"floors" | "tables" | "settings">
+  >;
+  handleUpdateFloor: (floorId: string, params: UpdateFloorParam) => void;
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -40,30 +46,35 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   setBackgroundPosition,
   onRemoveBackground,
   fetchFloorsAndTables,
+  activeTab,
+  setActiveTab,
+  handleUpdateFloor,
 }) => {
-  const [activeTab, setActiveTab] = useState<"tables" | "floors" | "settings">(
-    "tables"
-  );
+  // const [activeTab, setActiveTab] = useState<"tables" | "floors" | "settings">(
+  //   "tables"
+  // );
   const [newFloorName, setNewFloorName] = useState("");
+  const [editFloorName, setEditFloorName] = useState("");
+
   const [newTableData, setNewTableData] = useState({
     tableNumber: "",
-    price: 500,
-    capacity: 4,
-    width: 60,
-    height: 40,
-    tableCount: 5,
-    tableType: "circle",
-    description: "standard",
+    price: "",
+    capacity: "",
+    width: "",
+    height: "",
+    tableCount: "",
+    tableType: "",
+    description: "",
   });
   const [editableTable, setEditableTable] = useState({
     tableNumber: "",
-    price: 500,
-    capacity: 4,
-    width: 60,
-    height: 40,
-    tableCount: 5,
-    tableType: "circle",
-    description: "standard",
+    price: "",
+    capacity: "",
+    width: "",
+    height: "",
+    tableCount: "",
+    tableType: "",
+    description: "",
   });
   // const [newPoiData, setNewPoiData] = useState({
   //   name: "",
@@ -123,6 +134,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       const response = await CreateTable(newTable);
       if (response.status >= 200 || response.status < 300) {
         console.log("Table Added:", response.data);
+        setNewTableData({});
+
+        if (!UserData) return;
         fetchFloorsAndTables(UserData?.club.id);
       }
     } catch (error: any) {
@@ -138,24 +152,31 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       setEditableTable({ ...selectedTable });
     }
   }, [selectedTable]);
-  console.log("editableTable", editableTable);
+
+  useEffect(() => {
+    if (activeFloor) {
+      console.log(activeFloor, "Active Floor");
+      setEditFloorName({ id: activeFloor?.id, name: activeFloor?.name });
+    }
+  }, [activeFloor]);
 
   const handleUpdateTable = async () => {
     if (!editableTable) return;
     const params = {
-      tableId: editableTable.id,
+      tableId: editableTable?.id,
       tableNumber: editableTable.tableNumber,
-      floorId: editableTable.floor.id,
+      floorId: editableTable?.floor.id,
       price: editableTable.price,
       capacity: editableTable.capacity,
       tableCount: editableTable.tableCount,
       description: editableTable.description,
-      status: editableTable.status,
+      status: editableTable?.status,
     };
     try {
       const response = await UpdateTable(params);
       if (response.status >= 200 && response.status < 300) {
-        // fetchFloorsAndTables(UserData?.club.id); // refresh
+        if (!UserData) return;
+        fetchFloorsAndTables(UserData?.club.id); // refresh
       }
     } catch (error: any) {
       console.error(
@@ -302,6 +323,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             onRemoveBackground={onRemoveBackground}
             onDeleteFloor={onDeleteFloor}
             onAddFloor={onAddFloor}
+            editFloorName={editFloorName}
+            setEditFloorName={setEditFloorName}
+            handleUpdateFloor={handleUpdateFloor}
           />
         )}
 

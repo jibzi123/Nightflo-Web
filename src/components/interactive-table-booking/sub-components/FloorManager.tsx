@@ -1,5 +1,6 @@
 import React from "react";
 import { Floor } from "../types";
+import { UpdateFloorParam } from "../../../services/table-booking-apis/floor";
 
 type Position = {
   x: number;
@@ -22,6 +23,9 @@ interface FloorManagerProps {
 
   onDeleteFloor: (floorId: string) => void;
   onAddFloor: (name: string) => void;
+  editFloorName: string;
+  setEditFloorName: (d: any) => void;
+  handleUpdateFloor: (floorId: string, params: UpdateFloorParam) => void;
 }
 
 const FloorManager: React.FC<FloorManagerProps> = ({
@@ -37,6 +41,9 @@ const FloorManager: React.FC<FloorManagerProps> = ({
   onRemoveBackground,
   onDeleteFloor,
   onAddFloor,
+  editFloorName,
+  setEditFloorName,
+  handleUpdateFloor,
 }) => {
   return (
     <div>
@@ -128,24 +135,58 @@ const FloorManager: React.FC<FloorManagerProps> = ({
 
       <div className="form-group">
         <label className="form-label">Floor List</label>
-        {floors?.map((floor) => (
-          <div key={floor.id} className="floor-item">
-            <div className="customer-name">{floor.name}</div>
-            <div className="reservation-details">
-              {floor?.tables?.length} tables
+        <div className="floor-list">
+          {floors?.map((floor) => (
+            <div key={floor.id} className="floor-item">
+              <div className="customer-name">{floor.name}</div>
+              <div className="reservation-details">
+                {floor?.tables?.length} tables
+              </div>
+              {floors?.length > 1 && (
+                <button
+                  className="btn-danger-small"
+                  onClick={() => onDeleteFloor(floor.id)}
+                >
+                  Delete
+                </button>
+              )}
             </div>
-            {floors?.length > 1 && (
-              <button
-                className="btn-danger-small"
-                onClick={() => onDeleteFloor(floor.id)}
-              >
-                Delete
-              </button>
-            )}
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-
+      {activeFloor && (
+        <div className="form-group">
+          <label className="form-label">Update New Floor</label>
+          <div className="form-row">
+            <div className="form-group">
+              <input
+                type="text"
+                className="form-input-field"
+                placeholder="Floor name"
+                value={editFloorName?.name}
+                onChange={(e) =>
+                  setEditFloorName((prev) =>
+                    prev ? { ...prev, name: e.target.value } : prev
+                  )
+                }
+              />
+            </div>
+            <button
+              className="btn-primary"
+              onClick={() => {
+                if (editFloorName?.name?.trim()) {
+                  handleUpdateFloor(editFloorName.id, {
+                    name: editFloorName?.name?.trim(),
+                  });
+                  setEditFloorName("");
+                }
+              }}
+            >
+              Update Floor
+            </button>
+          </div>
+        </div>
+      )}
       <div className="form-group">
         <label className="form-label">Add New Floor</label>
         <div className="form-row">

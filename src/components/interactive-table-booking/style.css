@@ -437,7 +437,10 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-
+.floor-list {
+  height: 400px;
+  overflow-y: auto;
+}
 .form-input-field,
 .form-select-field {
   width: 100%;

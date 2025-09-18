@@ -18,6 +18,8 @@ import {
   DeleteFloor,
   GetFloorByClub,
   GetFloorById,
+  UpdateFloor,
+  UpdateFloorParam,
 } from "../../services/table-booking-apis/floor";
 import { AxiosResponse } from "axios";
 import { GetTableByClub } from "../../services/table-booking-apis/tables";
@@ -25,16 +27,16 @@ import { mergeFloorsAndTables } from "../../utils/table-booking-util";
 
 function InteractiveTableBooking() {
   const [viewMode, setViewMode] = useState<"admin" | "client">("admin");
-  const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
-  );
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>("22:00");
-  const [bookingGuests, setBookingGuests] = useState<number>(2);
-  const [customerInfo, setCustomerInfo] = useState({
-    name: "",
-    phone: "",
-    email: "",
-  });
+  // const [selectedDate, setSelectedDate] = useState<string>(
+  //   new Date().toISOString().split("T")[0]
+  // );
+  // const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>("22:00");
+  // const [bookingGuests, setBookingGuests] = useState<number>(2);
+  // const [customerInfo, setCustomerInfo] = useState({
+  //   name: "",
+  //   phone: "",
+  //   email: "",
+  // });
   const [activeFloor, setActiveFloor] = useState<Floor>({});
   const storedUser = localStorage.getItem("userData");
 
@@ -53,6 +55,9 @@ function InteractiveTableBooking() {
     closeTime: "04:00",
     isOpen: true,
   });
+  const [activeTab, setActiveTab] = useState<"tables" | "floors" | "settings">(
+    "tables"
+  );
   const UserData: UserData | null = storedUser
     ? (JSON.parse(storedUser) as UserData)
     : null;
@@ -85,10 +90,6 @@ function InteractiveTableBooking() {
     setHasUnsavedChanges(true);
   };
 
-  interface Club {
-    name: string;
-    club: string;
-  }
   const getFloorsByClub = async (clubId: string) => {
     if (!UserData) {
       throw new Error("User not found in localStorage");
@@ -102,7 +103,7 @@ function InteractiveTableBooking() {
         // const activeFlor =
         //   response.data.payLoad?.find((f: any) => f.id === activeFloorId) ||
         //   floors[0];
-        setActiveFloorId(response.data.payLoad[0].id);
+        // setActiveFloorId(response.data.payLoad[0].id);
 
         // setActiveFloor(activeFlor);
         console.log("Active Floor", { activeFloor, Floor: response.data });
@@ -178,9 +179,9 @@ function InteractiveTableBooking() {
         if (!UserData) {
           return;
         }
-        setActiveFloorId(response?.data?.payLoad?.id);
+        // setActiveFloorId(response?.data?.payLoad?.id);
         setHasUnsavedChanges(true);
-        getFloorsByClub(UserData.club.id);
+        fetchFloorsAndTables(UserData.club.id);
         console.log("Floor created:", response.data);
       }
     } catch (error: any) {
@@ -190,7 +191,25 @@ function InteractiveTableBooking() {
       );
     }
   };
-
+  const handleUpdateFloor = async (
+    floorId: string,
+    params: UpdateFloorParam
+  ) => {
+    try {
+      const response = await UpdateFloor(floorId, params);
+      if (response.status >= 200 && response.status < 300) {
+        console.log("Floor updated:", response.data);
+        if (!UserData) return;
+        fetchFloorsAndTables(UserData.club.id);
+        setHasUnsavedChanges(true);
+      }
+    } catch (error: any) {
+      console.error(
+        "Error Updating floor:",
+        error.response?.data || error.message
+      );
+    }
+  };
   const handleDeleteFloor = async (floorId: string) => {
     try {
       const response = await DeleteFloor(floorId);
@@ -217,41 +236,41 @@ function InteractiveTableBooking() {
     }
   };
 
-  const handleTableBooking = (tableId: string) => {
-    if (viewMode !== "client") return;
+  // const handleTableBooking = (tableId: string) => {
+  //   if (viewMode !== "client") return;
 
-    const table =
-      activeFloor.tables && activeFloor?.tables.find((t) => t.id === tableId);
-    if (!table || table.status !== "available") return;
+  //   const table =
+  //     activeFloor.tables && activeFloor?.tables.find((t) => t.id === tableId);
+  //   if (!table || table.status !== "available") return;
 
-    // Create new reservation
-    const newReservation: Reservation = {
-      id: `r${Date.now()}`,
-      customerName: customerInfo.name,
-      tableId: table.tableNumber,
-      date: selectedDate,
-      time: selectedTimeSlot,
-      guests: bookingGuests,
-      amount: table.price,
-      status: "pending",
-    };
+  //   // Create new reservation
+  //   const newReservation: Reservation = {
+  //     id: `r${Date.now()}`,
+  //     customerName: customerInfo.name,
+  //     tableId: table.tableNumber,
+  //     date: selectedDate,
+  //     time: selectedTimeSlot,
+  //     guests: bookingGuests,
+  //     amount: table.price,
+  //     status: "pending",
+  //   };
 
-    // Update table status
-    const updatedFloor = {
-      ...activeFloor,
-      tables:
-        activeFloor.tables &&
-        activeFloor?.tables.map((t) =>
-          t.id === tableId ? { ...t, status: "reserved" as const } : t
-        ),
-    };
+  //   // Update table status
+  //   const updatedFloor = {
+  //     ...activeFloor,
+  //     tables:
+  //       activeFloor.tables &&
+  //       activeFloor?.tables.map((t) =>
+  //         t.id === tableId ? { ...t, status: "reserved" as const } : t
+  //       ),
+  //   };
 
-    updateFloor(updatedFloor);
-    alert(
-      `Table ${table.tableNumber} booked successfully for ${selectedDate} at ${selectedTimeSlot}!`
-    );
-    setSelectedElement(null);
-  };
+  //   updateFloor(updatedFloor);
+  //   alert(
+  //     `Table ${table.tableNumber} booked successfully for ${selectedDate} at ${selectedTimeSlot}!`
+  //   );
+  //   setSelectedElement(null);
+  // };
   const removeBackground = () => {
     const updatedFloor = { ...activeFloor, backgroundImage: undefined };
     updateFloor(updatedFloor);
@@ -259,46 +278,8 @@ function InteractiveTableBooking() {
     setBackgroundPosition({ x: 0, y: 0 });
   };
 
-  const saveFloorSetup = () => {
-    // Here you would typically save to a backend
-    console.log("Saving floor setup...", floors);
-    setHasUnsavedChanges(false);
-    // Show success message or handle save logic
-    alert("Floor setup saved successfully!");
-  };
   return (
     <div className="app">
-      {/* <div className="app-header">
-            Fri, Apr 24th 2025
-    <div className="logo">
-              <span className="logo-icon">🌙</span>
-              <span className="logo-text">NightFlo Pro</span>
-            </div>
-            <div className="view-toggle">
-              <button
-                className={`view-btn ${viewMode === 'admin' ? 'active' : ''}`}
-                onClick={() => setViewMode('admin')}
-              >
-                👨‍💼 Admin
-              </button>
-              <button
-                className={`view-btn ${viewMode === 'client' ? 'active' : ''}`}
-                onClick={() => setViewMode('client')}
-              >
-                👤 Client
-              </button>
-            </div>
-            <div className="club-info">
-              <span className="date">Fri, Apr 24th 2025</span>
-              <div className="hours">
-                <span className={`status ${clubHours.isOpen ? 'open' : 'closed'}`}>
-                  {clubHours.isOpen ? 'OPEN' : 'CLOSED'}
-                </span>
-                <span className="time">{clubHours.openTime} - {clubHours.closeTime}</span>
-              </div>
-            </div>
-          </div> */}
-
       <div className="app-body">
         <ReservationsPanel
           reservations={reservations}
@@ -331,33 +312,13 @@ function InteractiveTableBooking() {
                   className={`floor-tab ${
                     activeFloorId === floor.id ? "active" : ""
                   }`}
-                  onClick={() => setActiveFloorId(floor.id)}
+                  onClick={() => {
+                    setActiveFloorId(floor.id), setActiveTab("floors");
+                  }}
                 >
                   {floor.name}
                 </button>
               ))}
-            </div>
-            <div className="canvas-controls">
-              {hasUnsavedChanges && (
-                <button className="btn-save" onClick={saveFloorSetup}>
-                  💾 Save Changes
-                </button>
-              )}
-              {viewMode === "admin" && (
-                <>
-                  <button className="btn-secondary">Show Names</button>
-                  <button className="btn-primary">+ Add Table</button>
-                </>
-              )}
-              {viewMode === "client" && selectedElement && (
-                <button
-                  className="btn-primary"
-                  onClick={() => handleTableBooking(selectedElement)}
-                  disabled={!customerInfo.name || !customerInfo.phone}
-                >
-                  📅 Book This Table
-                </button>
-              )}
             </div>
           </div>
 
@@ -369,7 +330,8 @@ function InteractiveTableBooking() {
             backgroundScale={backgroundScale}
             backgroundPosition={backgroundPosition}
             viewMode={viewMode}
-            onTableBooking={handleTableBooking}
+            // onTableBooking={handleTableBooking}
+            setActiveTab={setActiveTab}
           />
 
           {/* Client Table Details Modal */}
@@ -385,24 +347,27 @@ function InteractiveTableBooking() {
               )} */}
         </div>
 
-        {viewMode === "admin" && (
-          <AdminPanel
-            floors={floors}
-            activeFloor={activeFloor}
-            onFloorUpdate={updateFloor}
-            onAddFloor={addFloor}
-            onDeleteFloor={deleteFloor}
-            selectedElement={selectedElement}
-            onElementSelect={setSelectedElement}
-            clubHours={clubHours}
-            backgroundScale={backgroundScale}
-            setBackgroundScale={setBackgroundScale}
-            backgroundPosition={backgroundPosition}
-            setBackgroundPosition={setBackgroundPosition}
-            onRemoveBackground={removeBackground}
-            fetchFloorsAndTables={fetchFloorsAndTables}
-          />
-        )}
+        {/* {viewMode === "admin" && ( */}
+        <AdminPanel
+          floors={floors}
+          activeFloor={activeFloor}
+          onFloorUpdate={updateFloor}
+          onAddFloor={addFloor}
+          onDeleteFloor={deleteFloor}
+          selectedElement={selectedElement}
+          onElementSelect={setSelectedElement}
+          clubHours={clubHours}
+          backgroundScale={backgroundScale}
+          setBackgroundScale={setBackgroundScale}
+          backgroundPosition={backgroundPosition}
+          setBackgroundPosition={setBackgroundPosition}
+          onRemoveBackground={removeBackground}
+          fetchFloorsAndTables={fetchFloorsAndTables}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          handleUpdateFloor={handleUpdateFloor}
+        />
+        {/* )} */}
       </div>
     </div>
   );

@@ -75,7 +75,7 @@ export interface UserData {
 export interface FloorsResponse {
   status: string;
   statusCode: number;
-  payLoad: Floor[];
+  payLoad: Floor;
 }
 
 export interface Floor {

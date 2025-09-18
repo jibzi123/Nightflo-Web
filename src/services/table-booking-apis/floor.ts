@@ -2,6 +2,7 @@ import axiosInstance from "../axios";
 import {
   ApiResponse,
   Floor,
+  FloorsResponse,
 } from "../../components/interactive-table-booking/types";
 
 interface FLoorBody {
@@ -9,12 +10,15 @@ interface FLoorBody {
   club: String;
 }
 
-interface UpdateFloorParam {
+export interface UpdateFloorParam {
   name: String;
 }
 
 export const CreateFloor = (param: FLoorBody) => {
-  return axiosInstance.post<ApiResponse<Floor[]>>(`/floor/create`, param);
+  return axiosInstance.post<ApiResponse<FloorsResponse[]>>(
+    `/floor/create`,
+    param
+  );
 };
 
 export const GetFloorById = (floorID: String) => {
@@ -28,7 +32,7 @@ export const GetActiveFloorByClub = (clubID: Number) => {
   return axiosInstance.get(`/floor/getActiveByClub/${clubID}`);
 };
 
-export const UpdateFloor = (floorID: number, param: UpdateFloorParam) => {
+export const UpdateFloor = (floorID: string, param: UpdateFloorParam) => {
   return axiosInstance.put(`/floor/${floorID}`, param);
 };
 

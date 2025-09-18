@@ -35,10 +35,10 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
   const reservedTables =
     activeFloor?.tables &&
     activeFloor.tables.filter((t) => t.status === "inactive");
-  const occupiedTables =
-    activeFloor?.tables &&
-    activeFloor.tables.filter((t) => t.status === "active");
-
+  // const occupiedTables =
+  //   activeFloor?.tables &&
+  //   activeFloor.tables.filter((t) => t.status === "active");
+  console.log(activeFloor, "activeFloor");
   return (
     <div className="reservations-panel">
       <div className="panel-header">
@@ -150,7 +150,7 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
               </div>
             )}
 
-            {occupiedTables.length > 0 && occupiedTables && (
+            {/* {occupiedTables.length > 0 && occupiedTables && (
               <div className="reservation-section">
                 <h3 className="section-title">
                   Occupied ({occupiedTables.length})
@@ -183,7 +183,7 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
                   </div>
                 ))}
               </div>
-            )}
+            )} */}
           </>
         )}
 

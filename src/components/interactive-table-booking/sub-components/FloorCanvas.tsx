@@ -9,7 +9,10 @@ interface FloorCanvasProps {
   backgroundScale: number;
   backgroundPosition: { x: number; y: number };
   viewMode: "admin" | "client";
-  onTableBooking: (tableId: string) => void;
+  // onTableBooking: (tableId: string) => void;
+  setActiveTab: React.Dispatch<
+    React.SetStateAction<"floors" | "tables" | "settings">
+  >;
 }
 
 const FloorCanvas: React.FC<FloorCanvasProps> = ({
@@ -20,7 +23,8 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
   backgroundScale,
   backgroundPosition,
   viewMode,
-  onTableBooking,
+  // onTableBooking,
+  setActiveTab,
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -31,7 +35,11 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
   const [initialMousePos, setInitialMousePos] = useState({ x: 0, y: 0 });
 
   const handleElementMouseDown = useCallback(
-    (e: React.MouseEvent, elementId: string, elementType: "table" | "poi") => {
+    (
+      e: React.MouseEvent,
+      elementId: string | any,
+      elementType: "table" | "poi"
+    ) => {
       e.preventDefault();
       e.stopPropagation();
 
@@ -54,6 +62,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       });
 
       setIsDragging(true);
+      setActiveTab("tables");
       onElementSelect(elementId);
     },
     [onElementSelect]
@@ -112,6 +121,8 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
         }
 
         const updatedFloor = { ...floor };
+        if (updatedFloor) {
+        }
         const tableIndex = updatedFloor.tables.findIndex(
           (t) => t.id === selectedElement
         );

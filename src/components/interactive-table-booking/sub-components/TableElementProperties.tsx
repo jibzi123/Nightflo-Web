@@ -22,7 +22,7 @@ export interface NewTableData {
   tableType: string;
   width: number | string;
   height: number | string;
-  description?: string[];
+  description?: string;
   tableCount: number;
 }
 
@@ -149,9 +149,9 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                 <input
                   type="text"
                   className="form-input-field"
-                  value={editableTable?.tableNumber || ""}
+                  value={editableTable?.tableNumber ?? ""}
                   onChange={(e) =>
-                    setEditableTable((prev) =>
+                    setEditableTable((prev: []) =>
                       prev ? { ...prev, tableNumber: e.target.value } : prev
                     )
                   }
@@ -167,7 +167,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                   className="form-select-field"
                   value={editableTable?.tableType || "standard"}
                   onChange={(e) =>
-                    setEditableTable((prev) =>
+                    setEditableTable((prev: []) =>
                       prev ? { ...prev, tableType: e.target.value } : prev
                     )
                   }
@@ -187,7 +187,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                   className="form-textarea"
                   value={editableTable?.description || ""}
                   onChange={(e) =>
-                    setEditableTable((prev) =>
+                    setEditableTable((prev: []) =>
                       prev ? { ...prev, description: e.target.value } : prev
                     )
                   }
@@ -204,7 +204,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                     className="form-input-field"
                     value={editableTable?.price || ""}
                     onChange={(e) =>
-                      setEditableTable((prev) =>
+                      setEditableTable((prev: []) =>
                         prev ? { ...prev, price: e.target.value } : prev
                       )
                     }
@@ -220,7 +220,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                     className="form-input-field"
                     value={editableTable?.capacity || ""}
                     onChange={(e) =>
-                      setEditableTable((prev) =>
+                      setEditableTable((prev: []) =>
                         prev ? { ...prev, capacity: e.target.value } : prev
                       )
                     }
@@ -237,7 +237,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                   <input
                     type="number"
                     className="form-input-field"
-                    value={editableTable.width}
+                    value={editableTable.width ?? ""}
                     onChange={(e) =>
                       setEditableTable({ width: Number(e.target.value) })
                     }
@@ -251,7 +251,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                   <input
                     type="number"
                     className="form-input-field"
-                    value={editableTable.height}
+                    value={editableTable.height ?? ""}
                     onChange={(e) =>
                       setEditableTable({ height: Number(e.target.value) })
                     }
@@ -266,7 +266,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                 <label className="form-label">Status</label>
                 <select
                   className="form-select-field"
-                  value={editableTable.status}
+                  value={editableTable.status ?? ""}
                   onChange={(e) =>
                     setEditableTable({
                       status: e.target.value as Table["status"],
@@ -363,7 +363,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
               type="text"
               className="form-input-field"
               placeholder="Table name"
-              value={newTableData.tableNumber}
+              value={newTableData.tableNumber ?? ""}
               onChange={(e) =>
                 setNewTableData({
                   ...newTableData,
@@ -381,7 +381,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
               type="number"
               className="form-input-field"
               placeholder="Price"
-              value={newTableData.price}
+              value={newTableData.price ?? ""}
               onChange={(e) =>
                 setNewTableData({
                   ...newTableData,
@@ -402,7 +402,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
               type="number"
               className="form-input-field"
               placeholder="Capacity"
-              value={newTableData.capacity}
+              value={newTableData.capacity ?? ""}
               onChange={(e) =>
                 setNewTableData({
                   ...newTableData,
@@ -418,7 +418,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
             <label className="form-label">Category</label>
             <select
               className="form-select-field"
-              value={newTableData.tableType}
+              value={newTableData.tableType ?? ""}
               onChange={(e) =>
                 setNewTableData({
                   ...newTableData,
@@ -443,7 +443,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
               type="number"
               className="form-input-field"
               placeholder="Width"
-              value={newTableData.width}
+              value={newTableData.width ?? ""}
               onChange={(e) =>
                 setNewTableData({
                   ...newTableData,
@@ -461,7 +461,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
               type="number"
               className="form-input-field"
               placeholder="Height"
-              value={newTableData.height}
+              value={newTableData.height ?? ""}
               onChange={(e) =>
                 setNewTableData({
                   ...newTableData,

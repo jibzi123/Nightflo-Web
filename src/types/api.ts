@@ -54,9 +54,9 @@ export interface TicketTier {
   id: string;
   name: string;
   price: number;
-  quantity: number;
+  count: number;
   sold: number;
-  description: string;
+  description: string[];
 }
 
 export interface DashboardStats {

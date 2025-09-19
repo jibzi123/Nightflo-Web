@@ -167,7 +167,7 @@ const AppRoutes: React.FC = () => {
               onModuleChange={navigateToModule}
               onEditEvent={(event: any) => {
                 setSelectedEvent(event);
-                navigate("/app/edit-event");
+                navigate("/admin-portal/edit-event");
               }}
               upcomingEvents={upcomingEvents}
               pastEvents={pastEvents}

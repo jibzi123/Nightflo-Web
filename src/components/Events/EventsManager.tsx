@@ -1,55 +1,108 @@
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '../../services/apiClient';
 import { Event, TicketTier } from '../../types/api';
-import { Plus, Edit, Trash2, Eye, Copy, Users, Search, Filter, Calendar, DollarSign, TrendingUp, UserCheck, Building2, MapPin, CheckCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Copy, Users, Search, Filter, Calendar, DollarSign, TrendingUp, UserCheck, Building2, MapPin, CheckCircle, Delete } from 'lucide-react';
 import EventStaffManager from './EventStaffManager';
 import GuestList from './GuestList';
 import EventSummary from './EventSummary';
 import '../../styles/events.css';
 import '../../styles/components.css';
 import { toast } from "react-toastify";
+import { useAuth } from '../../contexts/AuthContext';
 
 interface TicketEditorProps {
   ticket: TicketTier | null;
   isOpen: boolean;
+  eventId: any;
   onClose: () => void;
   onSave: (ticket: TicketTier) => void;
 }
 
-const TicketEditor: React.FC<TicketEditorProps> = ({ ticket, isOpen, onClose, onSave }) => {
+
+const TicketEditor: React.FC<TicketEditorProps> = ({ ticket, isOpen,eventId, onClose, onSave }) => {
   const [formData, setFormData] = useState<TicketTier>({
     id: '',
     name: '',
     price: 0,
-    quantity: 0,
+    count: 0,
     sold: 0,
-    description: ''
+    description: ['', '', ''] 
   });
 
   useEffect(() => {
     if (ticket) {
-      setFormData(ticket);
+      setFormData({
+        ...ticket,
+        description: [...ticket.description, '', '', ''].slice(0, 3) // always 3 slots
+      });
     } else {
       setFormData({
         id: '',
         name: '',
         price: 0,
-        quantity: 0,
+        count: 0,
         sold: 0,
-        description: ''
+        description: ['', '', '']
       });
     }
   }, [ticket]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const updatedTicket = {
-      ...formData,
-      id: formData.id || Date.now().toString()
-    };
-    onSave(updatedTicket);
+  const handleClose = () => {
+    setFormData({
+      id: '',
+      name: '',
+      price: 0,
+      count: 0,
+      sold: 0,
+      description: ['', '', '']
+    });
     onClose();
   };
+
+
+
+ const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // 🧹 Clean description (remove empty slots)
+    const cleanedDescriptions = formData.description.filter(d => d.trim() !== "");
+
+    try {
+      if (formData.id) {
+        // 🔄 Update Ticket
+        const response = await apiClient.updateTicket({
+          name: formData.name,
+          price: formData.price,
+          count: formData.count,
+          description: cleanedDescriptions,
+          ticketId: formData.id,
+        });
+
+        if (response.status === "Success") {
+          onSave(response.payLoad); // update list in parent
+        }
+      } else {
+        // 🆕 Create Ticket
+        const response = await apiClient.createTicket({
+          eventId: eventId,  // ✅ required only for new ticket
+          name: formData.name,
+          price: formData.price,
+          count: formData.count,
+          description: cleanedDescriptions
+        });
+
+        if (response.status === "Success") {
+          onSave(response.payLoad); // add to list in parent
+        }
+      }
+      handleClose();
+      onClose(); // ✅ close modal only after success
+    } catch (err) {
+      console.error("❌ Failed to save ticket:", err);
+    }
+  };
+
+
 
   if (!isOpen) return null;
 
@@ -58,7 +111,7 @@ const TicketEditor: React.FC<TicketEditorProps> = ({ ticket, isOpen, onClose, on
       <div className="modal-content">
         <div className="modal-header">
           <h2 className="modal-title">{ticket ? 'Edit Ticket' : 'Create New Ticket'}</h2>
-          <button className="modal-close" onClick={onClose}>×</button>
+          <button className="modal-close" onClick={handleClose}>×</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
@@ -91,23 +144,31 @@ const TicketEditor: React.FC<TicketEditorProps> = ({ ticket, isOpen, onClose, on
                 <input
                   type="number"
                   className="form-input"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 0 }))}
+                  value={formData.count}
+                  onChange={(e) => setFormData(prev => ({ ...prev, count: parseInt(e.target.value) || 0 }))}
                   min="1"
                   required
                 />
               </div>
             </div>
             <div className="form-group">
-              <label className="form-label">Description</label>
-              <textarea
-                className="form-input form-textarea"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Describe what's included with this ticket..."
-                rows={3}
-              />
+              <label className="form-label">Descriptions (up to 3)</label>
+              {formData.description.map((desc, idx) => (
+                <input
+                  key={idx}
+                  type="text"
+                  className="form-input"
+                  value={desc}
+                  placeholder={`Description ${idx + 1}`}
+                  onChange={(e) => {
+                    const newDescriptions = [...formData.description];
+                    newDescriptions[idx] = e.target.value;
+                    setFormData(prev => ({ ...prev, description: newDescriptions }));
+                  }}
+                />
+              ))}
             </div>
+
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose}>
@@ -151,11 +212,17 @@ const EventsManager: React.FC<EventsManagerProps> = ({
   const [showEventSummary, setShowEventSummary] = useState(false);
   const [summaryEvent, setSummaryEvent] = useState<Event | null>(null);
   const [showTables, setShowTables] = useState(false);
+  const { user } = useAuth();
 
   const [upcomingEventsList, setUpcomingEvents] = useState<any[]>([]);
   const [pastEventsList, setPastEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingDeleteId, setLoadingDeleteId] = useState<string | null>(null);
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+
+  // const [updatedEvent, setUpdatedEvent] = useState<any | null>(null); // to watch for updates from App.tsx
   
 
   useEffect(() => {
@@ -179,7 +246,24 @@ const EventsManager: React.FC<EventsManagerProps> = ({
     fetchEvents();
   }, []);
 
-  // 👇 Watch for updatedEvent coming from App.tsx
+  useEffect(() => {
+  if (showTickets && selectedEvent?.id) {
+    const fetchTickets = async () => {
+      try {
+        setLoadingTickets(true);
+        setTickets([]); // clear previous tickets
+        const response = await apiClient.getTicketsByEvent(selectedEvent.id);
+        setTickets(response.payLoad || []);
+      } catch (err) {
+        console.error("❌ Failed to load tickets", err);
+      } finally {
+        setLoadingTickets(false);
+      }
+    };
+    fetchTickets();
+  }
+}, [showTickets, selectedEvent]);
+
   // useEffect(() => {
   //   if (updatedEvent) {
   //     setUpcomingEvents(prev =>
@@ -315,10 +399,12 @@ const EventsManager: React.FC<EventsManagerProps> = ({
     setShowTicketEditor(true);
   };
 
-  const handleCreateTicket = () => {
+  const handleCreateTicket = (eventId: string) => {
     setSelectedTicket(null);
+    setSelectedEventId(eventId);   // 🔹 store event id in state
     setShowTicketEditor(true);
   };
+
 
   const handleSaveTicket = (ticket: TicketTier) => {
     if (!selectedEvent) return;
@@ -326,25 +412,40 @@ const EventsManager: React.FC<EventsManagerProps> = ({
     const updatedEvent = {
       ...selectedEvent,
       ticketTiers: selectedTicket
-        ? selectedEvent.ticketTiers.map(t => t.id === ticket.id ? ticket : t)
-        : [...selectedEvent.ticketTiers, ticket]
+        ? (selectedEvent.ticketTiers ?? []).map(t => t.id === ticket.id ? ticket : t)
+        : [...(selectedEvent.ticketTiers ?? []), ticket]
     };
 
-    setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
+    setUpcomingEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
     setSelectedEvent(updatedEvent);
   };
 
-  const handleDeleteTicket = (ticketId: string) => {
+
+  const handleDeleteTicket = async (ticket: TicketTier) => {
     if (!selectedEvent) return;
-    
-    if (confirm('Are you sure you want to delete this ticket tier?')) {
-      const updatedEvent = {
-        ...selectedEvent,
-        ticketTiers: selectedEvent.ticketTiers.filter(t => t.id !== ticketId)
-      };
-      
-      setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
-      setSelectedEvent(updatedEvent);
+
+    if (confirm("Are you sure you want to delete this ticket tier?")) {
+      try {
+        await apiClient.deleteTicket(ticket.id); // ✅ just pass ticketId
+        setSelectedTicket(ticket);
+        toast.success("Ticket has been deleted.");
+
+        // update event tickets list
+        const updatedEvent = {
+          ...selectedEvent,
+          ticketTiers: selectedEvent.ticketTiers.filter((t) => t.id !== ticket.id),
+        };
+
+        setUpcomingEvents((prev) =>
+          prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e))
+        );
+        setSelectedEvent(updatedEvent);
+      } catch (err) {
+        toast.error("Failed to delete ticket");
+        console.error(err);
+      } finally {
+        setLoadingDeleteId(null);
+      }
     }
   };
 
@@ -384,15 +485,6 @@ const EventsManager: React.FC<EventsManagerProps> = ({
     setShowTables(true);
   };
 
-  const getClubName = (clubId: string) => {
-    const clubs: Record<string, string> = {
-      '1': 'Club Paradise',
-      '2': 'Electric Nights',
-      '3': 'Neon Dreams'
-    };
-    return clubs[clubId] || 'Unknown Club';
-  };
-
   const filteredEvents = pastEventsList.filter(event => {
     const matchesFilter = filter === 'all' || event.status === filter;
     // const matchesSearch = event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -404,12 +496,10 @@ const EventsManager: React.FC<EventsManagerProps> = ({
 
   // Calculate stats based on current filters
   const getFilteredStats = () => {
-    const eventsToCalculate = clubFilter === 'all' ? pastEventsList : pastEventsList.filter(e => e.clubId === clubFilter);
+    const eventsToCalculate =  pastEventsList;
+    const eventsToCalculateUpcoming =  upcomingEventsList;
     
-    const totalEvents = eventsToCalculate.length;
-    // const totalTicketsSold = eventsToCalculate.reduce((sum, event) => 
-    //   sum + event.ticketTiers.reduce((tierSum, tier) => tierSum + (tier.sold || 0), 0), 0
-    // );
+    const totalEvents = eventsToCalculate.length + eventsToCalculateUpcoming.length;
     const totalRevenue = eventsToCalculate.reduce((sum, event) => sum + event.totalSales, 0);
     const upcomingEvents = eventsToCalculate.filter(event => 
       new Date(event.date) > new Date() && event.status === 'published'
@@ -451,41 +541,51 @@ const EventsManager: React.FC<EventsManagerProps> = ({
           <div className="stat-value">{stats.totalEvents}</div>
           <div className="stat-change">
             <span style={{ fontSize: '12px', color: '#64748b' }}>
-              {clubFilter === 'all' ? 'All clubs' : getClubName(clubFilter)}
+              {user?.userType === 'Super-Admin' ? 'All Clubs' : user?.club?.name}
             </span>
           </div>
         </div>
 
         <div className="stat-card">
           <div className="stat-header">
-            <span className="stat-title">Tickets Sold</span>
+            <span className="stat-title">Upcoming Events</span>
             <UserCheck size={20} style={{ color: '#10b981' }} />
           </div>
           {/* <div className="stat-value">{stats.totalTicketsSold.toLocaleString()}</div> */}
-          <div className="stat-change positive">
+          {/* <div className="stat-change positive">
             <TrendingUp size={14} />
             +15.2% from last month
+          </div> */}
+          <div className="stat-change">
+            <span style={{ fontSize: '25px', color: '#64748b' }}>
+              {upcomingEventsList.length}
+            </span>
           </div>
         </div>
 
         <div className="stat-card">
           <div className="stat-header">
-            <span className="stat-title">Total Revenue</span>
+            <span className="stat-title">Past Events</span>
             <DollarSign size={20} style={{ color: '#20c997' }} />
           </div>
-          <div className="stat-value">${stats.totalRevenue.toLocaleString()}</div>
-          <div className="stat-change positive">
+          {/* <div className="stat-value">${stats.totalRevenue.toLocaleString()}</div> */}
+          {/* <div className="stat-change positive">
             <TrendingUp size={14} />
             +22.8% from last month
+          </div> */}
+          <div className="stat-change">
+            <span style={{ fontSize: '25px', color: '#64748b' }}>
+              {pastEventsList.length}
+            </span>
           </div>
         </div>
 
         <div className="stat-card">
           <div className="stat-header">
-            <span className="stat-title">Upcoming Events</span>
+            <span className="stat-title">Club Location</span>
             <Calendar size={20} style={{ color: '#ffc107' }} />
           </div>
-          <div className="stat-value">{stats.upcomingEvents}</div>
+          <div className="stat-value" style={{fontSize: '12px'}}>{user?.club?.location}</div>
           <div className="stat-change">
             <span style={{ fontSize: '12px', color: '#64748b' }}>
               Next 30 days
@@ -494,7 +594,8 @@ const EventsManager: React.FC<EventsManagerProps> = ({
         </div>
       </div>
 
-      <div className="events-filters">
+      {user?.userType === 'Super-Admin' && (
+        <div className="events-filters">
         <div style={{ position: 'relative', flex: 1, maxWidth: '300px' }}>
           <Search size={16} style={{ 
             position: 'absolute', 
@@ -543,6 +644,8 @@ const EventsManager: React.FC<EventsManagerProps> = ({
           style={{ minWidth: '150px' }}
         />
       </div>
+      )}
+      
 
       <div>
       {/* 🔹 Upcoming Events */}
@@ -582,26 +685,39 @@ const EventsManager: React.FC<EventsManagerProps> = ({
                   {event.club?.name} - {event.club?.location}
                 </div>
 
-                <div className="d-flex flex-wrap gap-2 mt-3">
-                  <button className="btn btn-outline-primary btn-sm rounded-pill">Summary</button>
-                  <button className="btn btn-outline-secondary btn-sm rounded-pill">Tickets</button>
-                  <button className="btn btn-outline-success btn-sm rounded-pill">Guests</button>
-                  <button className="btn btn-outline-warning btn-sm rounded-pill">Tables</button>
-                  <button className="btn btn-outline-info btn-sm rounded-pill">Staff</button>
-                  <button
-                    className="btn btn-outline-dark btn-sm rounded-pill"
-                    onClick={() => onEditEvent(event)}   // ✅ now defined
-                  >
+                <div className="event-actions">
+                  <button className="event-action-button" onClick={() => handleViewSummary(event)}>
+                    <Eye size={14} />
+                    Summary
+                  </button>
+                  <button className="event-action-button" onClick={() => handleViewTickets(event)}>
+                    <Eye size={14} />
+                    Tickets
+                  </button>
+                  <button className="event-action-button" onClick={() => handleViewGuestList(event)}>
+                    <Users size={14} />
+                    Guests
+                  </button>
+                  <button className="event-action-button" onClick={() => handleViewTables(event)}>
+                    <MapPin size={14} />
+                    Tables
+                  </button>
+                </div>
+                <div className="event-actions" style={{ marginTop: '8px' }}>
+                  <button className="event-action-button" onClick={() => handleManageStaff(event)}>
+                    <Users size={14} />
+                    Staff
+                  </button>
+                  <button className="event-action-button"
+                    onClick={() => onEditEvent(event)} >
+                    <Edit size={14} />
                     Edit
                   </button>
-
-
-                  <button
-                    className="btn btn-danger btn-sm rounded-pill"
-                    onClick={() => deleteEvent(event.id)} // ✅ pass event.id directly
-                    disabled={loadingDeleteId === event.id} // ✅ disable only this one
-                  >
-                    {loadingDeleteId === event.id ? "Deleting..." : "Delete"}
+                  <button className="event-action-button"
+                    onClick={() => deleteEvent(event.id)}
+                    disabled={loadingDeleteId === event.id}>
+                    <Delete size={14} />
+                    Delete
                   </button>
                 </div>
 
@@ -644,13 +760,56 @@ const EventsManager: React.FC<EventsManagerProps> = ({
                   {event.club?.name} - {event.club?.location}
                 </div>
 
-                <div className="event-actions">
+                {/* <div className="event-actions">
                   <button>Summary</button>
-                  <button>Tickets</button>
+                  <button
+                    className="btn btn-outline-secondary btn-sm rounded-pill"
+                    onClick={() => {
+                      onEditEvent(event); // stores the selected event
+                      onModuleChange("tickets"); // go to tickets page
+                    }}
+                  >
+                    Tickets
+                  </button>
                   <button>Guests</button>
                   <button>Tables</button>
                   <button>Staff</button>
                   <button>Edit</button>
+                </div> */}
+                <div className="event-actions" style={{ display: 'none' }}>
+                  <button className="event-action-button" onClick={() => handleViewSummary(event)}>
+                    <Eye size={14} />
+                    Summary
+                  </button>
+                  <button className="event-action-button" onClick={() => handleViewTickets(event)}>
+                    <Eye size={14} />
+                    Tickets
+                  </button>
+                  <button className="event-action-button" onClick={() => handleViewGuestList(event)}>
+                    <Users size={14} />
+                    Guests
+                  </button>
+                  <button className="event-action-button" onClick={() => handleViewTables(event)}>
+                    <MapPin size={14} />
+                    Tables
+                  </button>
+                </div>
+                <div className="event-actions" style={{ marginTop: '8px', display: 'none' }}>
+                  <button className="event-action-button" onClick={() => handleManageStaff(event)}>
+                    <Users size={14} />
+                    Staff
+                  </button>
+                  <button className="event-action-button"
+                    onClick={() => onEditEvent(event)} >
+                    <Edit size={14} />
+                    Edit
+                  </button>
+                  <button className="event-action-button"
+                    onClick={() => deleteEvent(event.id)}
+                    disabled={loadingDeleteId === event.id}>
+                    <Delete size={14} />
+                    Delete
+                  </button>
                 </div>
               </div>
             </div>
@@ -668,9 +827,14 @@ const EventsManager: React.FC<EventsManagerProps> = ({
               : 'Get started by creating your first event'
             }
           </div>
-          <button className="btn btn-primary" onClick={handleCreateEvent}>
-            Create Your First Event
+          <button 
+            className="btn btn-primary" 
+            onClick={() => handleCreateTicket(event.id)}
+          >
+            <Plus size={16} />
+            Add Ticket Tier
           </button>
+
         </div>
       )}
 
@@ -684,10 +848,13 @@ const EventsManager: React.FC<EventsManagerProps> = ({
             </div>
             <div className="modal-body">
               <div style={{ marginBottom: '24px' }}>
-                <button className="btn btn-primary" onClick={handleCreateTicket}>
-                  <Plus size={16} />
-                  Add Ticket Tier
-                </button>
+                <button 
+                    className="btn btn-primary" 
+                    onClick={() => handleCreateTicket(selectedEvent.id)}
+                  >
+                    <Plus size={16} />
+                    Add Ticket Tier
+                  </button>
               </div>
               
               <div className="table-container">
@@ -702,7 +869,7 @@ const EventsManager: React.FC<EventsManagerProps> = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedEvent.ticketTiers.map((ticket) => (
+                    {tickets.map((ticket) => (
                       <tr key={ticket.id}>
                         <td>
                           <div>
@@ -714,11 +881,11 @@ const EventsManager: React.FC<EventsManagerProps> = ({
                         <td>
                           <div>
                             <div style={{ fontWeight: '600', color: '#1e293b' }}>
-                              {ticket.sold || 0} / {ticket.quantity || 0}
+                              {ticket.bookedTickets || 0} / {ticket.count || 0}
                             </div>
-                            <div style={{ fontSize: '11px', color: '#64748b' }}>
+                            {/* <div style={{ fontSize: '11px', color: '#64748b' }}>
                               {Math.round(((ticket.sold || 0) / (ticket.quantity || 1)) * 100)}% sold
-                            </div>
+                            </div> */}
                           </div>
                         </td>
                         <td>
@@ -726,7 +893,9 @@ const EventsManager: React.FC<EventsManagerProps> = ({
                             const sold = Number(ticket.sold) || 0;
                             const price = Number(ticket.price) || 0;
                             const revenue = sold * price;
-                            return typeof revenue === 'number' && !isNaN(revenue) ? revenue.toLocaleString() : '0';
+                            return typeof revenue === 'number' && !isNaN(revenue)
+                              ? revenue.toLocaleString()
+                              : '0';
                           })()}
                         </td>
                         <td>
@@ -736,37 +905,41 @@ const EventsManager: React.FC<EventsManagerProps> = ({
                               style={{ padding: '4px 8px', fontSize: '11px' }}
                               onClick={() => handleEditTicket(ticket)}
                             >
-                              <Edit size={10} />
-                              Edit
+                              <Edit size={10} /> Edit
                             </button>
                             <button 
                               className="btn btn-danger" 
                               style={{ padding: '4px 8px', fontSize: '11px' }}
-                              onClick={() => handleDeleteTicket(ticket.id)}
+                              onClick={() => handleDeleteTicket(ticket)}
                             >
-                              <Trash2 size={10} />
-                              Delete
+                              <Trash2 size={10} /> Delete
                             </button>
                           </div>
                         </td>
                       </tr>
                     ))}
                   </tbody>
+
                 </table>
               </div>
               
-              {selectedEvent.ticketTiers.length === 0 && (
+              {/* {!loadingTickets && tickets.length === 0 && (
                 <div className="empty-state">
                   <div className="empty-state-title">No Ticket Tiers</div>
                   <div className="empty-state-description">
                     Create ticket tiers to start selling tickets for this event
                   </div>
-                  <button className="btn btn-primary" onClick={handleCreateTicket}>
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={() => handleCreateTicket(selectedEvent.id)}
+                  >
                     <Plus size={16} />
-                    Create First Ticket Tier
+                    Add Ticket Tier
                   </button>
+
                 </div>
-              )}
+              )} */}
+
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowTickets(false)}>
@@ -780,9 +953,12 @@ const EventsManager: React.FC<EventsManagerProps> = ({
       <TicketEditor
         ticket={selectedTicket}
         isOpen={showTicketEditor}
+        eventId={selectedEventId}   // 🔹 add this
         onClose={() => setShowTicketEditor(false)}
         onSave={handleSaveTicket}
       />
+
+
 
       <EventStaffManager
         eventId={staffManagerEvent?.id || ''}

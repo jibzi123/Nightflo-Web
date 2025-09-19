@@ -139,7 +139,90 @@ export const apiClient = {
     }
 
     return response.json(); // could be { payLoad: { signedUrl } } OR { signedUrl }
-  }
+  },
+  async getTicketsByEvent(eventId: string) {
+    const token = localStorage.getItem("authToken");
+    const response = await fetch(
+      `${API_BASE_URL}/tickets/getAllByEvent?eventId=${eventId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Failed to fetch tickets: ${errText}`);
+    }
+
+    return response.json(); // expected: { payLoad: [...] }
+  },
+
+  async deleteTicket(ticketId: string) {
+    const token = localStorage.getItem("authToken");
+    const response = await fetch(`${API_BASE_URL}/tickets/delete`, {
+      method: "DELETE", // ✅ keep DELETE
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ ticketId }), // ✅ send JSON body
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Failed to delete ticket: ${errText}`);
+    }
+
+    return response.json();
+  },
+
+
+  async updateTicket(ticketData: any) {
+    const token = localStorage.getItem("authToken");
+    const response = await fetch(`${API_BASE_URL}/tickets/update`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(ticketData),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Failed to update ticket: ${errText}`);
+    }
+
+    return response.json();
+  },
+  async createTicket(ticketData: {
+    name: string;
+    price: number;
+    count: number;
+    description: string[];
+    eventId: string;
+  }) {
+    const token = localStorage.getItem("authToken");
+    const response = await fetch(`${API_BASE_URL}/tickets/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(ticketData),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Failed to create ticket: ${errText}`);
+    }
+
+    return response.json(); // { status: "Success", payLoad: {...} }
+  },
 
 
 };

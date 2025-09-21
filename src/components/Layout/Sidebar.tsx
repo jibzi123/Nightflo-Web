@@ -41,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       { id: 'customers', label: 'Customers', icon: Users },
       { id: 'staff', label: 'Staff', icon: UserCheck },
       { id: 'promoters', label: 'Promoters', icon: Target },
-      { id: 'financial', label: 'Financial', icon: DollarSign }
+      { id: 'financial', label: 'Financial', icon: DollarSign },
     ];
 
     if (user?.userType === 'super_admin') {

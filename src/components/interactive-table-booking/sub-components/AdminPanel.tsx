@@ -24,6 +24,7 @@ interface AdminPanelProps {
     React.SetStateAction<"floors" | "tables" | "settings">
   >;
   handleUpdateFloor: (floorId: string, params: { name: String }) => void;
+  activeFloorTableCount: number;
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -51,14 +52,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [newFloorName, setNewFloorName] = useState("");
   const [editFloorName, setEditFloorName] = useState("");
   const { loading, callApi } = useApi();
-
   const [newTableData, setNewTableData] = useState({
     tableNumber: "",
     price: "",
     capacity: "",
     width: "",
     height: "",
-    tableCount: "",
+    tableCount: 0,
     tableType: "",
     description: "",
   });
@@ -68,7 +68,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     capacity: "",
     width: "",
     height: "",
-    tableCount: "",
+    tableCount: 0,
     tableType: "",
     description: "",
   });
@@ -121,44 +121,62 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       setEditFloorName({ id: activeFloor?.id, name: activeFloor?.name });
     }
   }, [activeFloor]);
+
   const createTable = async () => {
-    const newTable: Table = {
-      tableNumber: newTableData.tableNumber,
-      x: 100,
-      y: 100,
-      width: newTableData.width,
-      height: newTableData.height,
-      price: newTableData.price,
-      capacity: newTableData.capacity,
-      tableCount: 1,
-      // status: "available",
-      rotation: 0,
-      tableType: newTableData.tableType,
-      description: [newTableData.description],
-      floorId: activeFloor.id,
-      clubId: UserData?.club.id,
-    };
+    try {
+      const countRes = await callApi(
+        "GET",
+        `/tables/countByFloor?floorId=${activeFloor.id}`
+      );
+      console.log("Count Response:", countRes.payLoad.count);
+      const tableCount = countRes?.payLoad?.count ?? 0;
 
-    await callApi("POST", "/tables/create", newTable, {
-      onSuccess: (data) => {
-        console.log("Table Added:", data);
-        setNewTableData({});
+      const newTable: Table = {
+        tableNumber: newTableData.tableNumber,
+        tableCount,
+        x: 100,
+        y: 100,
+        width: newTableData.width,
+        height: newTableData.height,
+        price: newTableData.price,
+        capacity: newTableData.capacity,
+        rotation: 0,
+        tableType: newTableData.tableType,
+        description: [newTableData.description],
+        floorId: activeFloor.id,
+        clubId: UserData?.club.id,
+      };
 
-        if (!UserData) return;
-        fetchFloorsAndTables(UserData?.club.id);
-      },
-      onError: (err) => console.error("Error:", err),
-    });
+      await callApi("POST", "/tables/create", newTable, {
+        onSuccess: (data) => {
+          console.log("Table Added:", data);
+          setNewTableData({});
+          if (!UserData) return;
+          fetchFloorsAndTables(UserData?.club.id);
+        },
+        onError: (err) => console.error("Error:", err),
+      });
+    } catch (err) {
+      console.error("Error fetching count:", err);
+    }
   };
+
   const handleUpdateTable = async () => {
     if (!editableTable) return;
+    const countRes = await callApi(
+      "GET",
+      `/tables/countByFloor?floorId=${activeFloor.id}`
+    );
+    const tableCount = countRes?.payLoad?.count ?? 0;
+    console.log("Count Response:", countRes.payLoad.count);
+
     const params = {
       tableId: editableTable?.id,
       tableNumber: editableTable.tableNumber,
       floorId: editableTable?.floor.id,
       price: editableTable.price,
       capacity: editableTable.capacity,
-      tableCount: editableTable.tableCount,
+      tableCount,
       description: editableTable.description,
       status: editableTable?.status,
     };

@@ -30,10 +30,10 @@ function InteractiveTableBooking() {
   // });
   const [activeFloor, setActiveFloor] = useState<Floor>({});
   const storedUser = localStorage.getItem("userData");
-
   const [floors, setFloors] = useState<Floor[]>([]);
-
-  const [activeFloorId, setActiveFloorId] = useState<string>("");
+  const [activeFloorId, setActiveFloorId] = useState<string>(
+    localStorage.getItem("activeFloorId") || ""
+  );
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
   const [backgroundScale, setBackgroundScale] = useState<number>(1);
   const [backgroundPosition, setBackgroundPosition] = useState<{
@@ -76,12 +76,9 @@ function InteractiveTableBooking() {
       status: "pending",
     },
   ]);
-
   const updateFloor = (updatedFloor: Floor) => {
-    // setFloors(floors.map((f) => (f.id === updatedFloor.id ? updatedFloor : f)));
-    setHasUnsavedChanges(true);
+    setFloors(floors.map((f) => (f.id === updatedFloor.id ? updatedFloor : f)));
   };
-
 
   const fetchFloorsAndTables = async (clubId: string) => {
     try {
@@ -94,16 +91,18 @@ function InteractiveTableBooking() {
       const tables: Table[] = tablesRes.payLoad;
 
       const mergedFloors = mergeFloorsAndTables(floors, tables);
-      console.log(mergedFloors, "XY");
-
       setFloors(mergedFloors);
 
       if (mergedFloors.length > 0) {
         const activeFlor =
           mergedFloors.find((f: any) => f.id === activeFloorId) ||
-          mergedFloors[0];
+          mergedFloors[mergedFloors.length - 1];
 
-        setActiveFloorId(activeFlor.id);
+        setActiveFloorId(
+          localStorage.getItem("activeFloorId") ||
+            activeFlor.id ||
+            mergedFloors[mergedFloors.length - 1].id
+        );
         setActiveFloor(activeFlor);
         console.log("Active Floor", activeFlor);
       }
@@ -128,10 +127,7 @@ function InteractiveTableBooking() {
       floors?.find((f: any) => f.id === activeFloorId) || floors[0];
     setActiveFloor(activeFloor);
   }, [activeFloorId]);
-  interface NewFloor {
-    name: string;
-    club: string;
-  }
+
   const addFloor = async (name: string) => {
     if (!UserData) {
       throw new Error("User not found in localStorage");
@@ -149,9 +145,9 @@ function InteractiveTableBooking() {
           if (!UserData) {
             return;
           }
-          console.log(data, "data");
-          setActiveFloorId(data?.payLoad?.id);
-          setHasUnsavedChanges(true);
+          localStorage.setItem("activeFloorId", data?.payLoad?.id);
+          // setActiveFloorId(data?.payLoad?.id);
+          // setHasUnsavedChanges(true);
           fetchFloorsAndTables(UserData.club.id);
         },
         onError: (err) => console.error("Error:", err),
@@ -173,22 +169,41 @@ function InteractiveTableBooking() {
     });
   };
   const handleDeleteFloor = async (floorId: string) => {
-    await callApi("DELETE", `/floor/${floorId}`, null, {
-      onSuccess: (data) => {
-        console.log("delete success");
-        if (!UserData) return;
-        fetchFloorsAndTables(UserData.club.id);
-        setHasUnsavedChanges(true);
-      },
-      onError: (err) => console.error("Error:", err),
-    });
+    // Decide the next active floor BEFORE deletion
+    let nextActiveFloorId = activeFloorId;
+
+    if (activeFloorId === floorId) {
+      const idx = floors.findIndex((f) => f.id === floorId);
+
+      if (idx > 0) {
+        // pick the previous floor
+        nextActiveFloorId = floors[idx - 1].id;
+      } else if (floors.length > 1) {
+        // pick the next floor if deleting the first one
+        nextActiveFloorId = floors[1].id;
+      } else {
+        // no floors left after deletion
+        nextActiveFloorId = "";
+      }
+      await callApi("DELETE", `/floor/${floorId}`, null, {
+        onSuccess: async (data) => {
+          if (!UserData) return;
+          await fetchFloorsAndTables(UserData.club.id);
+          if (nextActiveFloorId) {
+            localStorage.setItem("activeFloorId", nextActiveFloorId);
+            setActiveFloorId(nextActiveFloorId);
+          } else {
+            localStorage.removeItem("activeFloorId");
+            setActiveFloorId(""); // or null
+          }
+        },
+        onError: (err) => console.error("Error:", err),
+      });
+    }
   };
   const deleteFloor = (floorId: string) => {
     if (floors.length > 1) {
       handleDeleteFloor(floorId);
-      if (activeFloorId === floorId) {
-        setActiveFloorId(floors[0].id);
-      }
     }
   };
 
@@ -269,7 +284,9 @@ function InteractiveTableBooking() {
                     activeFloorId === floor.id ? "active" : ""
                   }`}
                   onClick={() => {
-                    setActiveFloorId(floor.id), setActiveTab("floors");
+                    localStorage.setItem("activeFloorId", floor.id),
+                      setActiveFloorId(floor.id),
+                      setActiveTab("floors");
                   }}
                 >
                   {floor.name}
@@ -309,6 +326,7 @@ function InteractiveTableBooking() {
           activeFloor={activeFloor}
           onFloorUpdate={updateFloor}
           onAddFloor={addFloor}
+          n
           onDeleteFloor={deleteFloor}
           selectedElement={selectedElement}
           onElementSelect={setSelectedElement}

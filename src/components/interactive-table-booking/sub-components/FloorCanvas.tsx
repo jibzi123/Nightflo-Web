@@ -67,7 +67,6 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
     },
     [onElementSelect]
   );
-
   const handleResizeStart = useCallback(
     (e: React.MouseEvent, handle: string) => {
       e.preventDefault();

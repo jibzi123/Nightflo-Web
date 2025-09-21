@@ -285,7 +285,16 @@ body {
   overflow-y: auto;
   padding: 20px;
 }
-
+.reservations-list::-webkit-scrollbar {
+  width: 5px;
+  border-radius: 10px;
+}
+.reservations-list::-webkit-scrollbar-thumb {
+  height: 50px;
+  min-height: 40px;
+  border-radius: 10px;
+  background-color: #929eb2;
+}
 .section-title {
   font-size: 14px;
   color: #999;
@@ -564,6 +573,8 @@ body {
 }
 
 .canvas-container {
+  /* overflow-y: auto;
+  width: 100%; */
   flex: 1;
   position: relative;
   overflow: hidden;

@@ -46,6 +46,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setToken(null);
     localStorage.removeItem("authToken");
     localStorage.removeItem("userData");
+    localStorage.removeItem("activeFloorId");
   };
 
   const isAuthenticated = !!user;

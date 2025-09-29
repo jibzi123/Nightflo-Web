@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Floor, Table, ClubHours, UserData } from "../types";
-import TableElementProperties from "./TableElementProperties";
+import TableElementProperties, { NewTableData } from "./TableElementProperties";
 import FloorManager from "./FloorManager";
 import { useApi } from "../../../utils/custom-hooks/useApi";
+import { getRandomPercent } from "../../../utils/tableUtil";
 
 interface AdminPanelProps {
   floors: Floor[];
@@ -17,14 +18,21 @@ interface AdminPanelProps {
   setBackgroundScale: (scale: number) => void;
   backgroundPosition: { x: number; y: number };
   setBackgroundPosition: (position: { x: number; y: number }) => void;
-  onRemoveBackground: () => void;
+  // onRemoveBackground: () => void;
   fetchFloorsAndTables: (id: string) => void;
   activeTab: "floors" | "tables" | "settings";
   setActiveTab: React.Dispatch<
     React.SetStateAction<"floors" | "tables" | "settings">
   >;
-  handleUpdateFloor: (floorId: string, params: { name: String }) => void;
+  handleUpdateFloor: (
+    floorId: string,
+    params: { name: string }
+  ) => Promise<void>;
   activeFloorTableCount: number;
+  newTableData: Table;
+  setNewTableData: (d: Table) => void;
+  editableTable: Table;
+  setEditableTable: (d: Table) => void;
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -40,44 +48,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   setBackgroundScale,
   backgroundPosition,
   setBackgroundPosition,
-  onRemoveBackground,
+  // onRemoveBackground,
   fetchFloorsAndTables,
   activeTab,
   setActiveTab,
   handleUpdateFloor,
+  newTableData,
+  setNewTableData,
+  editableTable,
+  setEditableTable,
 }) => {
-  // const [activeTab, setActiveTab] = useState<"tables" | "floors" | "settings">(
-  //   "tables"
-  // );
-  const [newFloorName, setNewFloorName] = useState("");
-  const [editFloorName, setEditFloorName] = useState("");
+  const [newFloorName, setNewFloorName] = useState<string>("");
+  const [editFloorName, setEditFloorName] = useState<{ id: string; name: string } | null>({ id: "", name: "" });
   const { loading, callApi } = useApi();
-  const [newTableData, setNewTableData] = useState({
-    tableNumber: "",
-    price: "",
-    capacity: "",
-    width: "",
-    height: "",
-    tableCount: 0,
-    tableType: "",
-    description: "",
-  });
-  const [editableTable, setEditableTable] = useState({
-    tableNumber: "",
-    price: "",
-    capacity: "",
-    width: "",
-    height: "",
-    tableCount: 0,
-    tableType: "",
-    description: "",
-  });
-  // const [newPoiData, setNewPoiData] = useState({
-  //   name: "",
-  //   type: "bar" as PointOfInterest["type"],
-  //   width: 80,
-  //   height: 50,
-  // });
+
   const storedUser = localStorage.getItem("userData");
   const UserData: UserData | null = storedUser
     ? (JSON.parse(storedUser) as UserData)
@@ -86,10 +70,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     selectedElement && activeFloor?.tables
       ? activeFloor?.tables.find((t) => t.id === selectedElement)
       : null;
-
-  // const selectedPoi = selectedElement
-  //   ? activeFloor.pointsOfInterest.find((p) => p.id === selectedElement)
-  //   : null;
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -111,7 +91,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   useEffect(() => {
     if (selectedTable) {
-      console.log(selectedTable);
       setEditableTable({ ...selectedTable });
     }
   }, [selectedTable]);
@@ -124,18 +103,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const createTable = async () => {
     try {
-      const countRes = await callApi(
+      const countRes: { payLoad?: { count?: number } } | null = await callApi(
         "GET",
         `/tables/countByFloor?floorId=${activeFloor.id}`
       );
-      console.log("Count Response:", countRes.payLoad.count);
-      const tableCount = countRes?.payLoad?.count ?? 0;
+
+      const tableCount = (countRes?.payLoad?.count ?? 0) + 1;
 
       const newTable: Table = {
         tableNumber: newTableData.tableNumber,
         tableCount,
-        x: 100,
-        y: 100,
+        xAxis: getRandomPercent(),
+        yAxis: getRandomPercent(),
         width: newTableData.width,
         height: newTableData.height,
         price: newTableData.price,
@@ -163,12 +142,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const handleUpdateTable = async () => {
     if (!editableTable) return;
-    const countRes = await callApi(
+    console.log(editableTable, "editableTable");
+    const countRes: { payLoad?: { count?: number } } | null = await callApi(
       "GET",
       `/tables/countByFloor?floorId=${activeFloor.id}`
     );
-    const tableCount = countRes?.payLoad?.count ?? 0;
-    console.log("Count Response:", countRes.payLoad.count);
+    const tableCount = (countRes?.payLoad?.count ?? 0) + 1;
 
     const params = {
       tableId: editableTable?.id,
@@ -179,6 +158,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       tableCount,
       description: editableTable.description,
       status: editableTable?.status,
+      xAxis: editableTable.xAxis,
+      yAxis: editableTable.yAxis,
+      width: editableTable.width,
+      height: editableTable.height,
     };
     await callApi("POST", "/tables/update", params, {
       onSuccess: (data) => {
@@ -188,27 +171,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       onError: (err) => console.error("Error:", err),
     });
   };
-
-  // const handleAddPoi = () => {
-  //   const newPoi: PointOfInterest = {
-  //     id: `poi${Date.now()}`,
-  //     name: newPoiData.name || newPoiData.type.toUpperCase(),
-  //     type: newPoiData.type,
-  //     x: 200,
-  //     y: 200,
-  //     width: newPoiData.width,
-  //     height: newPoiData.height,
-  //     rotation: 0,
-  //   };
-
-  //   const updatedFloor = {
-  //     ...activeFloor,
-  //     pointsOfInterest: [...activeFloor.pointsOfInterest, newPoi],
-  //   };
-
-  //   onFloorUpdate(updatedFloor);
-  //   setNewPoiData({ name: "", type: "bar", width: 80, height: 50 });
-  // };
 
   const handleDeleteSelected = async () => {
     if (!selectedElement) return;
@@ -226,31 +188,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     );
     onElementSelect(null);
   };
-
-  const updateSelectedTable = async (updates: Partial<Table>) => {
-    if (!selectedTable) return;
-    // const updatedFloor = {
-    //   ...activeFloor,
-    //   tables: activeFloor.tables.map((t) =>
-    //     t.id === selectedElement ? { ...t, ...updates } : t
-    //   ),
-    // };
-
-    // onFloorUpdate(updatedFloor);
-  };
-
-  // const updateSelectedPoi = (updates: Partial<PointOfInterest>) => {
-  //   if (!selectedPoi) return;
-
-  //   const updatedFloor = {
-  //     ...activeFloor,
-  //     pointsOfInterest: activeFloor.pointsOfInterest.map((p) =>
-  //       p.id === selectedElement ? { ...p, ...updates } : p
-  //     ),
-  //   };
-
-  //   onFloorUpdate(updatedFloor);
-  // };
 
   return (
     <div className="admin-panel">
@@ -280,16 +217,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           <TableElementProperties
             selectedElement={selectedElement}
             selectedTable={selectedTable}
-            // selectedPoi={selectedPoi}
-            updateSelectedTable={updateSelectedTable}
-            // updateSelectedPoi={updateSelectedPoi}
             handleDeleteSelected={handleDeleteSelected}
             newTableData={newTableData}
             setNewTableData={setNewTableData}
             handleAddTable={createTable}
-            // newPoiData={newPoiData}
-            // setNewPoiData={setNewPoiData}
-            // handleAddPoi={handleAddPoi}
             handleUpdateTable={handleUpdateTable} // new function
             editableTable={editableTable}
             setEditableTable={setEditableTable}
@@ -307,7 +238,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             backgroundPosition={backgroundPosition}
             setBackgroundPosition={setBackgroundPosition}
             handleFileUpload={handleFileUpload}
-            onRemoveBackground={onRemoveBackground}
+            // onRemoveBackground={onRemoveBackground}
             onDeleteFloor={onDeleteFloor}
             onAddFloor={onAddFloor}
             editFloorName={editFloorName}

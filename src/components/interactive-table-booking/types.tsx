@@ -95,20 +95,18 @@ export interface Table {
   tableNumber: string;
   tableType: string;
   description: string[] | any;
-  price: number;
+  price: number | string;
   tableCount: number;
-  capacity: number;
+  capacity: number | string;
   status?: string;
   floor?: Floor | null;
   createdAt?: string;
   updatedAt?: string;
   bookingType?: string;
-
-  // frontend-only fields
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  xAxis: string | number;
+  yAxis: string | number;
+  width: string | number;
+  height: string | number;
   rotation: number;
   floorId?: string;
   clubId?: string;

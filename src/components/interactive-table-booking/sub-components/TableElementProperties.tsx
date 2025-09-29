@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Table } from "../types";
+import { validateTable } from "../../../utils/tableUtil";
 
 // --- Types ---
 export type TableCategory = "standard" | "vip" | "premium";
@@ -44,23 +45,23 @@ interface ElementPropertiesProps {
   selectedPoi?: PointOfInterest | null;
 
   /** called with partial updates for the selected table */
-  updateSelectedTable: (patch: Partial<Table>) => void;
+  // updateSelectedTable: (patch: Partial<Table>) => void;
 
   /** called with partial updates for the selected poi */
-  updateSelectedPoi: (patch: Partial<PointOfInterest>) => void;
+  // updateSelectedPoi: (patch: Partial<PointOfInterest>) => void;
 
   /** delete handler for currently selected element */
   handleDeleteSelected: () => void;
 
   /** state and setters for "Add New Table" form */
-  newTableData: NewTableData;
-  setNewTableData: (d: NewTableData) => void;
+  newTableData: Table;
+  setNewTableData: (d: Table) => void;
   handleAddTable: () => void;
 
   /** state and setters for "Add POI" form */
-  newPoiData: NewPoiData;
-  setNewPoiData: (d: NewPoiData) => void;
-  handleAddPoi: () => void;
+  // newPoiData: NewPoiData;
+  // setNewPoiData: (d: NewPoiData) => void;
+  // handleAddPoi: () => void;
   handleUpdateTable: () => void;
   editableTable: any;
   setEditableTable: any;
@@ -69,16 +70,10 @@ interface ElementPropertiesProps {
 const TableElementProperties: React.FC<ElementPropertiesProps> = ({
   selectedElement,
   selectedTable,
-  // selectedPoi,
-  updateSelectedTable,
-  // updateSelectedPoi,
   handleDeleteSelected,
   newTableData,
   setNewTableData,
   handleAddTable,
-  // newPoiData,
-  // setNewPoiData,
-  // handleAddPoi,
   handleUpdateTable,
   editableTable,
   setEditableTable,
@@ -90,50 +85,16 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
     [key: string]: string;
   }>({});
 
-  const validateEditableTable = (): boolean => {
-    const newErrors: { [key: string]: string } = {};
-    if (!editableTable?.tableNumber)
-      newErrors.tableNumber = "Table Name is required";
-    if (!editableTable?.tableType)
-      newErrors.tableType = "Table type is required";
-    if (!editableTable?.price) newErrors.price = "Price is Required";
-    if (!editableTable?.capacity) newErrors.capacity = "Capacity is Required";
-    if (!editableTable?.width) newErrors.width = "Width is Required";
-    if (!editableTable?.height) newErrors.height = "Height is Required";
-    if (!editableTable?.description)
-      newErrors.description = "Description is Required";
-
-    setEditTableErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleUpdateClick = () => {
-    if (validateEditableTable()) {
-      handleUpdateTable();
-    }
+    const { isValid, errors } = validateTable(editableTable);
+    setEditTableErrors(errors);
+    if (isValid) handleUpdateTable();
   };
 
-  const validateNewTable = (): boolean => {
-    const tableErrors: { [key: string]: string } = {};
-    if (!newTableData.tableNumber)
-      tableErrors.tableNumber = "Table Name is required";
-    if (!newTableData.tableType)
-      tableErrors.tableType = "Table type is required";
-    if (!newTableData.price) tableErrors.price = "Price is Required";
-    if (!newTableData.capacity) tableErrors.capacity = "Capacity is Required";
-    if (!newTableData.width) tableErrors.width = "Width is Required";
-    if (!newTableData.height) tableErrors.height = "Height is Required";
-    if (!newTableData?.description)
-      tableErrors.description = "Description is Required";
-
-    setNewTableErrors(tableErrors);
-    return Object.keys(tableErrors).length === 0;
-  };
-
-  const handleAddClick = () => {
-    if (validateNewTable()) {
-      handleAddTable();
-    }
+  const handleCreateClick = () => {
+    const { isValid, errors } = validateTable(newTableData);
+    setNewTableErrors(errors);
+    if (isValid) handleAddTable();
   };
   useEffect(() => {
     setNewTableErrors({});
@@ -141,7 +102,6 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
   }, [selectedElement, selectedTable]);
   return (
     <div>
-      {/* --- Selected element properties (Table or POI) --- */}
       {selectedElement && selectedTable && (
         <div className="element-properties">
           <div className="property-title">
@@ -501,7 +461,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
           )}
         </div>
 
-        <button className="btn-primary" onClick={handleAddClick}>
+        <button className="btn-primary" onClick={handleCreateClick}>
           Add Table
         </button>
       </div>

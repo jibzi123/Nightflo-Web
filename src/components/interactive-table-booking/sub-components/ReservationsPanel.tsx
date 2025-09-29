@@ -38,7 +38,6 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
   // const occupiedTables =
   //   activeFloor?.tables &&
   //   activeFloor.tables.filter((t) => t.status === "active");
-  console.log(activeFloor, "activeFloor");
   return (
     <div className="reservations-panel">
       <div className="panel-header">
@@ -272,6 +271,14 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
               </div>
             </div>
           )}
+        {activeTab === "reservations" && reservedTables && (
+          <div className="empty-state">
+            <div className="customer-name">No Reservations found</div>
+            <div className="reservation-details">
+              Reservations will appear here once customers book a table.
+            </div>
+          </div>
+        )}
         {/*         
         {activeTab === 'pois' && activeFloor.pointsOfInterest.length === 0 && (
           <div className="empty-state">
@@ -281,15 +288,6 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
             </div>
           </div>
         )} */}
-
-        {activeTab === "reservations" && reservations?.length === 0 && (
-          <div className="empty-state">
-            <div className="customer-name">No reservations</div>
-            <div className="reservation-details">
-              Reservations will appear here when customers book tables
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

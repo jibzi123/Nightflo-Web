@@ -3,32 +3,12 @@ import AdminPanel from "./sub-components/AdminPanel";
 import FloorCanvas from "./sub-components/FloorCanvas";
 import ReservationsPanel from "./sub-components/ReservationsPanel";
 import "./style.css";
-import ClientBookingPanel from "./sub-components/ClientBookingPanel";
-import TableDetailsModal from "./TableSelectedDetailsModal";
-import {
-  ClubHours,
-  Floor,
-  FloorsResponse,
-  Reservation,
-  UserData,
-  Table,
-} from "./types";
-import { mergeFloorsAndTables } from "../../utils/table-booking-util";
+import { ClubHours, Floor, Reservation, UserData, Table } from "./types";
+import { mergeFloorsAndTables } from "../../utils/tableUtil";
 import { useApi } from "../../utils/custom-hooks/useApi";
 
 function InteractiveTableBooking() {
-  const [viewMode, setViewMode] = useState<"admin" | "client">("admin");
-  // const [selectedDate, setSelectedDate] = useState<string>(
-  //   new Date().toISOString().split("T")[0]
-  // );
-  // const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>("22:00");
-  // const [bookingGuests, setBookingGuests] = useState<number>(2);
-  // const [customerInfo, setCustomerInfo] = useState({
-  //   name: "",
-  //   phone: "",
-  //   email: "",
-  // });
-  const [activeFloor, setActiveFloor] = useState<Floor>({});
+  const [activeFloor, setActiveFloor] = useState<Floor | any>();
   const storedUser = localStorage.getItem("userData");
   const [floors, setFloors] = useState<Floor[]>([]);
   const [activeFloorId, setActiveFloorId] = useState<string>(
@@ -40,7 +20,6 @@ function InteractiveTableBooking() {
     x: number;
     y: number;
   }>({ x: 0, y: 0 });
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
   const [clubHours] = useState<ClubHours>({
     openTime: "22:00",
     closeTime: "04:00",
@@ -49,32 +28,52 @@ function InteractiveTableBooking() {
   const [activeTab, setActiveTab] = useState<"tables" | "floors" | "settings">(
     "tables"
   );
+  const [newTableData, setNewTableData] = useState({
+    tableNumber: "",
+    price: "",
+    capacity: "",
+    width: "",
+    height: "",
+    tableCount: 0,
+    tableType: "circle",
+    description: "",
+  });
+  const [editableTable, setEditableTable] = useState({
+    tableNumber: "",
+    price: "",
+    capacity: "",
+    width: "",
+    height: "",
+    tableCount: 0,
+    tableType: "",
+    description: "",
+  });
   const UserData: UserData | null = storedUser
     ? (JSON.parse(storedUser) as UserData)
     : null;
   const { loading, callApi } = useApi();
 
   const [reservations] = useState<Reservation[]>([
-    {
-      id: "r1",
-      customerName: "Adelisa Wallace",
-      tableId: "t2",
-      date: "2025-04-24",
-      time: "23:00",
-      guests: 4,
-      amount: 500,
-      status: "confirmed",
-    },
-    {
-      id: "r2",
-      customerName: "Mike Margolis",
-      tableId: "t1",
-      date: "2025-04-24",
-      time: "22:30",
-      guests: 2,
-      amount: 250,
-      status: "pending",
-    },
+    // {
+    //   id: "r1",
+    //   customerName: "Adelisa Wallace",
+    //   tableId: "t2",
+    //   date: "2025-04-24",
+    //   time: "23:00",
+    //   guests: 4,
+    //   amount: 500,
+    //   status: "confirmed",
+    // },
+    // {
+    //   id: "r2",
+    //   customerName: "Mike Margolis",
+    //   tableId: "t1",
+    //   date: "2025-04-24",
+    //   time: "22:30",
+    //   guests: 2,
+    //   amount: 250,
+    //   status: "pending",
+    // },
   ]);
   const updateFloor = (updatedFloor: Floor) => {
     setFloors(floors.map((f) => (f.id === updatedFloor.id ? updatedFloor : f)));
@@ -87,8 +86,8 @@ function InteractiveTableBooking() {
         callApi("GET", `/tables/club?clubId=${clubId}`), // all tables of club
       ]);
 
-      const floors: Floor[] = floorsRes.payLoad;
-      const tables: Table[] = tablesRes.payLoad;
+      const floors: Floor[] = (floorsRes as { payLoad: Floor[] }).payLoad;
+      const tables: Table[] = (tablesRes as { payLoad: Table[] }).payLoad;
 
       const mergedFloors = mergeFloorsAndTables(floors, tables);
       setFloors(mergedFloors);
@@ -141,13 +140,12 @@ function InteractiveTableBooking() {
         club: UserData.club.id,
       },
       {
-        onSuccess: (data) => {
+        onSuccess: (data: { payLoad: { id: string } }) => {
           if (!UserData) {
             return;
           }
           localStorage.setItem("activeFloorId", data?.payLoad?.id);
-          // setActiveFloorId(data?.payLoad?.id);
-          // setHasUnsavedChanges(true);
+
           fetchFloorsAndTables(UserData.club.id);
         },
         onError: (err) => console.error("Error:", err),
@@ -163,26 +161,21 @@ function InteractiveTableBooking() {
       onSuccess: (data) => {
         if (!UserData) return;
         fetchFloorsAndTables(UserData.club.id);
-        setHasUnsavedChanges(true);
       },
       onError: (err) => console.error("Error:", err),
     });
   };
   const handleDeleteFloor = async (floorId: string) => {
-    // Decide the next active floor BEFORE deletion
     let nextActiveFloorId = activeFloorId;
 
     if (activeFloorId === floorId) {
       const idx = floors.findIndex((f) => f.id === floorId);
 
       if (idx > 0) {
-        // pick the previous floor
         nextActiveFloorId = floors[idx - 1].id;
       } else if (floors.length > 1) {
-        // pick the next floor if deleting the first one
         nextActiveFloorId = floors[1].id;
       } else {
-        // no floors left after deletion
         nextActiveFloorId = "";
       }
       await callApi("DELETE", `/floor/${floorId}`, null, {
@@ -207,47 +200,12 @@ function InteractiveTableBooking() {
     }
   };
 
-  // const handleTableBooking = (tableId: string) => {
-  //   if (viewMode !== "client") return;
-
-  //   const table =
-  //     activeFloor.tables && activeFloor?.tables.find((t) => t.id === tableId);
-  //   if (!table || table.status !== "available") return;
-
-  //   // Create new reservation
-  //   const newReservation: Reservation = {
-  //     id: `r${Date.now()}`,
-  //     customerName: customerInfo.name,
-  //     tableId: table.tableNumber,
-  //     date: selectedDate,
-  //     time: selectedTimeSlot,
-  //     guests: bookingGuests,
-  //     amount: table.price,
-  //     status: "pending",
-  //   };
-
-  //   // Update table status
-  //   const updatedFloor = {
-  //     ...activeFloor,
-  //     tables:
-  //       activeFloor.tables &&
-  //       activeFloor?.tables.map((t) =>
-  //         t.id === tableId ? { ...t, status: "reserved" as const } : t
-  //       ),
-  //   };
-
+  // const removeBackground = () => {
+  //   const updatedFloor = { ...activeFloor, backgroundImage: undefined };
   //   updateFloor(updatedFloor);
-  //   alert(
-  //     `Table ${table.tableNumber} booked successfully for ${selectedDate} at ${selectedTimeSlot}!`
-  //   );
-  //   setSelectedElement(null);
+  //   setBackgroundScale(1);
+  //   setBackgroundPosition({ x: 0, y: 0 });
   // };
-  const removeBackground = () => {
-    const updatedFloor = { ...activeFloor, backgroundImage: undefined };
-    updateFloor(updatedFloor);
-    setBackgroundScale(1);
-    setBackgroundPosition({ x: 0, y: 0 });
-  };
 
   return (
     <div className="app">
@@ -258,22 +216,6 @@ function InteractiveTableBooking() {
           onElementSelect={setSelectedElement}
           selectedElement={selectedElement}
         />
-        {/* {viewMode === "admin" ? (
-             
-            ) : (
-              <ClientBookingPanel
-                activeFloor={activeFloor}
-                selectedDate={selectedDate}
-                setSelectedDate={setSelectedDate}
-                selectedTimeSlot={selectedTimeSlot}
-                setSelectedTimeSlot={setSelectedTimeSlot}
-                bookingGuests={bookingGuests}
-                setBookingGuests={setBookingGuests}
-                customerInfo={customerInfo}
-                setCustomerInfo={setCustomerInfo}
-              />
-            )} */}
-
         <div className="main-content-canvas">
           <div className="canvas-header">
             <div className="floor-tabs">
@@ -302,25 +244,11 @@ function InteractiveTableBooking() {
             onElementSelect={setSelectedElement}
             backgroundScale={backgroundScale}
             backgroundPosition={backgroundPosition}
-            viewMode={viewMode}
-            // onTableBooking={handleTableBooking}
             setActiveTab={setActiveTab}
+            fetchFloorsAndTables={fetchFloorsAndTables}
           />
-
-          {/* Client Table Details Modal */}
-          {/* {viewMode === "client" && selectedElement && (
-                <TableDetailsModal
-                  activeFloor={activeFloor}
-                  selectedElement={selectedElement}
-                  setSelectedElement={setSelectedElement}
-                  getCategoryIcon={getCategoryIcon}
-                  handleTableBooking={handleTableBooking}
-                  customerInfo={customerInfo}
-                />
-              )} */}
         </div>
 
-        {/* {viewMode === "admin" && ( */}
         <AdminPanel
           floors={floors}
           activeFloor={activeFloor}
@@ -335,13 +263,16 @@ function InteractiveTableBooking() {
           setBackgroundScale={setBackgroundScale}
           backgroundPosition={backgroundPosition}
           setBackgroundPosition={setBackgroundPosition}
-          onRemoveBackground={removeBackground}
+          // onRemoveBackground={removeBackground}
           fetchFloorsAndTables={fetchFloorsAndTables}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           handleUpdateFloor={handleUpdateFloor}
+          newTableData={newTableData}
+          setNewTableData={setNewTableData}
+          editableTable={editableTable}
+          setEditableTable={setEditableTable}
         />
-        {/* )} */}
       </div>
     </div>
   );

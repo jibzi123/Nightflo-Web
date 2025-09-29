@@ -11,19 +11,18 @@ interface FloorManagerProps {
   floors: Floor[];
   newFloorName: string;
   setNewFloorName: (name: string) => void;
-
   backgroundScale: number;
   setBackgroundScale: (scale: number) => void;
   backgroundPosition: Position;
   setBackgroundPosition: (pos: Position) => void;
 
   handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onRemoveBackground: () => void;
+  // onRemoveBackground: () => void;
 
   onDeleteFloor: (floorId: string) => void;
   onAddFloor: (name: string) => void;
-  editFloorName: string;
-  setEditFloorName: (d: any) => void;
+  editFloorName: { id: string; name: string } | null;
+  setEditFloorName: (d: { id: string; name: string } | null | ((prev: { id: string; name: string } | null) => { id: string; name: string } | null)) => void;
   handleUpdateFloor: (floorId: string, params: { name: string }) => void;
 }
 
@@ -37,7 +36,7 @@ const FloorManager: React.FC<FloorManagerProps> = ({
   backgroundPosition,
   setBackgroundPosition,
   handleFileUpload,
-  onRemoveBackground,
+  // onRemoveBackground,
   onDeleteFloor,
   onAddFloor,
   editFloorName,
@@ -47,9 +46,9 @@ const FloorManager: React.FC<FloorManagerProps> = ({
   return (
     <div>
       <div className="form-group">
-        <label className="form-label">Current Floor: {activeFloor?.name}</label>
+        {/* <label className="form-label">Current Floor: {activeFloor?.name}</label> */}
 
-        <div className="file-upload">
+        {/* <div className="file-upload">
           <input
             type="file"
             accept="image/*"
@@ -63,9 +62,9 @@ const FloorManager: React.FC<FloorManagerProps> = ({
               JPG, PNG up to 10MB
             </span>
           </label>
-        </div>
+        </div> */}
 
-        {activeFloor?.backgroundImage && (
+        {/* {activeFloor?.backgroundImage && (
           <div className="background-controls">
             <div className="form-group">
               <label className="form-label">Background Scale</label>
@@ -129,7 +128,7 @@ const FloorManager: React.FC<FloorManagerProps> = ({
               </button>
             </div>
           </div>
-        )}
+        )} */}
       </div>
 
       <div className="form-group">
@@ -164,7 +163,7 @@ const FloorManager: React.FC<FloorManagerProps> = ({
                 placeholder="Floor name"
                 value={editFloorName?.name}
                 onChange={(e) =>
-                  setEditFloorName((prev) =>
+                  setEditFloorName((prev: { id: string; name: string } | null) =>
                     prev ? { ...prev, name: e.target.value } : prev
                   )
                 }
@@ -177,7 +176,7 @@ const FloorManager: React.FC<FloorManagerProps> = ({
                   handleUpdateFloor(editFloorName.id, {
                     name: editFloorName?.name?.trim(),
                   });
-                  setEditFloorName("");
+                  setEditFloorName(null);
                 }
               }}
             >

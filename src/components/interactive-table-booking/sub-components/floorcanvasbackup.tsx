@@ -1,8 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
-import { Floor, UserData } from "./../types";
-import { useApi } from "../../../utils/custom-hooks/useApi";
-import { DollarSign, Users } from "lucide-react";
-import { Tooltip } from "antd";
+import { Floor } from "./../types";
 
 interface FloorCanvasProps {
   floor: Floor;
@@ -11,10 +8,10 @@ interface FloorCanvasProps {
   onElementSelect: (id: string | null) => void;
   backgroundScale: number;
   backgroundPosition: { x: number; y: number };
+  viewMode: "admin" | "client";
   setActiveTab: React.Dispatch<
     React.SetStateAction<"floors" | "tables" | "settings">
   >;
-  fetchFloorsAndTables: (id: string) => void;
 }
 
 const FloorCanvas: React.FC<FloorCanvasProps> = ({
@@ -24,19 +21,16 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
   onElementSelect,
   backgroundScale,
   backgroundPosition,
+  viewMode,
   setActiveTab,
-  fetchFloorsAndTables,
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ xAxis: 0, yAxis: 0 });
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isResizing, setIsResizing] = useState(false);
   const [resizeHandle, setResizeHandle] = useState<string | null>(null);
   const [initialSize, setInitialSize] = useState({ width: 0, height: 0 });
-  const [initialMousePos, setInitialMousePos] = useState({
-    xAxis: 0,
-    yAxis: 0,
-  });
+  const [initialMousePos, setInitialMousePos] = useState({ x: 0, y: 0 });
 
   const getCanvasSize = () => {
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -44,27 +38,30 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
   };
 
   const handleElementMouseDown = useCallback(
-    (
-      e: React.MouseEvent,
-      elementId: string | any,
-      elementType: "table" | "poi"
-    ) => {
+    (e: React.MouseEvent, elementId: string, elementType: "table" | "poi") => {
       e.preventDefault();
       e.stopPropagation();
+
+      if (viewMode === "client" && elementType === "table") {
+        onElementSelect(elementId);
+        return;
+      }
+
+      if (viewMode === "client") return;
 
       const target = e.currentTarget as HTMLElement;
       const rect = target.getBoundingClientRect();
 
       setDragOffset({
-        xAxis: e.clientX - rect.left,
-        yAxis: e.clientY - rect.top,
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
       });
 
       setIsDragging(true);
       setActiveTab("tables");
       onElementSelect(elementId);
     },
-    [onElementSelect, setActiveTab]
+    [onElementSelect, viewMode, setActiveTab]
   );
 
   const handleResizeStart = useCallback(
@@ -73,32 +70,30 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       e.stopPropagation();
 
       if (!selectedElement) return;
-      if (!floor.tables) return;
 
       const element = floor?.tables.find((el) => el.id === selectedElement);
-      console.log(element, "element");
       if (!element) return;
 
       setIsResizing(true);
       setResizeHandle(handle);
       setInitialSize({ width: element.width, height: element.height });
-      setInitialMousePos({ xAxis: e.clientX, yAxis: e.clientY });
+      setInitialMousePos({ x: e.clientX, y: e.clientY });
     },
     [selectedElement, floor]
   );
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
+      if (viewMode === "client") return;
       if (!selectedElement || !canvasRef.current) return;
 
       const { width: canvasWidth, height: canvasHeight } = getCanvasSize();
-
       if (isResizing && resizeHandle) {
-        const deltaX = e.clientX - initialMousePos.xAxis;
-        const deltaY = e.clientY - initialMousePos.yAxis;
+        const deltaX = e.clientX - initialMousePos.x;
+        const deltaY = e.clientY - initialMousePos.y;
 
-        let newWidth = initialSize.width;
-        let newHeight = initialSize.height;
+        let newWidth = initialSize.width * canvasWidth;
+        let newHeight = initialSize.height * canvasHeight;
 
         switch (resizeHandle) {
           case "se":
@@ -120,8 +115,6 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
         }
 
         const updatedFloor = { ...floor };
-        if (!updatedFloor.tables) return;
-
         const tableIndex = updatedFloor.tables.findIndex(
           (t) => t.id === selectedElement
         );
@@ -129,8 +122,8 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
         if (tableIndex >= 0) {
           updatedFloor.tables[tableIndex] = {
             ...updatedFloor.tables[tableIndex],
-            width: newWidth,
-            height: newHeight,
+            width: newWidth / canvasWidth,
+            height: newHeight / canvasHeight,
           };
         }
 
@@ -141,14 +134,12 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       if (!isDragging) return;
 
       const canvasRect = canvasRef.current.getBoundingClientRect();
-      const newX = e.clientX - canvasRect.left - dragOffset.xAxis;
-      const newY = e.clientY - canvasRect.top - dragOffset.yAxis;
-      const newXPercent = Math.max(0, (newX / canvasWidth) * 100);
-      const newYPercent = Math.max(0, (newY / canvasHeight) * 100);
+      const newX = e.clientX - canvasRect.left - dragOffset.x;
+      const newY = e.clientY - canvasRect.top - dragOffset.y;
 
+      const newXPercent = Math.max(0, newX / canvasWidth);
+      const newYPercent = Math.max(0, newY / canvasHeight);
       const updatedFloor = { ...floor };
-      if (!updatedFloor.tables) return;
-
       const tableIndex = updatedFloor.tables.findIndex(
         (t) => t.id === selectedElement
       );
@@ -156,8 +147,8 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       if (tableIndex >= 0) {
         updatedFloor.tables[tableIndex] = {
           ...updatedFloor.tables[tableIndex],
-          xAxis: newXPercent,
-          yAxis: newYPercent,
+          x: newXPercent,
+          y: newYPercent,
         };
       }
 
@@ -173,82 +164,18 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       resizeHandle,
       initialSize,
       initialMousePos,
+      viewMode,
     ]
   );
-  const { loading, callApi } = useApi();
-  const storedUser = localStorage.getItem("userData");
-
-  const UserData: UserData | null = storedUser
-    ? (JSON.parse(storedUser) as UserData)
-    : null;
-  const handleUpdateTable = async (table: any) => {
-    if (!table) return;
-    // const countRes = await callApi(
-    //   "GET",
-    //   `/tables/countByFloor?floorId=${floor.id}`
-    // );
-    // const tableCount = countRes?.payLoad?.count + 1 ?? 1;
-
-    const params = {
-      tableId: table?.id,
-      tableNumber: table.tableNumber,
-      floorId: table?.floor.id,
-      price: table.price,
-      capacity: table.capacity,
-      tableCount: table.tableCount,
-      description: table.description,
-      status: table?.status,
-      xAxis: table?.xAxis,
-      yAxis: table?.yAxis,
-      width: table?.width,
-      height: table?.height,
-    };
-    await callApi("POST", "/tables/update", params, {
-      onSuccess: (data) => {
-        if (!UserData) return;
-        fetchFloorsAndTables(UserData?.club.id); // refresh
-      },
-      onError: (err) => console.error("Error:", err),
-    });
+  const normalizeValue = (val: number, size: number) => {
+    // if value > 1, it's in px → convert to %.
+    return val > 1 ? val / size : val;
   };
-  // New: handleMouseUp now logs final percent coords and includes API comment
-  const handleMouseUp = useCallback(
-    (e?: MouseEvent) => {
-      if (!floor.tables) return;
-
-      if (isDragging && selectedElement && floor) {
-        const table = floor.tables.find((t) => t.id === selectedElement);
-        if (table) {
-          // table.x and table.y are stored as relative (0..1). Convert to percent for logging.
-          const xPercent = Math.round((table.xAxis ?? 0) * 10000) / 100; // 2 decimals
-          const yPercent = Math.round((table.yAxis ?? 0) * 10000) / 100;
-          console.log(
-            `Drag end for table ${selectedElement}: x=${xPercent}% y=${yPercent}%`
-          );
-
-          handleUpdateTable(table);
-        }
-      }
-
-      if (isResizing && selectedElement && floor) {
-        const table = floor.tables.find((t) => t.id === selectedElement);
-        if (table) {
-          const w = table.width;
-          const h = table.height;
-          console.log(
-            `Resize end for table ${selectedElement}: width=${w} height=${h}`
-          );
-
-          handleUpdateTable(table);
-        }
-      }
-
-      setIsDragging(false);
-      setIsResizing(false);
-      setResizeHandle(null);
-    },
-    [isDragging, isResizing, selectedElement, floor]
-  );
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+    setIsResizing(false);
+    setResizeHandle(null);
+  }, []);
 
   const handleCanvasClick = useCallback(
     (e: React.MouseEvent) => {
@@ -258,6 +185,17 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
     },
     [onElementSelect]
   );
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case "vip":
+        return "👑";
+      case "premium":
+        return "⭐";
+      default:
+        return "🪑";
+    }
+  };
 
   useEffect(() => {
     if (isDragging || isResizing) {
@@ -315,38 +253,56 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
           </defs>
           <rect width="100%" height="100%" fill="url(#grid)" />
         </svg>
-
         {/* Tables */}
         {floor?.tables?.map((table) => {
-          const left = table.xAxis; // already in %
-          const top = table.yAxis; // already in %
+          const { width, height } = getCanvasSize();
 
+          const left = normalizeValue(table.x, width) * 100;
+          const top = normalizeValue(table.y, height) * 100;
+          const w = normalizeValue(table.width, width) * 100;
+          const h = normalizeValue(table.height, height) * 100;
+          console.log("canvas table", {
+            x: table.x,
+            y: table.y,
+            width,
+            height,
+          });
           return (
             <div
               key={table.id}
               className={`table-element ${table.status} ${
                 selectedElement === table.id ? "selected" : ""
-              } ${table.tableType}`}
+              } ${table.tableType} ${
+                viewMode === "client" ? "client-mode" : ""
+              }`}
               style={{
                 left: `${left}%`,
                 top: `${top}%`,
-                width: `${table.width}px`,
-                height: `${table.height}px`,
+                width: `${w}%`,
+                height: `${h}%`,
                 transform: `rotate(${table.rotation}deg)`,
               }}
               onMouseDown={(e) => handleElementMouseDown(e, table?.id, "table")}
+              title={
+                viewMode === "client" && table.description?.[0]
+                  ? table.description[0]
+                  : undefined
+              }
             >
               <div className="table-content">
                 <div className="table-header">
+                  <span className="table-category-icon">
+                    {getCategoryIcon(table.tableType)}
+                  </span>
                   <span className="table-name">{table.tableNumber}</span>
                 </div>
                 <div className="table-details">
-                  <div className="table-capacity"> {table.capacity}</div>
+                  <div className="table-capacity">👥 {table.capacity}</div>
                   <div className="table-price">Dh {table.price}</div>
                 </div>
               </div>
 
-              {selectedElement === table.id && (
+              {selectedElement === table.id && viewMode === "admin" && (
                 <>
                   <div
                     className="resize-handle nw"

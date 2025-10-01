@@ -178,22 +178,23 @@ function InteractiveTableBooking() {
       } else {
         nextActiveFloorId = "";
       }
-      await callApi("DELETE", `/floor/${floorId}`, null, {
-        onSuccess: async (data) => {
-          if (!UserData) return;
-          await fetchFloorsAndTables(UserData.club.id);
-          if (nextActiveFloorId) {
-            localStorage.setItem("activeFloorId", nextActiveFloorId);
-            setActiveFloorId(nextActiveFloorId);
-          } else {
-            localStorage.removeItem("activeFloorId");
-            setActiveFloorId(""); // or null
-          }
-        },
-        onError: (err) => console.error("Error:", err),
-      });
     }
+    await callApi("DELETE", `/floor/${floorId}`, null, {
+      onSuccess: async (data) => {
+        if (!UserData) return;
+        await fetchFloorsAndTables(UserData.club.id);
+        if (nextActiveFloorId) {
+          localStorage.setItem("activeFloorId", nextActiveFloorId);
+          setActiveFloorId(nextActiveFloorId);
+        } else {
+          localStorage.removeItem("activeFloorId");
+          setActiveFloorId(""); // or null
+        }
+      },
+      onError: (err) => console.error("Error:", err),
+    });
   };
+
   const deleteFloor = (floorId: string) => {
     if (floors.length > 1) {
       handleDeleteFloor(floorId);
@@ -254,7 +255,6 @@ function InteractiveTableBooking() {
           activeFloor={activeFloor}
           onFloorUpdate={updateFloor}
           onAddFloor={addFloor}
-          n
           onDeleteFloor={deleteFloor}
           selectedElement={selectedElement}
           onElementSelect={setSelectedElement}

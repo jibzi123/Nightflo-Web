@@ -153,7 +153,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                   value={editableTable?.description || ""}
                   onChange={(e) =>
                     setEditableTable((prev: []) =>
-                      prev ? { ...prev, description: e.target.value } : prev
+                      prev ? { ...prev, description: [e.target.value] } : prev
                     )
                   }
                   placeholder="Describe special features, location benefits, etc."
@@ -207,7 +207,9 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                     className="form-input-field"
                     value={editableTable.width ?? ""}
                     onChange={(e) =>
-                      setEditableTable({ width: Number(e.target.value) })
+                      setEditableTable((prev: []) =>
+                        prev ? { ...prev, width: Number(e.target.value) } : prev
+                      )
                     }
                   />
                   {editTableErrors.width && (
@@ -221,7 +223,11 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                     className="form-input-field"
                     value={editableTable.height ?? ""}
                     onChange={(e) =>
-                      setEditableTable({ height: Number(e.target.value) })
+                      setEditableTable((prev: []) =>
+                        prev
+                          ? { ...prev, height: Number(e.target.value) }
+                          : prev
+                      )
                     }
                   />
                   {editTableErrors.height && (

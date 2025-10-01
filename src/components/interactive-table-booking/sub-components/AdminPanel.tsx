@@ -58,8 +58,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   editableTable,
   setEditableTable,
 }) => {
-  const [newFloorName, setNewFloorName] = useState<string>("");
-  const [editFloorName, setEditFloorName] = useState<{ id: string; name: string } | null>({ id: "", name: "" });
+  const [newFloorName, setNewFloorName] = useState("");
+  const [editFloorName, setEditFloorName] = useState<{
+    id: string;
+    name: string;
+  } | null>({ id: "", name: "" });
   const { loading, callApi } = useApi();
 
   const storedUser = localStorage.getItem("userData");

@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import { Floor, UserData } from "./../types";
 import { useApi } from "../../../utils/custom-hooks/useApi";
-import { DollarSign, Users } from "lucide-react";
+import { Users, DollarSign, Clock } from "lucide-react";
 import { Tooltip } from "antd";
 
 interface FloorCanvasProps {
@@ -206,7 +206,9 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
     await callApi("POST", "/tables/update", params, {
       onSuccess: (data) => {
         if (!UserData) return;
-        fetchFloorsAndTables(UserData?.club.id); // refresh
+        // setTimeout(() => {
+        //   fetchFloorsAndTables(UserData?.club.id);
+        // }, 300);
       },
       onError: (err) => console.error("Error:", err),
     });
@@ -340,9 +342,39 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
                 <div className="table-header">
                   <span className="table-name">{table.tableNumber}</span>
                 </div>
-                <div className="table-details">
-                  <div className="table-capacity"> {table.capacity}</div>
-                  <div className="table-price">Dh {table.price}</div>
+                <div
+                  className="table-details"
+                  style={{ display: "flex", gap: "5px" }}
+                >
+                  {/* Capacity */}
+                  <div
+                    className="table-capacity"
+                    style={{ textAlign: "center" }}
+                  >
+                    <Users
+                      style={{ width: "15px", height: "20px" }}
+                      color="#1E90FF"
+                    />
+                    <div style={{ padding: "4px" }}>{table.capacity}</div>
+                  </div>
+
+                  {/* Price */}
+                  <div className="table-price" style={{ textAlign: "center" }}>
+                    <DollarSign
+                      style={{ width: "15px", height: "20px" }}
+                      color="#cae04bff"
+                    />
+                    <div style={{ padding: "4px" }}>Dh {table.price}</div>
+                  </div>
+
+                  {/* Time */}
+                  <div className="table-time" style={{ textAlign: "center" }}>
+                    <Clock
+                      style={{ width: "15px", height: "20px" }}
+                      color="#ff6347"
+                    />
+                    <div>45</div>
+                  </div>
                 </div>
               </div>
 

@@ -224,5 +224,283 @@ export const apiClient = {
     return response.json(); // { status: "Success", payLoad: {...} }
   },
 
+  async getTablesByEvent(eventId: string) {
+    const token = localStorage.getItem("authToken");
+    const response = await fetch(
+      `${API_BASE_URL}/tables/getAllByEvent?eventId=${eventId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Failed to fetch tickets: ${errText}`);
+    }
+
+    return response.json(); // expected: { payLoad: [...] }
+  },
+  // ✅ Create Table
+  async createTable(tableData: any) {
+    const token = localStorage.getItem("authToken");
+    const response = await fetch(`${API_BASE_URL}/tables/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(tableData),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Failed to create table: ${errText}`);
+    }
+
+    return response.json(); // { status, statusCode, payLoad }
+  },
+
+  // ✅ Update Table
+  async updateTable(tableData: any) {
+    const token = localStorage.getItem("authToken");
+    const response = await fetch(`${API_BASE_URL}/tables/update`, {
+      method: "POST",  // ⚠️ mobile also uses POST, not PUT
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(tableData),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Failed to update table: ${errText}`);
+    }
+
+    return response.json(); // { status, statusCode, payLoad }
+  },
+
+  // ✅ Delete Table
+  async deleteTable(tableId: string) {
+    const token = localStorage.getItem("authToken");
+    const response = await fetch(`${API_BASE_URL}/tables/delete`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ tableId }), // backend expects JSON
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Failed to delete table: ${errText}`);
+    }
+
+    return response.json(); // { status, statusCode, ... }
+  },
+  async getEventSummary(eventId: string) {
+    const token = localStorage.getItem("authToken");
+
+    const response = await fetch(
+      `${API_BASE_URL}/bookings/generalSummary?eventId=${encodeURIComponent(eventId)}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Failed to fetch event summary: ${errText}`);
+    }
+
+    return response.json(); // expected: { payLoad: [...] }
+  },
+  
+  async getBookingsSummary(eventId: string, userType: string) {
+    const token = localStorage.getItem("authToken");
+
+    const response = await fetch(
+      `${API_BASE_URL}/bookings/summary?eventId=${encodeURIComponent(eventId)}&userType=${encodeURIComponent(userType)}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Failed to fetch bookings summary: ${errText}`);
+    }
+
+    return response.json(); // { payLoad: {...} }
+  },
+
+  async getBookingsSummaryByType(eventId: string, bookingType: string) {
+    const token = localStorage.getItem("authToken");
+
+    const response = await fetch(
+      `${API_BASE_URL}/bookings/summaryByType?eventId=${encodeURIComponent(eventId)}&bookingType=${encodeURIComponent(bookingType)}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Failed to fetch bookings summary by type: ${errText}`);
+    }
+
+    return response.json(); // { payLoad: {...} }
+  },
+  async getAllEventsOrganizers(eventId: string) {
+    const token = localStorage.getItem("authToken");
+
+    const response = await fetch(
+      `${API_BASE_URL}/eventsorganizers/allByEventId/${encodeURIComponent(eventId)}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Failed to fetch events organizers: ${errText}`);
+    }
+
+    return response.json(); // { payLoad: {...} }
+  },
+  async getAllEventsOrganizersByEventAndUsertype(eventId: string, userType: string) {
+    const token = localStorage.getItem("authToken");
+
+    const response = await fetch(
+      `${API_BASE_URL}/eventsorganizers/allByEventId/${encodeURIComponent(eventId)}/${userType}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Failed to fetch events organizers: ${errText}`);
+    }
+
+    return response.json(); // { payLoad: {...} }
+  },
+  async addOrganizerInEvent(eventId: string, organizerId: string, userType: string) {
+    const token = localStorage.getItem("authToken");
+
+    const response = await fetch(
+      `${API_BASE_URL}/eventsorganizers/${encodeURIComponent(userType)}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json", 
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          eventId,
+          organizerId,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Failed to add organizer: ${errText}`);
+    }
+
+    return response.json(); // { payLoad: {...} }
+  },
+  async removeOrganizerFromEvent(eventId: string, organizerId: string, userType: string) {
+    const token = localStorage.getItem("authToken");
+
+    const response = await fetch(
+      `${API_BASE_URL}/eventsorganizers/${encodeURIComponent(userType)}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ eventId, organizerId }),
+      }
+    );
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Failed to remove organizer: ${errText}`);
+    }
+
+    return response.json();
+  },
+  async toggleArchive(eventId: string, memberId: string, moveToArchive: boolean) {
+    const token = localStorage.getItem("authToken");
+
+    const response = await fetch(`${API_BASE_URL}/community/archive`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        eventId,
+        memberId,
+        moveToArchive,
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Failed to toggle archive: ${errText}`);
+    }
+
+    return response.json();
+  },
+  async getBookingsByStatus(eventId: string, status: string) {
+  const token = localStorage.getItem("authToken");
+
+  const response = await fetch(
+    `${API_BASE_URL}/bookings/getBookingsByStatus?eventId=${encodeURIComponent(eventId)}&status=${encodeURIComponent(status)}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Failed to fetch bookings: ${errText}`);
+  }
+
+  return response.json(); // { payLoad: [...] }
+}
+
 
 };

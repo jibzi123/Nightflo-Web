@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '../../services/apiClient';
-import { Event, TicketTier } from '../../types/api';
-import { Plus, Edit, Trash2, Eye, Copy, Users, Search, Filter, Calendar, DollarSign, TrendingUp, UserCheck, Building2, MapPin, CheckCircle, Delete } from 'lucide-react';
+import { Event, Table, TicketTier } from '../../types/api';
+import { Plus, Edit, Trash2, Eye,  Users, Search,  Calendar, DollarSign,  UserCheck,  MapPin, CheckCircle, Delete } from 'lucide-react';
 import EventStaffManager from './EventStaffManager';
 import GuestList from './GuestList';
 import EventSummary from './EventSummary';
@@ -184,6 +184,227 @@ const TicketEditor: React.FC<TicketEditorProps> = ({ ticket, isOpen,eventId, onC
   );
 };
 
+interface TableEditorProps {
+  table: Table | null;
+  isOpen: boolean;
+  eventId: string;
+  clubId: string;
+  onClose: () => void;
+  onSave: (table: Table) => void;
+}
+
+const TableEditor: React.FC<TableEditorProps> = ({
+  table,
+  isOpen,
+  eventId,
+  clubId,
+  onClose,
+  onSave,
+}) => {
+  const [formData, setFormData] = useState<Table>({
+    id: "",
+    tableNumber: "",
+    price: 0,
+    capacity: 0,
+    tableCount: 1,
+    description: ["", "", ""],
+    status: "available",
+  });
+
+  useEffect(() => {
+    if (table) {
+      setFormData({
+        ...table,
+        description: [...(table.description || []), "", "", ""].slice(0, 3),
+      });
+    } else {
+      setFormData({
+        id: "",
+        tableNumber: "",
+        price: 0,
+        capacity: 0,
+        tableCount: 1,
+        description: ["", "", ""],
+        status: "available",
+      });
+    }
+  }, [table]);
+
+  
+  const handleClose = () => {
+    setFormData({
+      id: "",
+      tableNumber: "",
+      price: 0,
+      capacity: 0,
+      tableCount: 1,
+      description: ["", "", ""],
+      status: "available",
+    });
+    onClose();
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanedDescriptions = formData.description.filter(
+      (d) => d.trim() !== ""
+    );
+
+    try {
+      if (formData.id) {
+        // update
+        const response = await apiClient.updateTable({
+          tableId: formData.id,
+          tableNumber: formData.tableNumber,
+          price: formData.price,
+          capacity: formData.capacity,
+          tableCount: formData.tableCount,
+          description: cleanedDescriptions,
+          clubId,
+          status: "available",
+        });
+
+        if (response.status === "Success") {
+          onSave(response.payLoad);
+        }
+      } else {
+        // create
+        const response = await apiClient.createTable({
+          eventId,
+          tableNumber: formData.tableNumber,
+          price: formData.price,
+          capacity: formData.capacity,
+          tableCount: formData.tableCount,
+          description: cleanedDescriptions,
+          clubId,
+        });
+
+        if (response.status === "Success") {
+          onSave(response.payLoad);
+        }
+      }
+      handleClose();
+    } catch (err) {
+      console.error("❌ Failed to save table:", err);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <div className="modal-header">
+          <h2 className="modal-title">
+            {table ? "Edit Table" : "Create New Table"}
+          </h2>
+          <button className="modal-close" onClick={handleClose}>
+            ×
+          </button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            <div className="form-group">
+              <label>Table Number</label>
+              <input
+                type="text"
+                className="form-input"
+                value={formData.tableNumber}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    tableNumber: e.target.value,
+                  }))
+                }
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Price ($)</label>
+              <input
+                type="number"
+                className="form-input"
+                value={formData.price}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    price: parseFloat(e.target.value) || 0,
+                  }))
+                }
+                min="0"
+                step="0.01"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Capacity</label>
+              <input
+                type="number"
+                className="form-input"
+                value={formData.capacity}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    capacity: parseInt(e.target.value) || 0,
+                  }))
+                }
+                min="1"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Table Count</label>
+              <input
+                type="number"
+                className="form-input"
+                value={formData.tableCount}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    tableCount: parseInt(e.target.value) || 1,
+                  }))
+                }
+                min="1"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Descriptions (up to 3)</label>
+              {formData.description.map((desc, idx) => (
+                <input
+                  key={idx}
+                  type="text"
+                  className="form-input"
+                  value={desc}
+                  placeholder={`Description ${idx + 1}`}
+                  onChange={(e) => {
+                    const newDescriptions = [...formData.description];
+                    newDescriptions[idx] = e.target.value;
+                    setFormData((prev) => ({
+                      ...prev,
+                      description: newDescriptions,
+                    }));
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary">
+              {table ? "Update Table" : "Create Table"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+
+
 interface EventsManagerProps {
   onModuleChange?: (module: string) => void;
   onEditEvent: (event: any) => void;
@@ -221,6 +442,11 @@ const EventsManager: React.FC<EventsManagerProps> = ({
   const [tickets, setTickets] = useState<any[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+
+  const [tables, setTables] = useState<Table[]>([]);
+  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
+  const [showTableEditor, setShowTableEditor] = useState(false);
+
 
   // const [updatedEvent, setUpdatedEvent] = useState<any | null>(null); // to watch for updates from App.tsx
   
@@ -264,124 +490,26 @@ const EventsManager: React.FC<EventsManagerProps> = ({
   }
 }, [showTickets, selectedEvent]);
 
-  // useEffect(() => {
-  //   if (updatedEvent) {
-  //     setUpcomingEvents(prev =>
-  //       prev.map(ev => ev.id === updatedEvent.id ? { ...ev, ...updatedEvent } : ev)
-  //     );
+  useEffect(() => {
+    const fetchTables = async () => {
+      if (!selectedEvent || !showTables) return;
 
-  //     setPastEvents(prev =>
-  //       prev.map(ev => ev.id === updatedEvent.id ? { ...ev, ...updatedEvent } : ev)
-  //     );
+      try {
+        setTables([]); 
+        const response = await apiClient.getTablesByEvent(selectedEvent.id);
 
-  //   }
-  // }, [updatedEvent]);
+        setTables(response.payLoad); // ✅ correct path
+ 
+      } catch (err) {
+        console.error("Failed to fetch tables", err);
+        setTables([]);
+      }
+    };
+
+    fetchTables();
+  }, [selectedEvent, showTables]);
 
 
-  // useEffect(() => {
-  //   fetchEvents();
-  // }, []);
-
-  // const fetchEvents = async () => {
-  //   try {
-  //     setLoading(true);
-  //     const response = await apiClient.getEvents();
-  //     setEvents(response.data || []);
-  //   } catch (error) {
-  //     console.error('Failed to fetch events:', error);
-  //     // Mock data for demonstration
-  //     setEvents([
-  //       {
-  //         id: '1',
-  //         clubId: '1',
-  //         name: 'Saturday Night Fever',
-  //         description: 'The hottest party of the weekend with top DJs',
-  //         date: '2025-01-25',
-  //         startTime: '22:00',
-  //         endTime: '04:00',
-  //         status: 'published',
-  //         totalSales: 15000,
-  //         attendees: 250,
-  //         ticketTiers: [
-  //           { id: '1', name: 'General Admission', price: 25, quantity: 200, sold: 180, description: 'Standard entry with access to main floor' },
-  //           { id: '2', name: 'VIP', price: 75, quantity: 50, sold: 35, description: 'VIP table, premium drinks, and priority entry' },
-  //           { id: '3', name: 'Early Bird', price: 20, quantity: 100, sold: 100, description: 'Limited time discount pricing' }
-  //         ],
-  //         tableBookings: [
-  //           { id: 'tb1', tableNumber: 'VIP-1', capacity: 6, price: 500, booked: true, customerName: 'Alice Smith', customerEmail: 'alice.smith@email.com' },
-  //           { id: 'tb2', tableNumber: 'VIP-2', capacity: 8, price: 800, booked: true, customerName: 'Bob Johnson', customerEmail: 'bob.johnson@email.com' },
-  //           { id: 'tb3', tableNumber: 'VIP-3', capacity: 4, price: 400, booked: false },
-  //           { id: 'tb4', tableNumber: 'T-1', capacity: 4, price: 200, booked: false },
-  //           { id: 'tb5', tableNumber: 'T-2', capacity: 6, price: 300, booked: true, customerName: 'Carol Williams', customerEmail: 'carol.w@email.com' }
-  //         ]
-  //       },
-  //       {
-  //         id: '2',
-  //         clubId: '1',
-  //         name: 'EDM Explosion',
-  //         description: 'Electronic music festival featuring international artists',
-  //         date: '2025-02-01',
-  //         startTime: '20:00',
-  //         endTime: '03:00',
-  //         status: 'draft',
-  //         totalSales: 0,
-  //         attendees: 0,
-  //         ticketTiers: [
-  //           { id: '4', name: 'Standard', price: 30, quantity: 300, sold: 0, description: 'General admission to all areas' },
-  //           { id: '5', name: 'Premium', price: 60, quantity: 100, sold: 0, description: 'Premium viewing area and complimentary drinks' }
-  //         ],
-  //         tableBookings: [
-  //           { id: 'tb6', tableNumber: 'VIP-1', capacity: 6, price: 600, booked: false },
-  //           { id: 'tb7', tableNumber: 'VIP-2', capacity: 8, price: 900, booked: false },
-  //           { id: 'tb8', tableNumber: 'T-1', capacity: 4, price: 250, booked: false }
-  //         ]
-  //       },
-  //       {
-  //         id: '3',
-  //         clubId: '2',
-  //         name: 'Hip Hop Night',
-  //         description: 'Best hip hop artists and DJs in the city',
-  //         date: '2025-01-28',
-  //         startTime: '21:00',
-  //         endTime: '02:00',
-  //         status: 'published',
-  //         totalSales: 8500,
-  //         attendees: 180,
-  //         ticketTiers: [
-  //           { id: '6', name: 'General', price: 20, quantity: 150, sold: 120, description: 'Standard entry' },
-  //           { id: '7', name: 'VIP', price: 50, quantity: 40, sold: 25, description: 'VIP experience' }
-  //         ],
-  //         tableBookings: [
-  //           { id: 'tb9', tableNumber: 'VIP-1', capacity: 6, price: 400, booked: true, customerName: 'Daniel Kim', customerEmail: 'daniel.k@email.com' },
-  //           { id: 'tb10', tableNumber: 'T-1', capacity: 4, price: 150, booked: false }
-  //         ]
-  //       },
-  //       {
-  //         id: '4',
-  //         clubId: '2',
-  //         name: 'Techno Underground',
-  //         description: 'Underground techno experience',
-  //         date: '2025-02-05',
-  //         startTime: '23:00',
-  //         endTime: '05:00',
-  //         status: 'published',
-  //         totalSales: 12000,
-  //         attendees: 300,
-  //         ticketTiers: [
-  //           { id: '8', name: 'Standard', price: 35, quantity: 250, sold: 200, description: 'General admission' },
-  //           { id: '9', name: 'VIP', price: 80, quantity: 60, sold: 45, description: 'VIP access' }
-  //         ],
-  //         tableBookings: [
-  //           { id: 'tb11', tableNumber: 'VIP-1', capacity: 8, price: 800, booked: true, customerName: 'Maria Garcia', customerEmail: 'maria.g@email.com' },
-  //           { id: 'tb12', tableNumber: 'VIP-2', capacity: 6, price: 600, booked: false },
-  //           { id: 'tb13', tableNumber: 'T-1', capacity: 4, price: 200, booked: false }
-  //         ]
-  //       }
-  //     ]);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
 
   const handleCreateEvent = () => {
     if (onModuleChange) {
@@ -482,8 +610,67 @@ const EventsManager: React.FC<EventsManagerProps> = ({
 
   const handleViewTables = (event: Event) => {
     setSelectedEvent(event);
-    setShowTables(true);
+    setShowTables(true); // ✅ open tables modal
   };
+
+
+
+  const handleCreateTable = (eventId: string) => {
+    setSelectedTable(null);
+    setSelectedEventId(eventId);
+    setShowTableEditor(true);
+  };
+
+  const handleEditTable = (table: Table) => {
+    setSelectedTable(table);
+    setShowTableEditor(true);
+  };
+
+  const handleSaveTable = (table: Table) => {
+    if (!selectedEvent) return;
+    const updatedEvent = {
+      ...selectedEvent,
+      tables: selectedTable
+        ? (selectedEvent.tables ?? []).map((t) =>
+            t.id === table.id ? table : t
+          )
+        : [...(selectedEvent.tables ?? []), table],
+    };
+
+    setUpcomingEvents((prev) =>
+      prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e))
+    );
+    setSelectedEvent(updatedEvent);
+  };
+
+  const handleDeleteTable = async (table: Table) => {
+    if (!selectedEvent) return;
+
+    if (!confirm("Are you sure you want to delete this table?")) {
+      return;
+    }
+
+    try {
+      await apiClient.deleteTable(table.id);
+
+      const updatedEvent = {
+        ...selectedEvent,
+        tables: (selectedEvent.tables ?? []).filter((t) => t.id !== table.id),
+      };
+
+      setUpcomingEvents((prev) =>
+        prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e))
+      );
+      setSelectedEvent(updatedEvent);
+
+      toast.success("Table has been deleted."); // ✅ success only after state update
+    } catch (err) {
+      console.error("❌ Failed to delete table:", err);
+      toast.error("Failed to delete table"); // ✅ only error if API fails
+    }
+  };
+
+
 
   const filteredEvents = pastEventsList.filter(event => {
     const matchesFilter = filter === 'all' || event.status === filter;
@@ -551,11 +738,6 @@ const EventsManager: React.FC<EventsManagerProps> = ({
             <span className="stat-title">Upcoming Events</span>
             <UserCheck size={20} style={{ color: '#10b981' }} />
           </div>
-          {/* <div className="stat-value">{stats.totalTicketsSold.toLocaleString()}</div> */}
-          {/* <div className="stat-change positive">
-            <TrendingUp size={14} />
-            +15.2% from last month
-          </div> */}
           <div className="stat-change">
             <span style={{ fontSize: '25px', color: '#64748b' }}>
               {upcomingEventsList.length}
@@ -568,11 +750,6 @@ const EventsManager: React.FC<EventsManagerProps> = ({
             <span className="stat-title">Past Events</span>
             <DollarSign size={20} style={{ color: '#20c997' }} />
           </div>
-          {/* <div className="stat-value">${stats.totalRevenue.toLocaleString()}</div> */}
-          {/* <div className="stat-change positive">
-            <TrendingUp size={14} />
-            +22.8% from last month
-          </div> */}
           <div className="stat-change">
             <span style={{ fontSize: '25px', color: '#64748b' }}>
               {pastEventsList.length}
@@ -982,129 +1159,79 @@ const EventsManager: React.FC<EventsManagerProps> = ({
       {/* Tables Modal */}
       {showTables && selectedEvent && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '900px' }}>
+          <div className="modal-content" style={{ maxWidth: "800px" }}>
             <div className="modal-header">
-              <h2 className="modal-title">Table Bookings - {selectedEvent.name}</h2>
-              <button className="modal-close" onClick={() => setShowTables(false)}>×</button>
+              <h2 className="modal-title">Tables for {selectedEvent.name}</h2>
+              <button className="modal-close" onClick={() => setShowTables(false)}>
+                ×
+              </button>
             </div>
             <div className="modal-body">
-              {/* Table Stats */}
-              <div className="stats-grid" style={{ marginBottom: '24px', gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                <div className="stat-card">
-                  <div className="stat-header">
-                    <span className="stat-title">Total Tables</span>
-                    <MapPin style={{ color: '#405189' }} size={18} />
-                  </div>
-                  <div className="stat-value" style={{ fontSize: '20px' }}>
-                    {selectedEvent.tableBookings?.length || 0}
-                  </div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-header">
-                    <span className="stat-title">Booked Tables</span>
-                    <CheckCircle style={{ color: '#20c997' }} size={18} />
-                  </div>
-                  <div className="stat-value" style={{ fontSize: '20px' }}>
-                    {selectedEvent.tableBookings?.filter(t => t.booked).length || 0}
-                  </div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-header">
-                    <span className="stat-title">Available Tables</span>
-                    <Calendar style={{ color: '#ffc107' }} size={18} />
-                  </div>
-                  <div className="stat-value" style={{ fontSize: '20px' }}>
-                    {selectedEvent.tableBookings?.filter(t => !t.booked).length || 0}
-                  </div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-header">
-                    <span className="stat-title">Table Revenue</span>
-                    <DollarSign style={{ color: '#20c997' }} size={18} />
-                  </div>
-                  <div className="stat-value" style={{ fontSize: '20px' }}>
-                    ${selectedEvent.tableBookings?.filter(t => t.booked).reduce((sum, t) => sum + t.price, 0).toLocaleString() || '0'}
-                  </div>
-                </div>
+              <div style={{ marginBottom: "24px" }}>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => handleCreateTable(selectedEvent.id)}
+                >
+                  <Plus size={16} /> Add Table
+                </button>
               </div>
 
-              {/* Tables Grid */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                gap: '16px'
-              }}>
-                {selectedEvent.tableBookings?.map((table) => (
-                  <div key={table.id} style={{
-                    border: `2px solid ${table.booked ? '#10b981' : '#e2e8f0'}`,
-                    borderRadius: '8px',
-                    padding: '16px',
-                    background: table.booked ? '#f0fdf4' : '#ffffff',
-                    transition: 'all 0.2s ease'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <h4 style={{ color: '#1e293b', fontSize: '16px', fontWeight: '600', margin: 0 }}>
-                        {table.tableNumber}
-                      </h4>
-                      <span className={`badge ${table.booked ? 'badge-success' : 'badge-info'}`}>
-                        {table.booked ? 'Booked' : 'Available'}
-                      </span>
-                    </div>
-                    
-                    <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px' }}>
-                      Capacity: {table.capacity} people
-                    </div>
-                    
-                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '12px' }}>
-                      ${table.price}
-                    </div>
-                    
-                    {table.booked && table.customerName && (
-                      <div style={{ 
-                        padding: '8px', 
-                        background: '#ffffff', 
-                        borderRadius: '6px',
-                        border: '1px solid #d1fae5'
-                      }}>
-                        <div style={{ fontSize: '12px', fontWeight: '600', color: '#1e293b' }}>
-                          {table.customerName}
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#64748b' }}>
-                          {table.customerEmail}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {!table.booked && (
-                      <button 
-                        className="btn btn-primary" 
-                        style={{ width: '100%', padding: '6px 12px', fontSize: '11px' }}
-                      >
-                        Book Table
-                      </button>
-                    )}
-                  </div>
-                )) || (
-                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px' }}>
-                    <MapPin size={48} style={{ color: '#9ca3af', margin: '0 auto 16px' }} />
-                    <div style={{ color: '#374151', fontSize: '16px', fontWeight: '600' }}>
-                      No tables configured for this event
-                    </div>
-                  </div>
-                )}
+              <div className="table-container">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Table #</th>
+                      <th>Price</th>
+                      <th>Capacity</th>
+                      <th>Count</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tables.map((table) => (
+                      <tr key={table.id}>
+                        <td>{table.tableNumber}</td>
+                        <td>${table.price}</td>
+                        <td>{table.capacity}</td>
+                        <td>{table.tableCount}</td>
+                        <td>
+                          <button
+                            className="btn btn-secondary"
+                            onClick={() => handleEditTable(table)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="btn btn-danger"
+                            onClick={() => handleDeleteTable(table)}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowTables(false)}>
                 Close
               </button>
-              <button className="btn btn-primary">
-                Manage Tables
-              </button>
             </div>
           </div>
         </div>
       )}
+
+      <TableEditor
+        table={selectedTable}
+        isOpen={showTableEditor}
+        eventId={selectedEventId}
+        clubId={user?.club?.id}
+        onClose={() => setShowTableEditor(false)}
+        onSave={handleSaveTable}
+      />
+
     </div>
   );
 };

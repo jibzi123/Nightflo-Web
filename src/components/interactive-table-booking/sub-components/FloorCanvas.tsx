@@ -309,14 +309,15 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
     let icon;
 
     if (table.tableType === "circle") {
-      if (table.capacity <= 2) icon = TableIcons["t2-round"];
-      else if (table.capacity <= 4) icon = TableIcons["t2-outdoor-round"];
-      else if (table.capacity <= 8) icon = TableIcons["t8-outdoor-square"];
-      else icon = TableIcons["t10-square"];
+      if (table.capacity <= 2) icon = TableIcons["t2r-indoor"];
+      else if (table.capacity <= 4) icon = TableIcons["t4-outdoor"];
+      else if (table.capacity <= 6) icon = TableIcons["t6-indoor"];
+      else if (table.capacity <= 8) icon = TableIcons["t8v-outdoor"];
+      else icon = TableIcons["t2r-indoor"];
     } else if (table.tableType === "box") {
-      if (table.capacity <= 4) icon = TableIcons["t4-square"];
-      else if (table.capacity <= 8) icon = TableIcons["t8-outdoor-square"];
-      else icon = TableIcons["t10-square"];
+      if (table.capacity <= 4) icon = TableIcons["t4vr-indoor"];
+      else if (table.capacity <= 8) icon = TableIcons["t8vr-indoor"];
+      else icon = TableIcons["t10v-outdoor"];
     } else {
       icon = TableIcons.default;
     }

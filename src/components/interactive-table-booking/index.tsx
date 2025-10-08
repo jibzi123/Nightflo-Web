@@ -8,10 +8,9 @@ import {
   Floor,
   Reservation,
   UserData,
-  Table,
   PointOfInterest,
+  DesignPatterns,
 } from "./types";
-import { mergeFloorsAndTables } from "../../utils/tableUtil";
 import { useApi } from "../../utils/custom-hooks/useApi";
 
 function InteractiveTableBooking() {
@@ -54,8 +53,12 @@ function InteractiveTableBooking() {
   const [newPoiData, setNewPoiData] = useState({
     name: "",
     type: "bar" as PointOfInterest["type"],
-    width: 80,
-    height: 50,
+    width: null,
+    height: null,
+  });
+  const [designPattern, setNewDesignPattern] = useState({
+    name: "",
+    type: "bar" as DesignPatterns["type"],
   });
   const UserData: UserData | null = storedUser
     ? (JSON.parse(storedUser) as UserData)
@@ -89,38 +92,29 @@ function InteractiveTableBooking() {
     setFloors(floors.map((f) => (f.id === updatedFloor.id ? updatedFloor : f)));
   };
 
-  const fetchFloorsAndTables = async (clubId: string) => {
-    console.log("run");
+  const fetchFloors = async (clubId: string) => {
     try {
-      const [floorsRes, tablesRes] = await Promise.all([
-        callApi("GET", `/floor/getByClub/${clubId}`), // all floors of club
-        callApi("GET", `/tables/club?clubId=${clubId}`), // all tables of club
-      ]);
+      const floorsRes = await callApi("GET", `/floor/getByClub/${clubId}`); // only floors
 
       const floors: Floor[] = (floorsRes as { payLoad: Floor[] }).payLoad;
-      const tables: Table[] = (tablesRes as { payLoad: Table[] }).payLoad;
 
-      const mergedFloors = mergeFloorsAndTables(floors, tables);
-      setFloors(mergedFloors);
+      setFloors(floors);
 
-      if (mergedFloors.length > 0) {
+      if (floors.length > 0) {
         const activeFlor =
-          mergedFloors.find((f: any) => f.id === activeFloorId) ||
-          mergedFloors[mergedFloors.length - 1];
+          floors.find((f: any) => f.id === activeFloorId) ||
+          floors[floors.length - 1];
 
         setActiveFloorId(
           localStorage.getItem("activeFloorId") ||
             activeFlor.id ||
-            mergedFloors[mergedFloors.length - 1].id
+            floors[floors.length - 1].id
         );
         setActiveFloor(activeFlor);
         console.log("Active Floor", activeFlor);
       }
     } catch (err: any) {
-      console.error(
-        "Error fetching floors & tables:",
-        err.response?.data || err.message
-      );
+      console.error("Error fetching floors", err.response?.data || err.message);
       throw err;
     }
   };
@@ -129,14 +123,14 @@ function InteractiveTableBooking() {
     if (!UserData) {
       throw new Error("User not found in localStorage");
     }
-    fetchFloorsAndTables(UserData.club.id);
+    fetchFloors(UserData.club.id);
   }, []);
 
   useEffect(() => {
     const activeFloor =
       floors?.find((f: any) => f.id === activeFloorId) || floors[0];
     setActiveFloor(activeFloor);
-  }, [activeFloorId]);
+  }, [activeFloorId, floors]);
 
   const addFloor = async (name: string) => {
     if (!UserData) {
@@ -157,7 +151,7 @@ function InteractiveTableBooking() {
           }
           localStorage.setItem("activeFloorId", data?.payLoad?.id);
 
-          fetchFloorsAndTables(UserData.club.id);
+          fetchFloors(UserData.club.id);
         },
         onError: (err) => console.error("Error:", err),
       }
@@ -171,7 +165,7 @@ function InteractiveTableBooking() {
     await callApi("PUT", `/floor/${floorId}`, params, {
       onSuccess: (data) => {
         if (!UserData) return;
-        fetchFloorsAndTables(UserData.club.id);
+        fetchFloors(UserData.club.id);
       },
       onError: (err) => console.error("Error:", err),
     });
@@ -193,7 +187,7 @@ function InteractiveTableBooking() {
     await callApi("DELETE", `/floor/${floorId}`, null, {
       onSuccess: async (data) => {
         if (!UserData) return;
-        await fetchFloorsAndTables(UserData.club.id);
+        await fetchFloors(UserData.club.id);
         if (nextActiveFloorId) {
           localStorage.setItem("activeFloorId", nextActiveFloorId);
           setActiveFloorId(nextActiveFloorId);
@@ -210,6 +204,19 @@ function InteractiveTableBooking() {
     if (floors.length > 1) {
       handleDeleteFloor(floorId);
     }
+  };
+  const saveFloorSetup = async (activeFloor) => {
+    await callApi("PUT", `/floor/${activeFloor.id}`, activeFloor, {
+      onSuccess: (data) => {
+        if (!UserData) return;
+        fetchFloors(UserData.club.id);
+      },
+      onError: (err) => console.error("Error:", err),
+    });
+    console.log("Saving floor setup...", floors);
+    // setHasUnsavedChanges(false);
+    // Show success message or handle save logic
+    alert("Floor setup saved successfully!");
   };
 
   return (
@@ -240,8 +247,15 @@ function InteractiveTableBooking() {
                 </button>
               ))}
             </div>
+            <div className="canvas-controls">
+              <button
+                className="btn-save"
+                onClick={() => saveFloorSetup(activeFloor)}
+              >
+                💾 Save Changes
+              </button>
+            </div>
           </div>
-
           <FloorCanvas
             floor={activeFloor}
             onFloorUpdate={updateFloor}
@@ -260,7 +274,7 @@ function InteractiveTableBooking() {
           selectedElement={selectedElement}
           onElementSelect={setSelectedElement}
           clubHours={clubHours}
-          fetchFloorsAndTables={fetchFloorsAndTables}
+          fetchFloors={fetchFloors}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           handleUpdateFloor={handleUpdateFloor}
@@ -270,6 +284,8 @@ function InteractiveTableBooking() {
           setEditableTable={setEditableTable}
           newPoiData={newPoiData}
           setNewPoiData={setNewPoiData}
+          designPattern={designPattern}
+          setNewDesignPattern={setNewDesignPattern}
         />
       </div>
     </div>

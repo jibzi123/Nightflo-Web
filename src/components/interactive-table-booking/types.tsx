@@ -16,7 +16,33 @@
 export interface PointOfInterest {
   id: string;
   name: string;
-  type: "bar" | "stage" | "dj" | "entry" | "vip" | "restroom";
+  type:
+    | "main-bar"
+    | "mini-bar"
+    | "circular-bar"
+    | "dj-booth"
+    | "dancing-floor"
+    | "front-desk"
+    | "double-sofa"
+    | "single-sofa"
+    | "triple-sofa";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+}
+export interface DesignPatterns {
+  id: string;
+  name: string;
+  type:
+    | "barriers-railing"
+    | "main-entrance"
+    | "single-door-line"
+    | "single-door"
+    | "vip"
+    | "stairs"
+    | "stairs";
   x: number;
   y: number;
   width: number;

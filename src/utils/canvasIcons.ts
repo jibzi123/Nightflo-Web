@@ -10,7 +10,7 @@ import MiniBar from "./../assets/canvas-vectors/MiniBar.svg";
 import OuterWall from "./../assets/canvas-vectors/OuterWall.png";
 import RectanglePillar from "./../assets/canvas-vectors/Rectangle.svg";
 import RoundPillar from "./../assets/canvas-vectors/Ellipse.svg";
-import SingleDoorBare from "./../assets/canvas-vectors/SingleDoorBar.svg";
+import SingleDoorBar from "./../assets/canvas-vectors/SingleDoorBar.svg";
 import SingleDoor from "./../assets/canvas-vectors/SingleDoor.svg";
 import SingleSofa from "./../assets/canvas-vectors/SingleSofa.svg";
 import Stairs from "./../assets/canvas-vectors/Stairs.svg";
@@ -30,7 +30,7 @@ export const POIIcons = {
   "outer-wall": OuterWall,
   "rectangle-pillar": RectanglePillar,
   "round-pillar": RoundPillar,
-  "single-door-line": SingleDoorBare,
+  "single-door-line": SingleDoorBar,
   "single-door": SingleDoor,
   "single-sofa": SingleSofa,
   stairs: Stairs,

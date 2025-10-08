@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Floor, Table, ClubHours, UserData, PointOfInterest } from "../types";
+import {
+  Floor,
+  Table,
+  ClubHours,
+  UserData,
+  PointOfInterest,
+  DesignPatterns,
+} from "../types";
 import TableElementProperties, {
   NewPoiData,
   NewTableData,
@@ -17,7 +24,7 @@ interface AdminPanelProps {
   selectedElement: string | null;
   onElementSelect: (id: string | null) => void;
   clubHours: ClubHours;
-  fetchFloorsAndTables: (id: string) => void;
+  fetchFloors: (id: string) => void;
   activeTab: "floors" | "tables" | "settings";
   setActiveTab: React.Dispatch<
     React.SetStateAction<"floors" | "tables" | "settings">
@@ -33,6 +40,8 @@ interface AdminPanelProps {
   setEditableTable: (d: Table) => void;
   newPoiData: NewPoiData;
   setNewPoiData: (d: NewPoiData) => void;
+  designPattern: DesignPatterns;
+  setNewDesignPattern: (d: DesignPatterns) => void;
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -44,7 +53,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   selectedElement,
   onElementSelect,
   clubHours,
-  fetchFloorsAndTables,
+  fetchFloors,
   activeTab,
   setActiveTab,
   handleUpdateFloor,
@@ -54,6 +63,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   setEditableTable,
   newPoiData,
   setNewPoiData,
+  designPattern,
+  setNewDesignPattern,
 }) => {
   const [newFloorName, setNewFloorName] = useState("");
   const [editFloorName, setEditFloorName] = useState<{
@@ -68,13 +79,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     : null;
   const selectedTable =
     selectedElement && activeFloor?.tables
-      ? activeFloor?.tables.find((t) => t.id === selectedElement)
+      ? activeFloor?.tables.find((t) => t._id === selectedElement)
       : null;
 
   const selectedPoi = selectedElement
-    ? activeFloor?.pointsOfInterest.find((p) => p.id === selectedElement)
+    ? activeFloor?.pointsOfInterest?.find((p) => p.id === selectedElement)
     : null;
-
+  const selectedDesignPattern = selectedElement
+    ? activeFloor?.designPatterns?.find((d) => d.id === selectedElement)
+    : null;
   useEffect(() => {
     if (selectedTable) {
       setEditableTable({ ...selectedTable });
@@ -117,7 +130,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           console.log("Table Added:", data);
           setNewTableData({});
           if (!UserData) return;
-          fetchFloorsAndTables(UserData?.club.id);
+          fetchFloors(UserData?.club.id);
         },
         onError: (err) => console.error("Error:", err),
       });
@@ -152,7 +165,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     await callApi("POST", "/tables/update", params, {
       onSuccess: (data) => {
         if (!UserData) return;
-        fetchFloorsAndTables(UserData?.club.id); // refresh
+        fetchFloors(UserData?.club.id); // refresh
       },
       onError: (err) => console.error("Error:", err),
     });
@@ -171,14 +184,39 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
     const updatedFloor = {
       ...activeFloor,
-      pointsOfInterest: [...activeFloor.pointsOfInterest, newPoi],
+      pointsOfInterest: [...(activeFloor.pointsOfInterest || []), newPoi],
     };
     console.log(updatedFloor, "updatedFloor");
 
     onFloorUpdate(updatedFloor);
     setNewPoiData({ name: "", type: "bar", width: 80, height: 50 });
   };
+  const handleAddDesignPattern = () => {
+    const newDesignPattern: DesignPatterns = {
+      id: `dp${Date.now()}`,
+      name: designPattern.name || designPattern.type.toUpperCase(),
+      type: designPattern.type,
+      xAxis: 10,
+      yAxis: 20,
+      width: designPattern.width,
+      height: designPattern.height,
+      rotation: 0,
+    };
 
+    const updatedFloor = {
+      ...activeFloor,
+      designPatterns: [...(activeFloor.designPatterns || []), newDesignPattern],
+    };
+    console.log(updatedFloor, "updatedFloor");
+
+    onFloorUpdate(updatedFloor);
+    setNewDesignPattern({
+      name: "",
+      type: "single-bar",
+      width: null,
+      height: null,
+    });
+  };
   const handleDeleteSelected = async () => {
     if (!selectedElement) return;
     await callApi(
@@ -188,7 +226,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       {
         onSuccess: (data) => {
           if (!UserData) return;
-          fetchFloorsAndTables(UserData?.club.id); // refresh
+          fetchFloors(UserData?.club.id); // refresh
         },
         onError: (err) => console.error("Error:", err),
       }
@@ -207,7 +245,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     console.log(updatedFloor, "updatedFloor");
     onFloorUpdate(updatedFloor);
   };
+  const updateSelectedDP = (updates: Partial<PointOfInterest>) => {
+    if (!selectedDesignPattern) return;
 
+    const updatedFloor = {
+      ...activeFloor,
+      designPatterns: activeFloor?.designPatterns?.map((d) =>
+        d.id === selectedElement ? { ...d, ...updates } : d
+      ),
+    };
+    console.log(updatedFloor, "updatedFloor");
+    onFloorUpdate(updatedFloor);
+  };
   return (
     <div className="admin-panel">
       <div className="admin-tabs">
@@ -248,6 +297,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             handleUpdateTable={handleUpdateTable} // new function
             editableTable={editableTable}
             setEditableTable={setEditableTable}
+            designPattern={designPattern}
+            setNewDesignPattern={setNewDesignPattern}
+            handleAddDesignPattern={handleAddDesignPattern}
+            selectedDesignPattern={selectedDesignPattern}
+            updateSelectedDP={updateSelectedDP}
           />
         )}
 

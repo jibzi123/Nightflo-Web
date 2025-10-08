@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Table } from "../types";
+import { DesignPatterns, Table } from "../types";
 import { validateTable } from "../../../utils/tableUtil";
 
 // --- Types ---
@@ -62,6 +62,11 @@ interface ElementPropertiesProps {
   handleUpdateTable: () => void;
   editableTable: any;
   setEditableTable: any;
+  designPattern: DesignPatterns;
+  setNewDesignPattern: (d: DesignPatterns) => void;
+  handleAddDesignPattern: () => void;
+  selectedDesignPattern: DesignPatterns | null;
+  updateSelectedDP: (patch: Partial<DesignPatterns>) => void;
 }
 
 const TableElementProperties: React.FC<ElementPropertiesProps> = ({
@@ -79,6 +84,11 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
   handleUpdateTable,
   editableTable,
   setEditableTable,
+  designPattern,
+  setNewDesignPattern,
+  handleAddDesignPattern,
+  selectedDesignPattern,
+  updateSelectedDP,
 }) => {
   const [editTableErrors, setEditTableErrors] = useState<{
     [key: string]: string;
@@ -104,243 +114,341 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
   }, [selectedElement, selectedTable]);
   return (
     <div>
-      {selectedElement && (selectedTable || selectedPoi) && (
-        <div className="element-properties">
-          <div className="property-title">
-            {selectedTable ? "Table Properties" : "Point of Interest"}
-          </div>
+      {selectedElement &&
+        (selectedTable || selectedPoi || selectedDesignPattern) && (
+          <div className="element-properties">
+            <div className="property-title">
+              {selectedTable
+                ? "Table Properties"
+                : selectedPoi
+                ? "Point of Interest"
+                : selectedDesignPattern
+                ? "Design Pattern"
+                : ""}
+            </div>
 
-          {selectedTable && (
-            <>
-              <div className="form-group">
-                <label className="form-label">Table Name</label>
-                <input
-                  type="text"
-                  className="form-input-field"
-                  value={editableTable?.tableNumber ?? ""}
-                  onChange={(e) =>
-                    setEditableTable((prev: []) =>
-                      prev ? { ...prev, tableNumber: e.target.value } : prev
-                    )
-                  }
-                />
-                {editTableErrors.tableNumber && (
-                  <div className="error">{editTableErrors.tableNumber}</div>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Table Type</label>
-                <select
-                  className="form-select-field"
-                  value={editableTable?.tableType || "circle"}
-                  onChange={(e) =>
-                    setEditableTable((prev: []) =>
-                      prev ? { ...prev, tableType: e.target.value } : prev
-                    )
-                  }
-                >
-                  <option value="circle">Circle</option>
-                  <option value="box">Box</option>
-                </select>
-                {editTableErrors.tableType && (
-                  <div className="error">{editTableErrors.tableType}</div>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Special Features</label>
-                <textarea
-                  className="form-textarea"
-                  value={editableTable?.description || ""}
-                  onChange={(e) =>
-                    setEditableTable((prev: []) =>
-                      prev ? { ...prev, description: [e.target.value] } : prev
-                    )
-                  }
-                  placeholder="Describe special features, location benefits, etc."
-                  rows={3}
-                />
-                {editTableErrors.description && (
-                  <div className="error">{editTableErrors.description}</div>
-                )}
-              </div>
-
-              <div className="form-row">
+            {selectedTable && (
+              <>
                 <div className="form-group">
-                  <label className="form-label">Price (Dh)</label>
+                  <label className="form-label">Table Name</label>
                   <input
-                    type="number"
+                    type="text"
                     className="form-input-field"
-                    value={editableTable?.price || ""}
+                    value={editableTable?.tableNumber ?? ""}
                     onChange={(e) =>
                       setEditableTable((prev: []) =>
-                        prev ? { ...prev, price: e.target.value } : prev
+                        prev ? { ...prev, tableNumber: e.target.value } : prev
                       )
                     }
                   />
-                  {editTableErrors.price && (
-                    <div className="error">{editTableErrors.price}</div>
+                  {editTableErrors.tableNumber && (
+                    <div className="error">{editTableErrors.tableNumber}</div>
                   )}
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Capacity</label>
 
+                <div className="form-group">
+                  <label className="form-label">Table Type</label>
                   <select
-                    className="form-input-field"
-                    value={editableTable.capacity ?? ""}
+                    className="form-select-field"
+                    value={editableTable?.tableType || "circle"}
                     onChange={(e) =>
                       setEditableTable((prev: []) =>
-                        prev ? { ...prev, capacity: e.target.value } : prev
+                        prev ? { ...prev, tableType: e.target.value } : prev
                       )
                     }
                   >
-                    {[2, 4, 6, 8, 10].map((num) => (
-                      <option key={num} value={num}>
-                        {num}
-                      </option>
-                    ))}
+                    <option value="circle">Circle</option>
+                    <option value="box">Box</option>
                   </select>
-                  {editTableErrors.capacity && (
-                    <div className="error">{editTableErrors.capacity}</div>
+                  {editTableErrors.tableType && (
+                    <div className="error">{editTableErrors.tableType}</div>
                   )}
                 </div>
-              </div>
 
-              <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Width</label>
-                  <input
-                    type="number"
-                    className="form-input-field"
-                    value={editableTable.width ?? ""}
+                  <label className="form-label">Special Features</label>
+                  <textarea
+                    className="form-textarea"
+                    value={editableTable?.description || ""}
                     onChange={(e) =>
                       setEditableTable((prev: []) =>
-                        prev ? { ...prev, width: Number(e.target.value) } : prev
+                        prev ? { ...prev, description: [e.target.value] } : prev
                       )
                     }
+                    placeholder="Describe special features, location benefits, etc."
+                    rows={3}
                   />
-                  {editTableErrors.width && (
-                    <div className="error">{editTableErrors.width}</div>
+                  {editTableErrors.description && (
+                    <div className="error">{editTableErrors.description}</div>
                   )}
                 </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Price (Dh)</label>
+                    <input
+                      type="number"
+                      className="form-input-field"
+                      value={editableTable?.price || ""}
+                      onChange={(e) =>
+                        setEditableTable((prev: []) =>
+                          prev ? { ...prev, price: e.target.value } : prev
+                        )
+                      }
+                    />
+                    {editTableErrors.price && (
+                      <div className="error">{editTableErrors.price}</div>
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Capacity</label>
+
+                    <select
+                      className="form-input-field"
+                      value={editableTable.capacity ?? ""}
+                      onChange={(e) =>
+                        setEditableTable((prev: []) =>
+                          prev ? { ...prev, capacity: e.target.value } : prev
+                        )
+                      }
+                    >
+                      {[2, 4, 6, 8, 10].map((num) => (
+                        <option key={num} value={num}>
+                          {num}
+                        </option>
+                      ))}
+                    </select>
+                    {editTableErrors.capacity && (
+                      <div className="error">{editTableErrors.capacity}</div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Width</label>
+                    <input
+                      type="number"
+                      className="form-input-field"
+                      value={editableTable.width ?? ""}
+                      onChange={(e) =>
+                        setEditableTable((prev: []) =>
+                          prev
+                            ? { ...prev, width: Number(e.target.value) }
+                            : prev
+                        )
+                      }
+                    />
+                    {editTableErrors.width && (
+                      <div className="error">{editTableErrors.width}</div>
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Height</label>
+                    <input
+                      type="number"
+                      className="form-input-field"
+                      value={editableTable.height ?? ""}
+                      onChange={(e) =>
+                        setEditableTable((prev: []) =>
+                          prev
+                            ? { ...prev, height: Number(e.target.value) }
+                            : prev
+                        )
+                      }
+                    />
+                    {editTableErrors.height && (
+                      <div className="error">{editTableErrors.height}</div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="form-group">
-                  <label className="form-label">Height</label>
-                  <input
-                    type="number"
-                    className="form-input-field"
-                    value={editableTable.height ?? ""}
+                  <label className="form-label">Status</label>
+                  <select
+                    className="form-select-field"
+                    value={editableTable.status ?? ""}
                     onChange={(e) =>
-                      setEditableTable((prev: []) =>
-                        prev
-                          ? { ...prev, height: Number(e.target.value) }
-                          : prev
-                      )
+                      setEditableTable({
+                        status: e.target.value as Table["status"],
+                      })
                     }
-                  />
-                  {editTableErrors.height && (
-                    <div className="error">{editTableErrors.height}</div>
+                  >
+                    <option value="available">Available</option>
+                    <option value="reserved">Reserved</option>
+                    <option value="occupied">Occupied</option>
+                  </select>
+                  {editTableErrors.status && (
+                    <div className="error">{editTableErrors.status}</div>
                   )}
                 </div>
-              </div>
+              </>
+            )}
 
-              <div className="form-group">
-                <label className="form-label">Status</label>
-                <select
-                  className="form-select-field"
-                  value={editableTable.status ?? ""}
-                  onChange={(e) =>
-                    setEditableTable({
-                      status: e.target.value as Table["status"],
-                    })
-                  }
-                >
-                  <option value="available">Available</option>
-                  <option value="reserved">Reserved</option>
-                  <option value="occupied">Occupied</option>
-                </select>
-                {editTableErrors.status && (
-                  <div className="error">{editTableErrors.status}</div>
-                )}
-              </div>
-            </>
-          )}
-
-          {selectedPoi && (
-            <>
-              <div className="form-group">
-                <label className="form-label">Name</label>
-                <input
-                  type="text"
-                  className="form-input-field"
-                  value={selectedPoi.name}
-                  onChange={(e) => updateSelectedPoi({ name: e.target.value })}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Type</label>
-                <select
-                  className="form-select-field"
-                  value={selectedPoi.type}
-                  onChange={(e) =>
-                    updateSelectedPoi({
-                      type: e.target.value as PointOfInterest["type"],
-                    })
-                  }
-                >
-                  <option value="main-bar">Main Bar</option>
-                  <option value="mini-bar">Mini Bar</option>
-                  <option value="circular-bar">Circular Bar</option>
-                  <option value="dj-booth">DJ Booth</option>
-                  <option value="dancing-floor">Dancing Floor</option>
-                  <option value="front-desk">Front Desk</option>
-                  <option value="washroom">Washroom</option>
-                  <option value="main-entrance">Main Entrance</option>
-                  <option value="double-sofa">Double Sofa</option>
-                  <option value="single-sofa">Single Sofa</option>
-                  <option value="triple-sofa">Triple Sofa</option>
-
-                  <option value="single-door">Single Door</option>
-                </select>
-              </div>
-
-              <div className="form-row">
+            {selectedPoi && (
+              <>
                 <div className="form-group">
-                  <label className="form-label">Width</label>
+                  <label className="form-label">Name</label>
                   <input
-                    type="number"
+                    type="text"
                     className="form-input-field"
-                    value={selectedPoi.width}
+                    value={selectedPoi.name}
                     onChange={(e) =>
-                      updateSelectedPoi({ width: Number(e.target.value) })
+                      updateSelectedPoi({ name: e.target.value })
                     }
                   />
                 </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Type</label>
+                    <select
+                      className="form-select-field"
+                      value={selectedPoi.type}
+                      onChange={(e) =>
+                        updateSelectedPoi({
+                          type: e.target.value as PointOfInterest["type"],
+                        })
+                      }
+                    >
+                      <option value="main-bar">Main Bar</option>
+                      <option value="mini-bar">Mini Bar</option>
+                      <option value="circular-bar">Circular Bar</option>
+                      <option value="dj-booth">DJ Booth</option>
+                      <option value="dancing-floor">Dancing Floor</option>
+                      <option value="front-desk">Front Desk</option>
+                      <option value="washroom">Washroom</option>
+                      <option value="main-entrance">Main Entrance</option>
+                      <option value="double-sofa">Double Sofa</option>
+                      <option value="single-sofa">Single Sofa</option>
+                      <option value="triple-sofa">Triple Sofa</option>
+
+                      <option value="single-door">Single Door</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Rotation</label>
+                    <input
+                      type="number"
+                      className="form-input-field"
+                      value={selectedPoi.rotation}
+                      onChange={(e) =>
+                        updateSelectedPoi({ rotation: Number(e.target.value) })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Width</label>
+                    <input
+                      type="number"
+                      className="form-input-field"
+                      value={selectedPoi.width}
+                      onChange={(e) =>
+                        updateSelectedPoi({ width: Number(e.target.value) })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Height</label>
+                    <input
+                      type="number"
+                      className="form-input-field"
+                      value={selectedPoi.height}
+                      onChange={(e) =>
+                        updateSelectedPoi({ height: Number(e.target.value) })
+                      }
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+            {selectedDesignPattern && (
+              <>
                 <div className="form-group">
-                  <label className="form-label">Height</label>
+                  <label className="form-label">Name</label>
                   <input
-                    type="number"
+                    type="text"
                     className="form-input-field"
-                    value={selectedPoi.height}
-                    onChange={(e) =>
-                      updateSelectedPoi({ height: Number(e.target.value) })
-                    }
+                    value={selectedDesignPattern.name}
+                    onChange={(e) => updateSelectedDP({ name: e.target.value })}
                   />
                 </div>
-              </div>
-            </>
-          )}
-          <div className="action-btns">
-            <button className="btn-danger" onClick={handleDeleteSelected}>
-              Delete
-            </button>
-            <button className="btn-primary" onClick={handleUpdateClick}>
-              Update
-            </button>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Type</label>
+                    <select
+                      className="form-select-field"
+                      value={selectedDesignPattern.type}
+                      onChange={(e) =>
+                        updateSelectedDP({
+                          type: e.target.value as PointOfInterest["type"],
+                        })
+                      }
+                    >
+                      <option value="single-door-line">Single Door Bar</option>
+                      <option value="outer-wall">Outer Wall</option>
+                      <option value="round-pillar">Round Pillar</option>
+                      <option value="rectangle-pillar">
+                        Rectangular Pillar
+                      </option>
+                      <option value="main-entrance">Main Entrance</option>
+                      <option value="single-door">Single Door</option>
+                      <option value="stairs">Stairs</option>
+                      <option value="barriers-railing">Barriers</option>
+                      <option value="washroom">Washroom</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Rotation</label>
+                    <input
+                      type="number"
+                      className="form-input-field"
+                      value={selectedDesignPattern.rotation}
+                      onChange={(e) =>
+                        updateSelectedDP({ rotation: Number(e.target.value) })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Width</label>
+                    <input
+                      type="number"
+                      className="form-input-field"
+                      value={selectedDesignPattern.width}
+                      onChange={(e) =>
+                        updateSelectedDP({ width: Number(e.target.value) })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Height</label>
+                    <input
+                      type="number"
+                      className="form-input-field"
+                      value={selectedDesignPattern.height}
+                      onChange={(e) =>
+                        updateSelectedDP({ height: Number(e.target.value) })
+                      }
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+            <div className="action-btns">
+              <button className="btn-danger" onClick={handleDeleteSelected}>
+                Delete
+              </button>
+              <button className="btn-primary" onClick={handleUpdateClick}>
+                Update
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* --- Add New Table --- */}
       <div className="form-group">
@@ -525,8 +633,6 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
               <option value="dj-booth">DJ Booth</option>
               <option value="dancing-floor">Dancing Floor</option>
               <option value="front-desk">Front Desk</option>
-              <option value="washroom">Washroom</option>
-              <option value="main-entrance">Main Entrance</option>
               <option value="double-sofa">Double Sofa</option>
               <option value="single-sofa">Single Sofa</option>
               <option value="triple-sofa">Triple Sofa</option>
@@ -538,6 +644,52 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
 
         <button className="btn-primary" onClick={handleAddPoi}>
           Add POI
+        </button>
+      </div>
+
+      {/* --- Add Design Pattern --- */}
+      <div className="form-group">
+        <label className="form-label">Add Design Patterns</label>
+        <div className="form-row">
+          <div className="form-group">
+            <label className="form-label">Name</label>
+            <input
+              type="text"
+              className="form-input-field"
+              placeholder="name"
+              value={designPattern.name}
+              onChange={(e) =>
+                setNewDesignPattern({ ...designPattern, name: e.target.value })
+              }
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Type</label>
+            <select
+              className="form-select-field"
+              value={designPattern.type}
+              onChange={(e) =>
+                setNewDesignPattern({
+                  ...designPattern,
+                  type: e.target.value as DesignPatterns["type"],
+                })
+              }
+            >
+              <option value="single-door-line">Single Door Bar</option>
+              <option value="outer-wall">Outer Wall</option>
+              <option value="round-pillar">Round Pillar</option>
+              <option value="rectangle-pillar">Rectangular Pillar</option>
+              <option value="main-entrance">Main Entrance</option>
+              <option value="single-door">Single Door</option>
+              <option value="stairs">Stairs</option>
+              <option value="barriers-railing">Barriers</option>
+              <option value="washroom">Washroom</option>
+            </select>
+          </div>
+        </div>
+
+        <button className="btn-primary" onClick={handleAddDesignPattern}>
+          Add Design Pattern
         </button>
       </div>
     </div>

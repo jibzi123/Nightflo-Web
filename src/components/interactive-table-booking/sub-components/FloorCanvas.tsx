@@ -72,9 +72,11 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       if (!selectedElement) return;
       if (!floor.tables) return;
 
-      const element = [...floor.tables, ...floor.pointsOfInterest].find(
-        (el) => el.id === selectedElement
-      );
+      const element = [
+        ...floor?.tables,
+        ...floor?.pointsOfInterest,
+        ...floor?.designPatterns,
+      ].find((el) => el.id === selectedElement);
 
       console.log(element, "element");
       if (!element) return;
@@ -120,12 +122,14 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
 
         const updatedFloor = { ...floor };
         const tableIndex = updatedFloor.tables.findIndex(
-          (t) => t.id === selectedElement
+          (t) => t._id === selectedElement
         );
         const poiIndex = updatedFloor.pointsOfInterest.findIndex(
           (p) => p.id === selectedElement
         );
-
+        const dIndex = updatedFloor.designPatterns.findIndex(
+          (d) => d.id === selectedElement
+        );
         if (tableIndex >= 0) {
           updatedFloor.tables[tableIndex] = {
             ...updatedFloor.tables[tableIndex],
@@ -138,6 +142,12 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
             width: newWidth,
             height: newHeight,
           };
+        } else if (dIndex >= 0) {
+          updatedFloor.designPatterns[dIndex] = {
+            ...updatedFloor.designPatterns[dIndex],
+            width: newWidth,
+            height: newHeight,
+          };
         }
 
         onFloorUpdate(updatedFloor);
@@ -146,39 +156,23 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
 
       if (!isDragging) return;
 
-      // const canvasRect = canvasRef.current.getBoundingClientRect();
-      // const newX = e.clientX - canvasRect.left - dragOffset.xAxis;
-      // const newY = e.clientY - canvasRect.top - dragOffset.yAxis;
-      // const newXPercent = Math.max(0, (newX / canvasWidth) * 100);
-      // const newYPercent = Math.max(0, (newY / canvasHeight) * 100);
       const canvasRect = canvasRef.current.getBoundingClientRect();
       const newX = e.clientX - canvasRect.left - dragOffset.xAxis;
       const newY = e.clientY - canvasRect.top - dragOffset.yAxis;
-
-      // Get the selected element's size (in px)
-      const selected =
-        floor.tables.find((t) => t.id === selectedElement) ||
-        floor.pointsOfInterest.find((p) => p.id === selectedElement);
-
-      const elemWidth = selected?.width || 0;
-      const elemHeight = selected?.height || 0;
-
-      // Clamp to canvas boundaries
-      const clampedX = Math.max(0, Math.min(newX, canvasWidth - elemWidth));
-      const clampedY = Math.max(0, Math.min(newY, canvasHeight - elemHeight));
-
-      // Convert to % relative to canvas
-      const newXPercent = (clampedX / canvasWidth) * 100;
-      const newYPercent = (clampedY / canvasHeight) * 100;
+      const newXPercent = Math.max(0, (newX / canvasWidth) * 100);
+      const newYPercent = Math.max(0, (newY / canvasHeight) * 100);
 
       const updatedFloor = { ...floor };
       if (!updatedFloor.tables) return;
 
       const tableIndex = updatedFloor.tables.findIndex(
-        (t) => t.id === selectedElement
+        (t) => t._id === selectedElement
       );
-      const poiIndex = updatedFloor.pointsOfInterest.findIndex(
+      const poiIndex = (updatedFloor.pointsOfInterest || []).findIndex(
         (p) => p.id === selectedElement
+      );
+      const dIndex = (updatedFloor.designPatterns || []).findIndex(
+        (d) => d.id === selectedElement
       );
       if (tableIndex >= 0) {
         updatedFloor.tables[tableIndex] = {
@@ -189,6 +183,12 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       } else if (poiIndex >= 0) {
         updatedFloor.pointsOfInterest[poiIndex] = {
           ...updatedFloor.pointsOfInterest[poiIndex],
+          xAxis: newXPercent,
+          yAxis: newYPercent,
+        };
+      } else if (dIndex >= 0) {
+        updatedFloor.designPatterns[dIndex] = {
+          ...updatedFloor.designPatterns[dIndex],
           xAxis: newXPercent,
           yAxis: newYPercent,
         };
@@ -222,7 +222,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
     // const tableCount = countRes?.payLoad?.count + 1 ?? 1;
 
     const params = {
-      tableId: table?.id,
+      tableId: table?._id,
       tableNumber: table.tableNumber,
       floorId: table?.floor.id,
       price: table.price,
@@ -238,9 +238,6 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
     await callApi("POST", "/tables/update", params, {
       onSuccess: (data) => {
         if (!UserData) return;
-        // setTimeout(() => {
-        //   fetchFloorsAndTables(UserData?.club.id);
-        // }, 300);
       },
       onError: (err) => console.error("Error:", err),
     });
@@ -251,7 +248,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       if (!floor.tables) return;
 
       if (isDragging && selectedElement && floor) {
-        const table = floor.tables.find((t) => t.id === selectedElement);
+        const table = floor.tables.find((t) => t._id === selectedElement);
         if (table) {
           // table.x and table.y are stored as relative (0..1). Convert to percent for logging.
           const xPercent = Math.round((table.xAxis ?? 0) * 10000) / 100; // 2 decimals
@@ -264,7 +261,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
         }
       }
       if (isResizing && selectedElement && floor) {
-        const table = floor.tables.find((t) => t.id === selectedElement);
+        const table = floor.tables.find((t) => t._id === selectedElement);
         if (table) {
           const w = table.width;
           const h = table.height;
@@ -376,20 +373,22 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
 
           return (
             <div
-              key={table.id}
+              key={table._id}
               className={`table-element ${table.status} ${
-                selectedElement === table.id ? "selected" : ""
+                selectedElement === table._id ? "selected" : ""
               }
               `}
               style={{
                 left: `${left}%`,
                 top: `${top}%`,
-                width: `${table.width}px`,
-                height: `${table.height}px`,
+                // width: `${table.width}px`,
+                // height: `${table.height}px`,
                 transform: `rotate(${table.rotation}deg)`,
                 zIndex: 20,
               }}
-              onMouseDown={(e) => handleElementMouseDown(e, table?.id, "table")}
+              onMouseDown={(e) =>
+                handleElementMouseDown(e, table?._id, "table")
+              }
             >
               <img
                 src={icon}
@@ -400,7 +399,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
                   objectFit: "contain",
                 }}
               />
-              {selectedElement === table.id && (
+              {/* {selectedElement === table._id && (
                 <>
                   <div
                     className="resize-handle nw"
@@ -419,7 +418,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
                     onMouseDown={(e) => handleResizeStart(e, "se")}
                   />
                 </>
-              )}
+              )} */}
             </div>
           );
         })}
@@ -455,13 +454,74 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
                 src={Icon}
                 alt={poi.type}
                 style={{
-                  width: poi.width ? `${poi.width}px` : "40px",
-                  height: poi.height ? `${poi.height}px` : "40px",
+                  // width: poi.width ? `${poi.width}px` : "40px",
+                  // height: poi.height ? `${poi.height}px` : "40px",
                   objectFit: "contain",
                   pointerEvents: "none",
                 }}
               />
               {selectedElement === poi.id && (
+                <>
+                  <div
+                    className="resize-handle nw"
+                    onMouseDown={(e) => handleResizeStart(e, "nw")}
+                  />
+                  <div
+                    className="resize-handle ne"
+                    onMouseDown={(e) => handleResizeStart(e, "ne")}
+                  />
+                  <div
+                    className="resize-handle sw"
+                    onMouseDown={(e) => handleResizeStart(e, "sw")}
+                  />
+                  <div
+                    className="resize-handle se"
+                    onMouseDown={(e) => handleResizeStart(e, "se")}
+                  />
+                </>
+              )}
+            </div>
+          );
+        })}
+        {floor?.designPatterns?.map((d) => {
+          const left = d.xAxis;
+          const top = d.yAxis;
+          const Icon = POIIcons[d.type] || POIIcons.default;
+
+          return (
+            <div
+              key={d.id}
+              className={`d-element ${
+                selectedElement === d.id ? "selected" : ""
+              }`}
+              style={{
+                left: `${left}%`,
+                top: `${top}%`,
+                position: "absolute",
+                zIndex: 10, // 👈 lower value
+
+                // width: d.width ? `${d.width}px` : "40px",
+                // height: d.height ? `${d.height}px` : "40px",
+                transform: `rotate(${d.rotation || 0}deg)`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "grab",
+              }}
+              onMouseDown={(e) => handleElementMouseDown(e, d.id, "design")}
+              title={d.name}
+            >
+              <img
+                src={Icon}
+                alt={d.type}
+                style={{
+                  width: d.width ? `${d.width}px` : "100%",
+                  height: d.height ? `${d.height}px` : "100%",
+                  objectFit: "contain",
+                  pointerEvents: "none",
+                }}
+              />
+              {selectedElement === d.id && (
                 <>
                   <div
                     className="resize-handle nw"

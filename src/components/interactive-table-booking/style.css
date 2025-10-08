@@ -631,6 +631,8 @@ body {
   width: 100%;
   height: 100%;
   cursor: grab;
+    position: relative;
+
 }
 
 .canvas:active {
@@ -639,8 +641,8 @@ body {
 
 .table-element {
   position: absolute;
-  background: #333;
-  border: 2px solid #555;
+  /* background: #333;
+  border: 2px solid #555; */
   border-radius: 4px;
   cursor: move;
   user-select: none;
@@ -715,7 +717,7 @@ body {
   box-shadow: 0 0 10px rgba(0, 212, 170, 0.5);
 }
 
-.table-element.available {
+/* .table-element.available {
   background: #2d5a2d;
   border-color: #4a8f4a;
   color: #8fff8f;
@@ -731,7 +733,7 @@ body {
   background: #5a2d2d;
   border-color: #8f4a4a;
   color: #ff8f8f;
-}
+} */
 
 .table-element.vip {
   border-width: 3px;
@@ -777,8 +779,8 @@ body {
 
 .poi-element {
   position: absolute;
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px dashed #777;
+  /* background: rgba(255, 255, 255, 0.1);
+  border: 2px dashed #777; */
   border-radius: 4px;
   cursor: move;
   user-select: none;

@@ -3,7 +3,14 @@ import AdminPanel from "./sub-components/AdminPanel";
 import FloorCanvas from "./sub-components/FloorCanvas";
 import ReservationsPanel from "./sub-components/ReservationsPanel";
 import "./style.css";
-import { ClubHours, Floor, Reservation, UserData, Table } from "./types";
+import {
+  ClubHours,
+  Floor,
+  Reservation,
+  UserData,
+  Table,
+  PointOfInterest,
+} from "./types";
 import { mergeFloorsAndTables } from "../../utils/tableUtil";
 import { useApi } from "../../utils/custom-hooks/useApi";
 
@@ -11,15 +18,11 @@ function InteractiveTableBooking() {
   const [activeFloor, setActiveFloor] = useState<Floor | any>();
   const storedUser = localStorage.getItem("userData");
   const [floors, setFloors] = useState<Floor[]>([]);
+
   const [activeFloorId, setActiveFloorId] = useState<string>(
     localStorage.getItem("activeFloorId") || ""
   );
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
-  const [backgroundScale, setBackgroundScale] = useState<number>(1);
-  const [backgroundPosition, setBackgroundPosition] = useState<{
-    x: number;
-    y: number;
-  }>({ x: 0, y: 0 });
   const [clubHours] = useState<ClubHours>({
     openTime: "22:00",
     closeTime: "04:00",
@@ -47,6 +50,12 @@ function InteractiveTableBooking() {
     tableCount: 0,
     tableType: "",
     description: "",
+  });
+  const [newPoiData, setNewPoiData] = useState({
+    name: "",
+    type: "bar" as PointOfInterest["type"],
+    width: 80,
+    height: 50,
   });
   const UserData: UserData | null = storedUser
     ? (JSON.parse(storedUser) as UserData)
@@ -76,10 +85,12 @@ function InteractiveTableBooking() {
     // },
   ]);
   const updateFloor = (updatedFloor: Floor) => {
+    console.log(updatedFloor, ">>>>>>>>>>>>>");
     setFloors(floors.map((f) => (f.id === updatedFloor.id ? updatedFloor : f)));
   };
 
   const fetchFloorsAndTables = async (clubId: string) => {
+    console.log("run");
     try {
       const [floorsRes, tablesRes] = await Promise.all([
         callApi("GET", `/floor/getByClub/${clubId}`), // all floors of club
@@ -201,13 +212,6 @@ function InteractiveTableBooking() {
     }
   };
 
-  // const removeBackground = () => {
-  //   const updatedFloor = { ...activeFloor, backgroundImage: undefined };
-  //   updateFloor(updatedFloor);
-  //   setBackgroundScale(1);
-  //   setBackgroundPosition({ x: 0, y: 0 });
-  // };
-
   return (
     <div className="app">
       <div className="app-body">
@@ -243,10 +247,7 @@ function InteractiveTableBooking() {
             onFloorUpdate={updateFloor}
             selectedElement={selectedElement}
             onElementSelect={setSelectedElement}
-            backgroundScale={backgroundScale}
-            backgroundPosition={backgroundPosition}
             setActiveTab={setActiveTab}
-            fetchFloorsAndTables={fetchFloorsAndTables}
           />
         </div>
 
@@ -259,11 +260,6 @@ function InteractiveTableBooking() {
           selectedElement={selectedElement}
           onElementSelect={setSelectedElement}
           clubHours={clubHours}
-          backgroundScale={backgroundScale}
-          setBackgroundScale={setBackgroundScale}
-          backgroundPosition={backgroundPosition}
-          setBackgroundPosition={setBackgroundPosition}
-          // onRemoveBackground={removeBackground}
           fetchFloorsAndTables={fetchFloorsAndTables}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -272,6 +268,8 @@ function InteractiveTableBooking() {
           setNewTableData={setNewTableData}
           editableTable={editableTable}
           setEditableTable={setEditableTable}
+          newPoiData={newPoiData}
+          setNewPoiData={setNewPoiData}
         />
       </div>
     </div>

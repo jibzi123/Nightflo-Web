@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Floor, Table, ClubHours, UserData } from "../types";
-import TableElementProperties, { NewTableData } from "./TableElementProperties";
+import { Floor, Table, ClubHours, UserData, PointOfInterest } from "../types";
+import TableElementProperties, {
+  NewPoiData,
+  NewTableData,
+} from "./TableElementProperties";
 import FloorManager from "./FloorManager";
 import { useApi } from "../../../utils/custom-hooks/useApi";
 import { getRandomPercent } from "../../../utils/tableUtil";
@@ -14,11 +17,6 @@ interface AdminPanelProps {
   selectedElement: string | null;
   onElementSelect: (id: string | null) => void;
   clubHours: ClubHours;
-  backgroundScale: number;
-  setBackgroundScale: (scale: number) => void;
-  backgroundPosition: { x: number; y: number };
-  setBackgroundPosition: (position: { x: number; y: number }) => void;
-  // onRemoveBackground: () => void;
   fetchFloorsAndTables: (id: string) => void;
   activeTab: "floors" | "tables" | "settings";
   setActiveTab: React.Dispatch<
@@ -33,6 +31,8 @@ interface AdminPanelProps {
   setNewTableData: (d: Table) => void;
   editableTable: Table;
   setEditableTable: (d: Table) => void;
+  newPoiData: NewPoiData;
+  setNewPoiData: (d: NewPoiData) => void;
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -44,11 +44,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   selectedElement,
   onElementSelect,
   clubHours,
-  backgroundScale,
-  setBackgroundScale,
-  backgroundPosition,
-  setBackgroundPosition,
-  // onRemoveBackground,
   fetchFloorsAndTables,
   activeTab,
   setActiveTab,
@@ -57,6 +52,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   setNewTableData,
   editableTable,
   setEditableTable,
+  newPoiData,
+  setNewPoiData,
 }) => {
   const [newFloorName, setNewFloorName] = useState("");
   const [editFloorName, setEditFloorName] = useState<{
@@ -74,23 +71,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       ? activeFloor?.tables.find((t) => t.id === selectedElement)
       : null;
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const updatedFloor = {
-          ...activeFloor,
-          backgroundImage: e.target?.result as string,
-        };
-        onFloorUpdate(updatedFloor);
-        // Reset background controls when new image is uploaded
-        setBackgroundScale(1);
-        setBackgroundPosition({ x: 0, y: 0 });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  const selectedPoi = selectedElement
+    ? activeFloor?.pointsOfInterest.find((p) => p.id === selectedElement)
+    : null;
 
   useEffect(() => {
     if (selectedTable) {
@@ -174,6 +157,27 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       onError: (err) => console.error("Error:", err),
     });
   };
+  const handleAddPoi = () => {
+    const newPoi: PointOfInterest = {
+      id: `poi${Date.now()}`,
+      name: newPoiData.name || newPoiData.type.toUpperCase(),
+      type: newPoiData.type,
+      xAxis: 10,
+      yAxis: 20,
+      width: newPoiData.width,
+      height: newPoiData.height,
+      rotation: 0,
+    };
+
+    const updatedFloor = {
+      ...activeFloor,
+      pointsOfInterest: [...activeFloor.pointsOfInterest, newPoi],
+    };
+    console.log(updatedFloor, "updatedFloor");
+
+    onFloorUpdate(updatedFloor);
+    setNewPoiData({ name: "", type: "bar", width: 80, height: 50 });
+  };
 
   const handleDeleteSelected = async () => {
     if (!selectedElement) return;
@@ -190,6 +194,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       }
     );
     onElementSelect(null);
+  };
+  const updateSelectedPoi = (updates: Partial<PointOfInterest>) => {
+    if (!selectedPoi) return;
+
+    const updatedFloor = {
+      ...activeFloor,
+      pointsOfInterest: activeFloor.pointsOfInterest.map((p) =>
+        p.id === selectedElement ? { ...p, ...updates } : p
+      ),
+    };
+    console.log(updatedFloor, "updatedFloor");
+    onFloorUpdate(updatedFloor);
   };
 
   return (
@@ -220,10 +236,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           <TableElementProperties
             selectedElement={selectedElement}
             selectedTable={selectedTable}
+            selectedPoi={selectedPoi}
+            updateSelectedPoi={updateSelectedPoi}
             handleDeleteSelected={handleDeleteSelected}
             newTableData={newTableData}
             setNewTableData={setNewTableData}
             handleAddTable={createTable}
+            newPoiData={newPoiData}
+            setNewPoiData={setNewPoiData}
+            handleAddPoi={handleAddPoi}
             handleUpdateTable={handleUpdateTable} // new function
             editableTable={editableTable}
             setEditableTable={setEditableTable}
@@ -236,12 +257,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             floors={floors}
             newFloorName={newFloorName}
             setNewFloorName={setNewFloorName}
-            backgroundScale={backgroundScale}
-            setBackgroundScale={setBackgroundScale}
-            backgroundPosition={backgroundPosition}
-            setBackgroundPosition={setBackgroundPosition}
-            handleFileUpload={handleFileUpload}
-            // onRemoveBackground={onRemoveBackground}
             onDeleteFloor={onDeleteFloor}
             onAddFloor={onAddFloor}
             editFloorName={editFloorName}

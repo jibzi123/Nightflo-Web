@@ -1,0 +1,20 @@
+<svg width="109" height="98" viewBox="0 0 109 98" fill="none" xmlns="http://www.w3.org/2000/svg">
+<mask id="path-1-inside-1_19_331" fill="white">
+<path d="M0 0H109V20H0V0Z"/>
+</mask>
+<path d="M0 0V-2H-2V0H0ZM109 0H111V-2H109V0ZM0 0V2H109V0V-2H0V0ZM109 0H107V20H109H111V0H109ZM0 20H2V0H0H-2V20H0Z" fill="black" mask="url(#path-1-inside-1_19_331)"/>
+<rect x="0.5" y="20.5" width="108" height="19" stroke="black"/>
+<mask id="path-4-inside-2_19_331" fill="white">
+<path d="M0 20H109V40H0V20Z"/>
+</mask>
+<path d="M0 20V18H-2V20H0ZM109 20H111V18H109V20ZM0 20V22H109V20V18H0V20ZM109 20H107V40H109H111V20H109ZM0 40H2V20H0H-2V40H0Z" fill="black" mask="url(#path-4-inside-2_19_331)"/>
+<mask id="path-6-inside-3_19_331" fill="white">
+<path d="M0 39H109V59H0V39Z"/>
+</mask>
+<path d="M0 39V37H-2V39H0ZM109 39H111V37H109V39ZM0 39V41H109V39V37H0V39ZM109 39H107V59H109H111V39H109ZM0 59H2V39H0H-2V59H0Z" fill="black" mask="url(#path-6-inside-3_19_331)"/>
+<mask id="path-8-inside-4_19_331" fill="white">
+<path d="M0 78H109V98H0V78Z"/>
+</mask>
+<path d="M109 98V100H111V98H109ZM0 98H-2V100H0V98ZM109 78H107V98H109H111V78H109ZM109 98V96H0V98V100H109V98ZM0 98H2V78H0H-2V98H0Z" fill="black" mask="url(#path-8-inside-4_19_331)"/>
+<rect x="1" y="60" width="107" height="18" stroke="black" stroke-width="2"/>
+</svg>

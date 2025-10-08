@@ -44,11 +44,8 @@ interface ElementPropertiesProps {
   /** selected POI if the selectedElement refers to a poi */
   selectedPoi?: PointOfInterest | null;
 
-  /** called with partial updates for the selected table */
-  // updateSelectedTable: (patch: Partial<Table>) => void;
-
   /** called with partial updates for the selected poi */
-  // updateSelectedPoi: (patch: Partial<PointOfInterest>) => void;
+  updateSelectedPoi: (patch: Partial<PointOfInterest>) => void;
 
   /** delete handler for currently selected element */
   handleDeleteSelected: () => void;
@@ -59,9 +56,9 @@ interface ElementPropertiesProps {
   handleAddTable: () => void;
 
   /** state and setters for "Add POI" form */
-  // newPoiData: NewPoiData;
-  // setNewPoiData: (d: NewPoiData) => void;
-  // handleAddPoi: () => void;
+  newPoiData: NewPoiData;
+  setNewPoiData: (d: NewPoiData) => void;
+  handleAddPoi: () => void;
   handleUpdateTable: () => void;
   editableTable: any;
   setEditableTable: any;
@@ -70,10 +67,15 @@ interface ElementPropertiesProps {
 const TableElementProperties: React.FC<ElementPropertiesProps> = ({
   selectedElement,
   selectedTable,
+  selectedPoi,
+  updateSelectedPoi,
   handleDeleteSelected,
   newTableData,
   setNewTableData,
   handleAddTable,
+  newPoiData,
+  setNewPoiData,
+  handleAddPoi,
   handleUpdateTable,
   editableTable,
   setEditableTable,
@@ -102,7 +104,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
   }, [selectedElement, selectedTable]);
   return (
     <div>
-      {selectedElement && selectedTable && (
+      {selectedElement && (selectedTable || selectedPoi) && (
         <div className="element-properties">
           <div className="property-title">
             {selectedTable ? "Table Properties" : "Point of Interest"}
@@ -183,16 +185,22 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                 </div>
                 <div className="form-group">
                   <label className="form-label">Capacity</label>
-                  <input
-                    type="number"
+
+                  <select
                     className="form-input-field"
-                    value={editableTable?.capacity || ""}
+                    value={editableTable.capacity ?? ""}
                     onChange={(e) =>
                       setEditableTable((prev: []) =>
                         prev ? { ...prev, capacity: e.target.value } : prev
                       )
                     }
-                  />
+                  >
+                    {[2, 4, 6, 8, 10].map((num) => (
+                      <option key={num} value={num}>
+                        {num}
+                      </option>
+                    ))}
+                  </select>
                   {editTableErrors.capacity && (
                     <div className="error">{editTableErrors.capacity}</div>
                   )}
@@ -258,7 +266,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
             </>
           )}
 
-          {/* {selectedPoi && (
+          {selectedPoi && (
             <>
               <div className="form-group">
                 <label className="form-label">Name</label>
@@ -281,12 +289,19 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                     })
                   }
                 >
-                  <option value="bar">Bar</option>
-                  <option value="stage">Stage</option>
-                  <option value="dj">DJ Booth</option>
-                  <option value="entry">Entry</option>
-                  <option value="vip">VIP Area</option>
-                  <option value="restroom">Restroom</option>
+                  <option value="main-bar">Main Bar</option>
+                  <option value="mini-bar">Mini Bar</option>
+                  <option value="circular-bar">Circular Bar</option>
+                  <option value="dj-booth">DJ Booth</option>
+                  <option value="dancing-floor">Dancing Floor</option>
+                  <option value="front-desk">Front Desk</option>
+                  <option value="washroom">Washroom</option>
+                  <option value="main-entrance">Main Entrance</option>
+                  <option value="double-sofa">Double Sofa</option>
+                  <option value="single-sofa">Single Sofa</option>
+                  <option value="triple-sofa">Triple Sofa</option>
+
+                  <option value="single-door">Single Door</option>
                 </select>
               </div>
 
@@ -315,7 +330,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                 </div>
               </div>
             </>
-          )} */}
+          )}
           <div className="action-btns">
             <button className="btn-danger" onClick={handleDeleteSelected}>
               Delete
@@ -372,10 +387,8 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
         <div className="form-row">
           <div className="form-group">
             <label className="form-label">Capacity</label>
-            <input
-              type="number"
+            <select
               className="form-input-field"
-              placeholder="Capacity"
               value={newTableData.capacity ?? ""}
               onChange={(e) =>
                 setNewTableData({
@@ -383,7 +396,13 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                   capacity: e.target.value === "" ? "" : Number(e.target.value),
                 })
               }
-            />
+            >
+              {[2, 4, 6, 8, 10].map((num) => (
+                <option key={num} value={num}>
+                  {num}
+                </option>
+              ))}
+            </select>
             {newTableErrors.capacity && (
               <div className="error">{newTableErrors.capacity}</div>
             )}
@@ -473,7 +492,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
       </div>
 
       {/* --- Add POI --- */}
-      {/* <div className="form-group">
+      <div className="form-group">
         <label className="form-label">Add Point of Interest</label>
         <div className="form-row">
           <div className="form-group">
@@ -500,12 +519,19 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                 })
               }
             >
-              <option value="bar">Bar</option>
-              <option value="stage">Stage</option>
-              <option value="dj">DJ Booth</option>
-              <option value="entry">Entry</option>
-              <option value="vip">VIP Area</option>
-              <option value="restroom">Restroom</option>
+              <option value="main-bar">Main Bar</option>
+              <option value="mini-bar">Mini Bar</option>
+              <option value="circular-bar">Circular Bar</option>
+              <option value="dj-booth">DJ Booth</option>
+              <option value="dancing-floor">Dancing Floor</option>
+              <option value="front-desk">Front Desk</option>
+              <option value="washroom">Washroom</option>
+              <option value="main-entrance">Main Entrance</option>
+              <option value="double-sofa">Double Sofa</option>
+              <option value="single-sofa">Single Sofa</option>
+              <option value="triple-sofa">Triple Sofa</option>
+
+              <option value="single-door">Single Door</option>
             </select>
           </div>
         </div>
@@ -513,7 +539,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
         <button className="btn-primary" onClick={handleAddPoi}>
           Add POI
         </button>
-      </div> */}
+      </div>
     </div>
   );
 };

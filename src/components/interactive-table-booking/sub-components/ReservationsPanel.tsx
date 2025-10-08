@@ -60,12 +60,12 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
         >
           Tables
         </button>
-        {/* <button
-          className={`admin-tab ${activeTab === 'pois' ? 'active' : ''}`}
-          onClick={() => setActiveTab('pois')}
+        <button
+          className={`admin-tab ${activeTab === "pois" ? "active" : ""}`}
+          onClick={() => setActiveTab("pois")}
         >
           POIs
-        </button> */}
+        </button>
         <button
           className={`admin-tab ${
             activeTab === "reservations" ? "active" : ""
@@ -186,24 +186,29 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
           </>
         )}
 
-        {/* {activeTab === 'pois' && (
+        {activeTab === "pois" && (
           <div className="reservation-section">
-            <h3 className="section-title">Points of Interest ({activeFloor.pointsOfInterest.length})</h3>
-            {activeFloor.pointsOfInterest.map(poi => (
-              <div 
-                key={poi.id} 
-                className={`reservation-item poi ${selectedElement === poi.id ? 'selected-item' : ''}`}
+            <h3 className="section-title">
+              Points of Interest ({activeFloor.pointsOfInterest.length})
+            </h3>
+            {activeFloor.pointsOfInterest.map((poi) => (
+              <div
+                key={poi.id}
+                className={`reservation-item poi ${
+                  selectedElement === poi.id ? "selected-item" : ""
+                }`}
                 onClick={() => onElementSelect(poi.id)}
               >
                 <div className="customer-name">{poi.name}</div>
                 <div className="reservation-details">
-                  Type: {poi.type.toUpperCase()}<br/>
+                  Type: {poi.type.toUpperCase()}
+                  <br />
                   Size: {poi.width}×{poi.height}px
                 </div>
               </div>
             ))}
           </div>
-        )} */}
+        )}
 
         {activeTab === "reservations" && (
           <>
@@ -279,15 +284,15 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
             </div>
           </div>
         )}
-        {/*         
-        {activeTab === 'pois' && activeFloor.pointsOfInterest.length === 0 && (
+
+        {activeTab === "pois" && activeFloor.pointsOfInterest.length === 0 && (
           <div className="empty-state">
             <div className="customer-name">No POIs created</div>
             <div className="reservation-details">
               Add points of interest like bars, stages, or DJ booths
             </div>
           </div>
-        )} */}
+        )}
       </div>
     </div>
   );

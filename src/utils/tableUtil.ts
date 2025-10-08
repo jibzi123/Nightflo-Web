@@ -1,6 +1,3 @@
-const getRandomInt = (min: number, max: number): number => {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-};
 export const mergeFloorsAndTables = (floors, tables) => {
   return floors.map((floor) => {
     // match tables that belong to this floor
@@ -8,17 +5,121 @@ export const mergeFloorsAndTables = (floors, tables) => {
       .filter((table) => table.floor && table.floor.id === floor.id)
       .map((table) => ({
         ...table,
-        // x: getRandomInt(50, 500), // random X position
-        // y: getRandomInt(50, 500), // random Y position
-        // width: getRandomInt(40, 120), // random width
-        // height: getRandomInt(40, 120), // random height
       }));
+    const pointsOfInterest =
+      floor.pointsOfInterest && floor.pointsOfInterest.length > 0
+        ? floor.pointsOfInterest
+        : getDefaultPOIs();
+
     return {
       ...floor,
       tables: floorTables,
+      pointsOfInterest,
     };
   });
 };
+const getDefaultPOIs = () => [
+  {
+    id: "poi-1",
+    name: "Double Sofa",
+    type: "double-sofa",
+    width: 100,
+    height: 200,
+    xAxis: getRandomPercent(),
+    yAxis: getRandomPercent(),
+    rotation: 0,
+  },
+  {
+    id: "poi-2",
+    name: "Single Sofa",
+    type: "single-sofa",
+    xAxis: getRandomPercent(),
+    yAxis: getRandomPercent(),
+    rotation: 0,
+    width: 100,
+    height: 200,
+  },
+  {
+    id: "poi-3",
+    name: "Triple Sofa",
+    type: "triple-sofa",
+    xAxis: getRandomPercent(),
+    yAxis: getRandomPercent(),
+    rotation: 0,
+    width: 100,
+    height: 200,
+  },
+  {
+    id: "poi-4",
+    name: "Dancing Floor",
+    type: "dancing-floor",
+    xAxis: getRandomPercent(),
+    yAxis: getRandomPercent(),
+    rotation: 0,
+    width: 100,
+    height: 200,
+  },
+  {
+    id: "poi-5",
+    name: "Stairs",
+    type: "stairs",
+    xAxis: getRandomPercent(),
+    yAxis: getRandomPercent(),
+    rotation: 0,
+    width: 100,
+    height: 200,
+  },
+  {
+    id: "poi-6",
+    name: "Mini Bar",
+    type: "mini-bar",
+    xAxis: getRandomPercent(),
+    yAxis: getRandomPercent(),
+    rotation: 0,
+    width: 100,
+    height: 200,
+  },
+  {
+    id: "poi-7",
+    name: "Main Bar",
+    type: "main-bar",
+    xAxis: getRandomPercent(),
+    yAxis: getRandomPercent(),
+    rotation: 0,
+    width: 100,
+    height: 200,
+  },
+  {
+    id: "poi-8",
+    name: "Circular Bar",
+    type: "circular-bar",
+    xAxis: getRandomPercent(),
+    yAxis: getRandomPercent(),
+    rotation: 0,
+    width: 100,
+    height: 200,
+  },
+  {
+    id: "poi-9",
+    name: "Washroom",
+    type: "washroom",
+    xAxis: getRandomPercent(),
+    yAxis: getRandomPercent(),
+    rotation: 0,
+    width: 100,
+    height: 200,
+  },
+  {
+    id: "poi-10",
+    name: "DJ Booth",
+    type: "dj-booth",
+    xAxis: getRandomPercent(),
+    yAxis: getRandomPercent(),
+    rotation: 0,
+    width: 100,
+    height: 200,
+  },
+];
 
 type TableData = {
   tableNumber?: string | number;

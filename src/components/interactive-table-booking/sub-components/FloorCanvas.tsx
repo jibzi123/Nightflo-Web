@@ -2,19 +2,16 @@ import React, { useRef, useEffect, useState, useCallback } from "react";
 import { Floor, UserData } from "./../types";
 import { useApi } from "../../../utils/custom-hooks/useApi";
 import { Users, DollarSign, Clock } from "lucide-react";
-import { Tooltip } from "antd";
-
+import { POIIcons, TableIcons } from "../../../utils/canvasIcons";
 interface FloorCanvasProps {
   floor: Floor;
   onFloorUpdate: (floor: Floor) => void;
   selectedElement: string | null;
   onElementSelect: (id: string | null) => void;
-  backgroundScale: number;
-  backgroundPosition: { x: number; y: number };
+
   setActiveTab: React.Dispatch<
     React.SetStateAction<"floors" | "tables" | "settings">
   >;
-  fetchFloorsAndTables: (id: string) => void;
 }
 
 const FloorCanvas: React.FC<FloorCanvasProps> = ({
@@ -22,10 +19,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
   onFloorUpdate,
   selectedElement,
   onElementSelect,
-  backgroundScale,
-  backgroundPosition,
   setActiveTab,
-  fetchFloorsAndTables,
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -51,6 +45,10 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
     ) => {
       e.preventDefault();
       e.stopPropagation();
+      // if (elementType === "table") {
+      //   onElementSelect(elementId);
+      //   return;
+      // }
 
       const target = e.currentTarget as HTMLElement;
       const rect = target.getBoundingClientRect();
@@ -66,7 +64,6 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
     },
     [onElementSelect, setActiveTab]
   );
-
   const handleResizeStart = useCallback(
     (e: React.MouseEvent, handle: string) => {
       e.preventDefault();
@@ -75,7 +72,10 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       if (!selectedElement) return;
       if (!floor.tables) return;
 
-      const element = floor?.tables.find((el) => el.id === selectedElement);
+      const element = [...floor.tables, ...floor.pointsOfInterest].find(
+        (el) => el.id === selectedElement
+      );
+
       console.log(element, "element");
       if (!element) return;
 
@@ -92,7 +92,6 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       if (!selectedElement || !canvasRef.current) return;
 
       const { width: canvasWidth, height: canvasHeight } = getCanvasSize();
-
       if (isResizing && resizeHandle) {
         const deltaX = e.clientX - initialMousePos.xAxis;
         const deltaY = e.clientY - initialMousePos.yAxis;
@@ -120,15 +119,22 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
         }
 
         const updatedFloor = { ...floor };
-        if (!updatedFloor.tables) return;
-
         const tableIndex = updatedFloor.tables.findIndex(
           (t) => t.id === selectedElement
+        );
+        const poiIndex = updatedFloor.pointsOfInterest.findIndex(
+          (p) => p.id === selectedElement
         );
 
         if (tableIndex >= 0) {
           updatedFloor.tables[tableIndex] = {
             ...updatedFloor.tables[tableIndex],
+            width: newWidth,
+            height: newHeight,
+          };
+        } else if (poiIndex >= 0) {
+          updatedFloor.pointsOfInterest[poiIndex] = {
+            ...updatedFloor.pointsOfInterest[poiIndex],
             width: newWidth,
             height: newHeight,
           };
@@ -140,11 +146,30 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
 
       if (!isDragging) return;
 
+      // const canvasRect = canvasRef.current.getBoundingClientRect();
+      // const newX = e.clientX - canvasRect.left - dragOffset.xAxis;
+      // const newY = e.clientY - canvasRect.top - dragOffset.yAxis;
+      // const newXPercent = Math.max(0, (newX / canvasWidth) * 100);
+      // const newYPercent = Math.max(0, (newY / canvasHeight) * 100);
       const canvasRect = canvasRef.current.getBoundingClientRect();
       const newX = e.clientX - canvasRect.left - dragOffset.xAxis;
       const newY = e.clientY - canvasRect.top - dragOffset.yAxis;
-      const newXPercent = Math.max(0, (newX / canvasWidth) * 100);
-      const newYPercent = Math.max(0, (newY / canvasHeight) * 100);
+
+      // Get the selected element's size (in px)
+      const selected =
+        floor.tables.find((t) => t.id === selectedElement) ||
+        floor.pointsOfInterest.find((p) => p.id === selectedElement);
+
+      const elemWidth = selected?.width || 0;
+      const elemHeight = selected?.height || 0;
+
+      // Clamp to canvas boundaries
+      const clampedX = Math.max(0, Math.min(newX, canvasWidth - elemWidth));
+      const clampedY = Math.max(0, Math.min(newY, canvasHeight - elemHeight));
+
+      // Convert to % relative to canvas
+      const newXPercent = (clampedX / canvasWidth) * 100;
+      const newYPercent = (clampedY / canvasHeight) * 100;
 
       const updatedFloor = { ...floor };
       if (!updatedFloor.tables) return;
@@ -152,15 +177,22 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       const tableIndex = updatedFloor.tables.findIndex(
         (t) => t.id === selectedElement
       );
-
+      const poiIndex = updatedFloor.pointsOfInterest.findIndex(
+        (p) => p.id === selectedElement
+      );
       if (tableIndex >= 0) {
         updatedFloor.tables[tableIndex] = {
           ...updatedFloor.tables[tableIndex],
           xAxis: newXPercent,
           yAxis: newYPercent,
         };
+      } else if (poiIndex >= 0) {
+        updatedFloor.pointsOfInterest[poiIndex] = {
+          ...updatedFloor.pointsOfInterest[poiIndex],
+          xAxis: newXPercent,
+          yAxis: newYPercent,
+        };
       }
-
       onFloorUpdate(updatedFloor);
     },
     [
@@ -231,7 +263,6 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
           handleUpdateTable(table);
         }
       }
-
       if (isResizing && selectedElement && floor) {
         const table = floor.tables.find((t) => t.id === selectedElement);
         if (table) {
@@ -272,7 +303,26 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       };
     }
   }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
+  function getTableIcon(table) {
+    if (!table) return TableIcons.default;
 
+    let icon;
+
+    if (table.tableType === "circle") {
+      if (table.capacity <= 2) icon = TableIcons["t2-round"];
+      else if (table.capacity <= 4) icon = TableIcons["t2-outdoor-round"];
+      else if (table.capacity <= 8) icon = TableIcons["t8-outdoor-square"];
+      else icon = TableIcons["t10-square"];
+    } else if (table.tableType === "box") {
+      if (table.capacity <= 4) icon = TableIcons["t4-square"];
+      else if (table.capacity <= 8) icon = TableIcons["t8-outdoor-square"];
+      else icon = TableIcons["t10-square"];
+    } else {
+      icon = TableIcons.default;
+    }
+
+    return icon;
+  }
   return (
     <div className="canvas-container">
       <div
@@ -283,8 +333,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
           backgroundImage: floor?.backgroundImage
             ? `url(${floor.backgroundImage})`
             : "none",
-          backgroundSize: `${backgroundScale * 100}%`,
-          backgroundPosition: `${backgroundPosition.x}px ${backgroundPosition.y}px`,
+
           backgroundRepeat: "no-repeat",
         }}
       >
@@ -322,63 +371,96 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
         {floor?.tables?.map((table) => {
           const left = table.xAxis; // already in %
           const top = table.yAxis; // already in %
+          const icon = getTableIcon(table);
 
           return (
             <div
               key={table.id}
               className={`table-element ${table.status} ${
                 selectedElement === table.id ? "selected" : ""
-              } ${table.tableType}`}
+              }
+              `}
               style={{
                 left: `${left}%`,
                 top: `${top}%`,
                 width: `${table.width}px`,
                 height: `${table.height}px`,
                 transform: `rotate(${table.rotation}deg)`,
+                zIndex: 20,
               }}
               onMouseDown={(e) => handleElementMouseDown(e, table?.id, "table")}
             >
-              <div className="table-content">
-                <div className="table-header">
-                  <span className="table-name">{table.tableNumber}</span>
-                </div>
-                <div
-                  className="table-details"
-                  style={{ display: "flex", gap: "5px" }}
-                >
-                  {/* Capacity */}
-                  <div
-                    className="table-capacity"
-                    style={{ textAlign: "center" }}
-                  >
-                    <Users
-                      style={{ width: "15px", height: "20px" }}
-                      color="#1E90FF"
-                    />
-                    <div style={{ padding: "4px" }}>{table.capacity}</div>
-                  </div>
-
-                  {/* Price */}
-                  <div className="table-price" style={{ textAlign: "center" }}>
-                    <DollarSign
-                      style={{ width: "15px", height: "20px" }}
-                      color="#cae04bff"
-                    />
-                    <div style={{ padding: "4px" }}>Dh {table.price}</div>
-                  </div>
-
-                  {/* Time */}
-                  <div className="table-time" style={{ textAlign: "center" }}>
-                    <Clock
-                      style={{ width: "15px", height: "20px" }}
-                      color="#ff6347"
-                    />
-                    <div>45</div>
-                  </div>
-                </div>
-              </div>
-
+              <img
+                src={icon}
+                alt="table icon"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                }}
+              />
               {selectedElement === table.id && (
+                <>
+                  <div
+                    className="resize-handle nw"
+                    onMouseDown={(e) => handleResizeStart(e, "nw")}
+                  />
+                  <div
+                    className="resize-handle ne"
+                    onMouseDown={(e) => handleResizeStart(e, "ne")}
+                  />
+                  <div
+                    className="resize-handle sw"
+                    onMouseDown={(e) => handleResizeStart(e, "sw")}
+                  />
+                  <div
+                    className="resize-handle se"
+                    onMouseDown={(e) => handleResizeStart(e, "se")}
+                  />
+                </>
+              )}
+            </div>
+          );
+        })}
+        {floor?.pointsOfInterest?.map((poi) => {
+          const left = poi.xAxis;
+          const top = poi.yAxis;
+          const Icon = POIIcons[poi.type] || POIIcons.default;
+
+          return (
+            <div
+              key={poi.id}
+              className={`poi-element ${
+                selectedElement === poi.id ? "selected" : ""
+              }`}
+              style={{
+                left: `${left}%`,
+                top: `${top}%`,
+                position: "absolute",
+                zIndex: 10, // 👈 lower value
+
+                // width: poi.width ? `${poi.width}px` : "40px",
+                // height: poi.height ? `${poi.height}px` : "40px",
+                transform: `rotate(${poi.rotation || 0}deg)`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "grab",
+              }}
+              onMouseDown={(e) => handleElementMouseDown(e, poi.id, "poi")}
+              title={poi.name}
+            >
+              <img
+                src={Icon}
+                alt={poi.type}
+                style={{
+                  width: poi.width ? `${poi.width}px` : "40px",
+                  height: poi.height ? `${poi.height}px` : "40px",
+                  objectFit: "contain",
+                  pointerEvents: "none",
+                }}
+              />
+              {selectedElement === poi.id && (
                 <>
                   <div
                     className="resize-handle nw"

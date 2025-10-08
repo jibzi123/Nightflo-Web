@@ -1,0 +1,18 @@
+<svg width="308" height="164" viewBox="0 0 308 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="84.5" y="162.5" width="44" height="13" rx="6.5" transform="rotate(-180 84.5 162.5)" fill="#2B2B2B" stroke="#2B2B2B" stroke-width="3"/>
+<rect x="145.5" y="162.5" width="44" height="13" rx="6.5" transform="rotate(-180 145.5 162.5)" fill="#2B2B2B" stroke="#2B2B2B" stroke-width="3"/>
+<rect x="206.5" y="162.5" width="44" height="13" rx="6.5" transform="rotate(-180 206.5 162.5)" fill="#2B2B2B" stroke="#2B2B2B" stroke-width="3"/>
+<rect x="267.5" y="162.5" width="44" height="13" rx="6.5" transform="rotate(-180 267.5 162.5)" fill="#2B2B2B" stroke="#2B2B2B" stroke-width="3"/>
+<rect x="84.4999" y="14.5" width="44" height="13" rx="6.5" transform="rotate(-180 84.4999 14.5)" fill="#2B2B2B" stroke="#2B2B2B" stroke-width="3"/>
+<rect x="145.5" y="14.5" width="44" height="13" rx="6.5" transform="rotate(-180 145.5 14.5)" fill="#2B2B2B" stroke="#2B2B2B" stroke-width="3"/>
+<rect x="206.5" y="14.5" width="44" height="13" rx="6.5" transform="rotate(-180 206.5 14.5)" fill="#2B2B2B" stroke="#2B2B2B" stroke-width="3"/>
+<rect x="267.5" y="14.5001" width="44" height="13" rx="6.5" transform="rotate(-180 267.5 14.5001)" fill="#2B2B2B" stroke="#2B2B2B" stroke-width="3"/>
+<rect x="1.5" y="73.5" width="44" height="13" rx="6.5" transform="rotate(-90 1.5 73.5)" fill="#2B2B2B" stroke="#2B2B2B" stroke-width="3"/>
+<rect x="1.5" y="134.5" width="44" height="13" rx="6.5" transform="rotate(-90 1.5 134.5)" fill="#2B2B2B" stroke="#2B2B2B" stroke-width="3"/>
+<rect x="293.5" y="73.5" width="44" height="13" rx="6.5" transform="rotate(-90 293.5 73.5)" fill="#2B2B2B" stroke="#2B2B2B" stroke-width="3"/>
+<rect x="293.5" y="134.5" width="44" height="13" rx="6.5" transform="rotate(-90 293.5 134.5)" fill="#2B2B2B" stroke="#2B2B2B" stroke-width="3"/>
+<mask id="path-13-inside-1_19_142" fill="white">
+<rect x="23" y="23" width="262" height="118" rx="4"/>
+</mask>
+<rect x="23" y="23" width="262" height="118" rx="4" stroke="#00D4AB" stroke-width="26" mask="url(#path-13-inside-1_19_142)"/>
+</svg>

@@ -11,18 +11,17 @@ interface FloorManagerProps {
   floors: Floor[];
   newFloorName: string;
   setNewFloorName: (name: string) => void;
-  backgroundScale: number;
-  setBackgroundScale: (scale: number) => void;
-  backgroundPosition: Position;
-  setBackgroundPosition: (pos: Position) => void;
-
-  handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  // onRemoveBackground: () => void;
-
   onDeleteFloor: (floorId: string) => void;
   onAddFloor: (name: string) => void;
   editFloorName: { id: string; name: string } | null;
-  setEditFloorName: (d: { id: string; name: string } | null | ((prev: { id: string; name: string } | null) => { id: string; name: string } | null)) => void;
+  setEditFloorName: (
+    d:
+      | { id: string; name: string }
+      | null
+      | ((
+          prev: { id: string; name: string } | null
+        ) => { id: string; name: string } | null)
+  ) => void;
   handleUpdateFloor: (floorId: string, params: { name: string }) => void;
 }
 
@@ -31,12 +30,6 @@ const FloorManager: React.FC<FloorManagerProps> = ({
   floors,
   newFloorName,
   setNewFloorName,
-  backgroundScale,
-  setBackgroundScale,
-  backgroundPosition,
-  setBackgroundPosition,
-  handleFileUpload,
-  // onRemoveBackground,
   onDeleteFloor,
   onAddFloor,
   editFloorName,
@@ -46,89 +39,7 @@ const FloorManager: React.FC<FloorManagerProps> = ({
   return (
     <div>
       <div className="form-group">
-        {/* <label className="form-label">Current Floor: {activeFloor?.name}</label> */}
-
-        {/* <div className="file-upload">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileUpload}
-            id="background-upload"
-          />
-          <label htmlFor="background-upload">
-            📁 Upload Floor Plan
-            <br />
-            <span style={{ fontSize: "12px", color: "#999" }}>
-              JPG, PNG up to 10MB
-            </span>
-          </label>
-        </div> */}
-
-        {/* {activeFloor?.backgroundImage && (
-          <div className="background-controls">
-            <div className="form-group">
-              <label className="form-label">Background Scale</label>
-              <input
-                type="range"
-                min="0.5"
-                max="3"
-                step="0.1"
-                value={backgroundScale}
-                onChange={(e) => setBackgroundScale(parseFloat(e.target.value))}
-                className="form-range"
-              />
-              <span className="range-value">
-                {Math.round(backgroundScale * 100)}%
-              </span>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Position X</label>
-                <input
-                  type="number"
-                  className="form-input-field"
-                  value={backgroundPosition.x}
-                  onChange={(e) =>
-                    setBackgroundPosition({
-                      ...backgroundPosition,
-                      x: parseInt(e.target.value),
-                    })
-                  }
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Position Y</label>
-                <input
-                  type="number"
-                  className="form-input-field"
-                  value={backgroundPosition.y}
-                  onChange={(e) =>
-                    setBackgroundPosition({
-                      ...backgroundPosition,
-                      y: parseInt(e.target.value),
-                    })
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="form-row">
-              <button
-                className="btn-secondary"
-                onClick={() => {
-                  setBackgroundScale(1);
-                  setBackgroundPosition({ x: 0, y: 0 });
-                }}
-              >
-                Reset Position
-              </button>
-              <button className="btn-danger" onClick={onRemoveBackground}>
-                Remove Background
-              </button>
-            </div>
-          </div>
-        )} */}
+        <label className="form-label">Current Floor: {activeFloor?.name}</label>
       </div>
 
       <div className="form-group">
@@ -163,8 +74,9 @@ const FloorManager: React.FC<FloorManagerProps> = ({
                 placeholder="Floor name"
                 value={editFloorName?.name}
                 onChange={(e) =>
-                  setEditFloorName((prev: { id: string; name: string } | null) =>
-                    prev ? { ...prev, name: e.target.value } : prev
+                  setEditFloorName(
+                    (prev: { id: string; name: string } | null) =>
+                      prev ? { ...prev, name: e.target.value } : prev
                   )
                 }
               />

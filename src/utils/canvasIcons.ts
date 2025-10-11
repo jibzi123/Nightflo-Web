@@ -36,7 +36,7 @@ export const POIIcons = {
   stairs: Stairs,
   "triple-sofa": TripleSofa,
   washroom: Washroom,
-  default: MainEntrance, // fallback icon if type not matched
+  default: SingleDoorBar, // fallback icon if type not matched
 };
 
 import T2R_Indoor from "./../assets/canvas-vectors/T2R_Indoor.svg";

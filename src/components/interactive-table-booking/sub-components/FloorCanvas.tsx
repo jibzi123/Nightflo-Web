@@ -1,14 +1,13 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import { Floor, UserData } from "./../types";
 import { useApi } from "../../../utils/custom-hooks/useApi";
-import { Users, DollarSign, Clock } from "lucide-react";
 import { POIIcons, TableIcons } from "../../../utils/canvasIcons";
+
 interface FloorCanvasProps {
   floor: Floor;
   onFloorUpdate: (floor: Floor) => void;
   selectedElement: string | null;
   onElementSelect: (id: string | null) => void;
-
   setActiveTab: React.Dispatch<
     React.SetStateAction<"floors" | "tables" | "settings">
   >;
@@ -37,18 +36,83 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
     return { width: rect?.width ?? 1, height: rect?.height ?? 1 };
   };
 
+  // Export layout as JSON maintaining your exact structure
+  const exportLayoutJSON = useCallback(() => {
+    // Simply return the floor object as-is, it already has the correct structure
+    const layoutData = {
+      name: floor.name,
+      club: floor.club,
+      status: floor.status,
+      designPatterns:
+        floor.designPatterns?.map((d) => ({
+          id: d.id,
+          name: d.name,
+          type: d.type,
+          xAxis: d.xAxis,
+          yAxis: d.yAxis,
+          width: d.width,
+          height: d.height,
+          rotation: d.rotation || 0,
+        })) || [],
+      pointsOfInterest:
+        floor.pointsOfInterest?.map((poi) => ({
+          id: poi.id,
+          name: poi.name,
+          type: poi.type,
+          xAxis: poi.xAxis,
+          yAxis: poi.yAxis,
+          width: poi.width,
+          height: poi.height,
+          rotation: poi.rotation || 0,
+        })) || [],
+      createdAt: floor.createdAt,
+      updatedAt: floor.updatedAt,
+      __v: floor.__v,
+      tables:
+        floor.tables?.map((table) => ({
+          _id: table._id,
+          club: table.club,
+          tableNumber: table.tableNumber,
+          tableType: table.tableType,
+          description: table.description,
+          price: table.price,
+          tableCount: table.tableCount,
+          capacity: table.capacity,
+          xAxis: table.xAxis,
+          yAxis: table.yAxis,
+          width: table.width,
+          height: table.height,
+          status: table.status,
+          floor: table.floor,
+          createdAt: table.createdAt,
+          updatedAt: table.updatedAt,
+          __v: table.__v,
+          rotation: table.rotation || 0,
+        })) || [],
+      tableCount: floor.tableCount,
+      id: floor.id,
+    };
+
+    return layoutData;
+  }, [floor]);
+
+  // Import layout from JSON - your exact structure
+  const importLayoutJSON = useCallback(
+    (layoutData: any) => {
+      // The data is already in the correct format, just update the floor
+      onFloorUpdate(layoutData);
+    },
+    [onFloorUpdate]
+  );
+
   const handleElementMouseDown = useCallback(
     (
       e: React.MouseEvent,
       elementId: string | any,
-      elementType: "table" | "poi"
+      elementType: "table" | "poi" | "design"
     ) => {
       e.preventDefault();
       e.stopPropagation();
-      // if (elementType === "table") {
-      //   onElementSelect(elementId);
-      //   return;
-      // }
 
       const target = e.currentTarget as HTMLElement;
       const rect = target.getBoundingClientRect();
@@ -64,6 +128,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
     },
     [onElementSelect, setActiveTab]
   );
+
   const handleResizeStart = useCallback(
     (e: React.MouseEvent, handle: string) => {
       e.preventDefault();
@@ -76,9 +141,8 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
         ...floor?.tables,
         ...floor?.pointsOfInterest,
         ...floor?.designPatterns,
-      ].find((el) => el.id === selectedElement);
+      ].find((el) => el.id === selectedElement || el._id === selectedElement);
 
-      console.log(element, "element");
       if (!element) return;
 
       setIsResizing(true);
@@ -94,6 +158,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       if (!selectedElement || !canvasRef.current) return;
 
       const { width: canvasWidth, height: canvasHeight } = getCanvasSize();
+
       if (isResizing && resizeHandle) {
         const deltaX = e.clientX - initialMousePos.xAxis;
         const deltaY = e.clientY - initialMousePos.yAxis;
@@ -103,19 +168,19 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
 
         switch (resizeHandle) {
           case "se":
-            newWidth = Math.max(30, newWidth + deltaX);
+            newWidth = Math.max(20, newWidth + deltaX);
             newHeight = Math.max(20, newHeight + deltaY);
             break;
           case "sw":
-            newWidth = Math.max(30, newWidth - deltaX);
+            newWidth = Math.max(20, newWidth - deltaX);
             newHeight = Math.max(20, newHeight + deltaY);
             break;
           case "ne":
-            newWidth = Math.max(30, newWidth + deltaX);
+            newWidth = Math.max(20, newWidth + deltaX);
             newHeight = Math.max(20, newHeight - deltaY);
             break;
           case "nw":
-            newWidth = Math.max(30, newWidth - deltaX);
+            newWidth = Math.max(20, newWidth - deltaX);
             newHeight = Math.max(20, newHeight - deltaY);
             break;
         }
@@ -130,6 +195,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
         const dIndex = updatedFloor.designPatterns.findIndex(
           (d) => d.id === selectedElement
         );
+
         if (tableIndex >= 0) {
           updatedFloor.tables[tableIndex] = {
             ...updatedFloor.tables[tableIndex],
@@ -159,8 +225,55 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       const canvasRect = canvasRef.current.getBoundingClientRect();
       const newX = e.clientX - canvasRect.left - dragOffset.xAxis;
       const newY = e.clientY - canvasRect.top - dragOffset.yAxis;
-      const newXPercent = Math.max(0, (newX / canvasWidth) * 100);
-      const newYPercent = Math.max(0, (newY / canvasHeight) * 100);
+
+      // Get the current element to know its dimensions
+      let elementWidth = 0;
+      let elementHeight = 0;
+
+      const element = [
+        ...floor?.tables,
+        ...floor?.pointsOfInterest,
+        ...floor?.designPatterns,
+      ].find((el) => el.id === selectedElement || el._id === selectedElement);
+
+      if (element) {
+        elementWidth = element.width || 40;
+        elementHeight = element.height || 40;
+      }
+
+      // Convert element size to percentage of canvas
+      const elementWidthPercent = (elementWidth / canvasWidth) * 100;
+      const elementHeightPercent = (elementHeight / canvasHeight) * 100;
+
+      // Convert mouse position to percentage
+      let newXPercent = (newX / canvasWidth) * 100;
+      let newYPercent = (newY / canvasHeight) * 100;
+
+      // Calculate boundaries based on element type
+      // For rotated elements, we need to account for the bounding box
+      const rotation = element?.rotation || 0;
+
+      // Calculate rotated bounding box dimensions
+      const radians = (rotation * Math.PI) / 180;
+      const cos = Math.abs(Math.cos(radians));
+      const sin = Math.abs(Math.sin(radians));
+
+      const rotatedWidthPercent =
+        elementWidthPercent * cos + elementHeightPercent * sin;
+      const rotatedHeightPercent =
+        elementWidthPercent * sin + elementHeightPercent * cos;
+
+      // Clamp position to keep element fully within canvas
+      // X: from 0% to (100% - element's rotated width)
+      // Y: from 0% to (100% - element's rotated height)
+      newXPercent = Math.max(
+        0,
+        Math.min(100 - rotatedWidthPercent, newXPercent)
+      );
+      newYPercent = Math.max(
+        0,
+        Math.min(100 - rotatedHeightPercent, newYPercent)
+      );
 
       const updatedFloor = { ...floor };
       if (!updatedFloor.tables) return;
@@ -174,6 +287,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       const dIndex = (updatedFloor.designPatterns || []).findIndex(
         (d) => d.id === selectedElement
       );
+
       if (tableIndex >= 0) {
         updatedFloor.tables[tableIndex] = {
           ...updatedFloor.tables[tableIndex],
@@ -193,6 +307,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
           yAxis: newYPercent,
         };
       }
+
       onFloorUpdate(updatedFloor);
     },
     [
@@ -207,42 +322,47 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       initialMousePos,
     ]
   );
+
   const { loading, callApi } = useApi();
   const storedUser = localStorage.getItem("userData");
 
   const UserData: UserData | null = storedUser
     ? (JSON.parse(storedUser) as UserData)
     : null;
+
   const handleUpdateTable = async (table: any) => {
     if (!table) return;
-    // const countRes = await callApi(
-    //   "GET",
-    //   `/tables/countByFloor?floorId=${floor.id}`
-    // );
-    // const tableCount = countRes?.payLoad?.count + 1 ?? 1;
 
     const params = {
       tableId: table?._id,
       tableNumber: table.tableNumber,
-      floorId: table?.floor.id,
+      floorId: table?.floor?.id || table?.floor,
       price: table.price,
       capacity: table.capacity,
       tableCount: table.tableCount,
       description: table.description,
       status: table?.status,
-      xAxis: table?.xAxis,
-      yAxis: table?.yAxis,
-      width: table?.width,
-      height: table?.height,
+      xAxis: table?.xAxis, // Percentage (0-100)
+      yAxis: table?.yAxis, // Percentage (0-100)
+      width: table?.width, // Absolute pixels
+      height: table?.height, // Absolute pixels
+      rotation: table?.rotation || 0,
     };
+
     await callApi("POST", "/tables/update", params, {
       onSuccess: (data) => {
         if (!UserData) return;
+        // Optionally export JSON after successful update
+        const layoutJSON = exportLayoutJSON();
+        console.log(
+          "Updated layout JSON:",
+          JSON.stringify(layoutJSON, null, 2)
+        );
       },
       onError: (err) => console.error("Error:", err),
     });
   };
-  // New: handleMouseUp now logs final percent coords and includes API comment
+
   const handleMouseUp = useCallback(
     (e?: MouseEvent) => {
       if (!floor.tables) return;
@@ -250,26 +370,30 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       if (isDragging && selectedElement && floor) {
         const table = floor.tables.find((t) => t._id === selectedElement);
         if (table) {
-          // table.x and table.y are stored as relative (0..1). Convert to percent for logging.
-          const xPercent = Math.round((table.xAxis ?? 0) * 10000) / 100; // 2 decimals
-          const yPercent = Math.round((table.yAxis ?? 0) * 10000) / 100;
           console.log(
-            `Drag end for table ${selectedElement}: x=${xPercent}% y=${yPercent}%`
+            `Drag end for table ${selectedElement}: x=${table.xAxis.toFixed(
+              2
+            )}% y=${table.yAxis.toFixed(2)}%`
           );
-
           handleUpdateTable(table);
         }
       }
+
       if (isResizing && selectedElement && floor) {
-        const table = floor.tables.find((t) => t._id === selectedElement);
-        if (table) {
-          const w = table.width;
-          const h = table.height;
+        const element = [
+          ...floor.tables,
+          ...floor.pointsOfInterest,
+          ...floor.designPatterns,
+        ].find((el) => el.id === selectedElement || el._id === selectedElement);
+
+        if (element) {
           console.log(
-            `Resize end for table ${selectedElement}: width=${w} height=${h}`
+            `Resize end for element ${selectedElement}: width=${element.width}px height=${element.height}px`
           );
 
-          handleUpdateTable(table);
+          if ("_id" in element) {
+            handleUpdateTable(element);
+          }
         }
       }
 
@@ -300,6 +424,15 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       };
     }
   }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
+
+  // Log JSON structure on load
+  useEffect(() => {
+    if (floor?.tables?.length > 0) {
+      const layoutJSON = exportLayoutJSON();
+      console.log("Current floor JSON structure:", layoutJSON);
+    }
+  }, []);
+
   function getTableIcon(table) {
     if (!table) return TableIcons.default;
 
@@ -321,8 +454,67 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
 
     return icon;
   }
+
   return (
     <div className="canvas-container">
+      {/* Export/Import buttons */}
+      <div style={{ position: "absolute", top: 10, right: 10, zIndex: 1000 }}>
+        <button
+          onClick={() => {
+            const json = exportLayoutJSON();
+            console.log("Exported JSON:", json);
+            // Download JSON file
+            const blob = new Blob([JSON.stringify(json, null, 2)], {
+              type: "application/json",
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `floor-layout-${floor.id}.json`;
+            a.click();
+          }}
+          style={{
+            padding: "8px 16px",
+            background: "#4CAF50",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+            marginRight: "8px",
+          }}
+        >
+          Export JSON
+        </button>
+        <button
+          onClick={() => {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = ".json";
+            input.onchange = (e: any) => {
+              const file = e.target.files[0];
+              const reader = new FileReader();
+              reader.onload = (event) => {
+                const json = JSON.parse(event.target?.result as string);
+                importLayoutJSON(json);
+                console.log("Imported JSON:", json);
+              };
+              reader.readAsText(file);
+            };
+            input.click();
+          }}
+          style={{
+            padding: "8px 16px",
+            background: "#2196F3",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+        >
+          Import JSON
+        </button>
+      </div>
+
       <div
         ref={canvasRef}
         className="canvas"
@@ -331,7 +523,8 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
           backgroundImage: floor?.backgroundImage
             ? `url(${floor.backgroundImage})`
             : "none",
-
+          backgroundSize: "cover",
+          backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
         }}
       >
@@ -367,8 +560,6 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
 
         {/* Tables */}
         {floor?.tables?.map((table) => {
-          const left = table.xAxis; // already in %
-          const top = table.yAxis; // already in %
           const icon = getTableIcon(table);
 
           return (
@@ -376,19 +567,17 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
               key={table._id}
               className={`table-element ${table.status} ${
                 selectedElement === table._id ? "selected" : ""
-              }
-              `}
+              }`}
               style={{
-                left: `${left}%`,
-                top: `${top}%`,
-                // width: `${table.width}px`,
-                // height: `${table.height}px`,
-                transform: `rotate(${table.rotation}deg)`,
+                left: `${table.xAxis}%`,
+                top: `${table.yAxis}%`,
+                width: `${table.width}px`,
+                height: `${table.height}px`,
+                transform: `rotate(${table.rotation || 0}deg)`,
+                position: "absolute",
                 zIndex: 20,
               }}
-              onMouseDown={(e) =>
-                handleElementMouseDown(e, table?._id, "table")
-              }
+              onMouseDown={(e) => handleElementMouseDown(e, table._id, "table")}
             >
               <img
                 src={icon}
@@ -397,9 +586,10 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
                   width: "100%",
                   height: "100%",
                   objectFit: "contain",
+                  pointerEvents: "none",
                 }}
               />
-              {/* {selectedElement === table._id && (
+              {selectedElement === table._id && (
                 <>
                   <div
                     className="resize-handle nw"
@@ -418,13 +608,13 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
                     onMouseDown={(e) => handleResizeStart(e, "se")}
                   />
                 </>
-              )} */}
+              )}
             </div>
           );
         })}
+
+        {/* Points of Interest */}
         {floor?.pointsOfInterest?.map((poi) => {
-          const left = poi.xAxis;
-          const top = poi.yAxis;
           const Icon = POIIcons[poi.type] || POIIcons.default;
 
           return (
@@ -434,13 +624,12 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
                 selectedElement === poi.id ? "selected" : ""
               }`}
               style={{
-                left: `${left}%`,
-                top: `${top}%`,
+                left: `${poi.xAxis}%`,
+                top: `${poi.yAxis}%`,
+                // width: poi.width ? `${poi.width}px` : "",
+                // height: poi.height ? `${poi.height}px` : "",
                 position: "absolute",
-                zIndex: 10, // 👈 lower value
-
-                // width: poi.width ? `${poi.width}px` : "40px",
-                // height: poi.height ? `${poi.height}px` : "40px",
+                zIndex: 10,
                 transform: `rotate(${poi.rotation || 0}deg)`,
                 display: "flex",
                 alignItems: "center",
@@ -454,8 +643,8 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
                 src={Icon}
                 alt={poi.type}
                 style={{
-                  // width: poi.width ? `${poi.width}px` : "40px",
-                  // height: poi.height ? `${poi.height}px` : "40px",
+                  width: "100%",
+                  height: "100%",
                   objectFit: "contain",
                   pointerEvents: "none",
                 }}
@@ -483,9 +672,9 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
             </div>
           );
         })}
+
+        {/* Design Patterns */}
         {floor?.designPatterns?.map((d) => {
-          const left = d.xAxis;
-          const top = d.yAxis;
           const Icon = POIIcons[d.type] || POIIcons.default;
 
           return (
@@ -495,13 +684,12 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
                 selectedElement === d.id ? "selected" : ""
               }`}
               style={{
-                left: `${left}%`,
-                top: `${top}%`,
+                left: `${d.xAxis}%`,
+                top: `${d.yAxis}%`,
+                // width: d.width ? `${d.width}px` : "",
+                // height: d.height ? `${d.height}px` : "",
                 position: "absolute",
-                zIndex: 10, // 👈 lower value
-
-                // width: d.width ? `${d.width}px` : "40px",
-                // height: d.height ? `${d.height}px` : "40px",
+                zIndex: 10,
                 transform: `rotate(${d.rotation || 0}deg)`,
                 display: "flex",
                 alignItems: "center",
@@ -515,8 +703,8 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
                 src={Icon}
                 alt={d.type}
                 style={{
-                  width: d.width ? `${d.width}px` : "100%",
-                  height: d.height ? `${d.height}px` : "100%",
+                  width: "100%",
+                  height: "100%",
                   objectFit: "contain",
                   pointerEvents: "none",
                 }}

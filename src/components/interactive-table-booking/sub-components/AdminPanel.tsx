@@ -219,20 +219,43 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   };
   const handleDeleteSelected = async () => {
     if (!selectedElement) return;
-    await callApi(
-      "DELETE",
-      `/tables/delete`,
-      { tableId: selectedElement },
-      {
-        onSuccess: (data) => {
-          if (!UserData) return;
-          fetchFloors(UserData?.club.id); // refresh
-        },
-        onError: (err) => console.error("Error:", err),
-      }
+
+    // check if the selected element is a table
+    const isTable = activeFloor?.tables?.some(
+      (t) => t._id === selectedElement || t.id === selectedElement
     );
-    onElementSelect(null);
+
+    if (isTable) {
+      // delete table from server
+      await callApi(
+        "DELETE",
+        `/tables/delete`,
+        { tableId: selectedElement },
+        {
+          onSuccess: () => {
+            if (UserData) fetchFloors(UserData?.club.id); // refresh floors
+          },
+          onError: (err) => console.error("Error deleting table:", err),
+        }
+      );
+    } else {
+      // delete locally (POI or design pattern)
+      const updatedFloor = { ...activeFloor };
+
+      updatedFloor.pointsOfInterest = updatedFloor.pointsOfInterest?.filter(
+        (p) => p.id !== selectedElement
+      );
+
+      updatedFloor.designPatterns = updatedFloor.designPatterns?.filter(
+        (d) => d.id !== selectedElement
+      );
+
+      onFloorUpdate(updatedFloor);
+    }
+
+    onElementSelect(null); // deselect
   };
+
   const updateSelectedPoi = (updates: Partial<PointOfInterest>) => {
     if (!selectedPoi) return;
 

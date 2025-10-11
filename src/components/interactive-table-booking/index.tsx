@@ -53,12 +53,14 @@ function InteractiveTableBooking() {
   const [newPoiData, setNewPoiData] = useState({
     name: "",
     type: "bar" as PointOfInterest["type"],
-    width: null,
-    height: null,
+    width: 20,
+    height: 20,
   });
   const [designPattern, setNewDesignPattern] = useState({
     name: "",
-    type: "bar" as DesignPatterns["type"],
+    type: "single-door-line" as DesignPatterns["type"],
+    width: 20,
+    height: 20,
   });
   const UserData: UserData | null = storedUser
     ? (JSON.parse(storedUser) as UserData)

@@ -443,9 +443,11 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
               <button className="btn-danger" onClick={handleDeleteSelected}>
                 Delete
               </button>
-              <button className="btn-primary" onClick={handleUpdateClick}>
-                Update
-              </button>
+              {(selectedTable || selectedPoi || selectedDesignPattern) && (
+                <button className="btn-primary" onClick={handleUpdateClick}>
+                  Update
+                </button>
+              )}
             </div>
           </div>
         )}

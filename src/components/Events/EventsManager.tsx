@@ -452,6 +452,7 @@ const EventsManager: React.FC<EventsManagerProps> = ({
   
 
   useEffect(() => {
+    console.log("Club Id", user?.club?.id);
     const fetchEvents = async () => {
       try {
         setLoading(true);

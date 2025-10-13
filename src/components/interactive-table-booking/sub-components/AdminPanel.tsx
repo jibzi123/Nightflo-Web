@@ -33,7 +33,6 @@ interface AdminPanelProps {
     floorId: string,
     params: { name: string }
   ) => Promise<void>;
-  activeFloorTableCount: number;
   newTableData: Table;
   setNewTableData: (d: Table) => void;
   editableTable: Table;
@@ -42,6 +41,11 @@ interface AdminPanelProps {
   setNewPoiData: (d: NewPoiData) => void;
   designPattern: DesignPatterns;
   setNewDesignPattern: (d: DesignPatterns) => void;
+  handleAddPoi: () => void;
+  handleAddDesignPattern: () => void;
+  updateSelectedPoi: (updates: Partial<PointOfInterest>) => void;
+  updateSelectedDP: (updates: Partial<DesignPatterns>) => void;
+  handleDeleteSelected: () => void;
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -65,6 +69,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   setNewPoiData,
   designPattern,
   setNewDesignPattern,
+  handleAddPoi,
+  handleAddDesignPattern,
+  updateSelectedPoi,
+  updateSelectedDP,
+  handleDeleteSelected,
 }) => {
   const [newFloorName, setNewFloorName] = useState("");
   const [editFloorName, setEditFloorName] = useState<{
@@ -77,6 +86,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const UserData: UserData | null = storedUser
     ? (JSON.parse(storedUser) as UserData)
     : null;
+
   const selectedTable =
     selectedElement && activeFloor?.tables
       ? activeFloor?.tables.find((t) => t._id === selectedElement)
@@ -85,9 +95,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const selectedPoi = selectedElement
     ? activeFloor?.pointsOfInterest?.find((p) => p.id === selectedElement)
     : null;
+
   const selectedDesignPattern = selectedElement
     ? activeFloor?.designPatterns?.find((d) => d.id === selectedElement)
     : null;
+
   useEffect(() => {
     if (selectedTable) {
       setEditableTable({ ...selectedTable });
@@ -130,6 +142,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           console.log("Table Added:", data);
           setNewTableData({});
           if (!UserData) return;
+          // Fetch floors - unsaved POIs/patterns are preserved in parent
           fetchFloors(UserData?.club.id);
         },
         onError: (err) => console.error("Error:", err),
@@ -141,7 +154,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const handleUpdateTable = async () => {
     if (!editableTable) return;
-    console.log(editableTable, "editableTable");
+
     const countRes: { payLoad?: { count?: number } } | null = await callApi(
       "GET",
       `/tables/countByFloor?floorId=${activeFloor.id}`
@@ -162,124 +175,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       width: editableTable.width,
       height: editableTable.height,
     };
+
     await callApi("POST", "/tables/update", params, {
       onSuccess: (data) => {
         if (!UserData) return;
-        fetchFloors(UserData?.club.id); // refresh
+        // Fetch floors - unsaved POIs/patterns are preserved in parent
+        fetchFloors(UserData?.club.id);
       },
       onError: (err) => console.error("Error:", err),
     });
   };
-  const handleAddPoi = () => {
-    const newPoi: PointOfInterest = {
-      id: `poi${Date.now()}`,
-      name: newPoiData.name || newPoiData.type.toUpperCase(),
-      type: newPoiData.type,
-      xAxis: 10,
-      yAxis: 20,
-      width: newPoiData.width,
-      height: newPoiData.height,
-      rotation: 0,
-    };
 
-    const updatedFloor = {
-      ...activeFloor,
-      pointsOfInterest: [...(activeFloor.pointsOfInterest || []), newPoi],
-    };
-    console.log(updatedFloor, "updatedFloor");
-
-    onFloorUpdate(updatedFloor);
-    setNewPoiData({ name: "", type: "bar", width: 80, height: 50 });
-  };
-  const handleAddDesignPattern = () => {
-    const newDesignPattern: DesignPatterns = {
-      id: `dp${Date.now()}`,
-      name: designPattern.name || designPattern.type.toUpperCase(),
-      type: designPattern.type,
-      xAxis: 10,
-      yAxis: 20,
-      width: designPattern.width,
-      height: designPattern.height,
-      rotation: 0,
-    };
-
-    const updatedFloor = {
-      ...activeFloor,
-      designPatterns: [...(activeFloor.designPatterns || []), newDesignPattern],
-    };
-    console.log(updatedFloor, "updatedFloor");
-
-    onFloorUpdate(updatedFloor);
-    setNewDesignPattern({
-      name: "",
-      type: "single-bar",
-      width: null,
-      height: null,
-    });
-  };
-  const handleDeleteSelected = async () => {
-    if (!selectedElement) return;
-
-    // check if the selected element is a table
-    const isTable = activeFloor?.tables?.some(
-      (t) => t._id === selectedElement || t.id === selectedElement
-    );
-
-    if (isTable) {
-      // delete table from server
-      await callApi(
-        "DELETE",
-        `/tables/delete`,
-        { tableId: selectedElement },
-        {
-          onSuccess: () => {
-            if (UserData) fetchFloors(UserData?.club.id); // refresh floors
-          },
-          onError: (err) => console.error("Error deleting table:", err),
-        }
-      );
-    } else {
-      // delete locally (POI or design pattern)
-      const updatedFloor = { ...activeFloor };
-
-      updatedFloor.pointsOfInterest = updatedFloor.pointsOfInterest?.filter(
-        (p) => p.id !== selectedElement
-      );
-
-      updatedFloor.designPatterns = updatedFloor.designPatterns?.filter(
-        (d) => d.id !== selectedElement
-      );
-
-      onFloorUpdate(updatedFloor);
-    }
-
-    onElementSelect(null); // deselect
-  };
-
-  const updateSelectedPoi = (updates: Partial<PointOfInterest>) => {
-    if (!selectedPoi) return;
-
-    const updatedFloor = {
-      ...activeFloor,
-      pointsOfInterest: activeFloor.pointsOfInterest.map((p) =>
-        p.id === selectedElement ? { ...p, ...updates } : p
-      ),
-    };
-    console.log(updatedFloor, "updatedFloor");
-    onFloorUpdate(updatedFloor);
-  };
-  const updateSelectedDP = (updates: Partial<PointOfInterest>) => {
-    if (!selectedDesignPattern) return;
-
-    const updatedFloor = {
-      ...activeFloor,
-      designPatterns: activeFloor?.designPatterns?.map((d) =>
-        d.id === selectedElement ? { ...d, ...updates } : d
-      ),
-    };
-    console.log(updatedFloor, "updatedFloor");
-    onFloorUpdate(updatedFloor);
-  };
   return (
     <div className="admin-panel">
       <div className="admin-tabs">
@@ -317,7 +223,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             newPoiData={newPoiData}
             setNewPoiData={setNewPoiData}
             handleAddPoi={handleAddPoi}
-            handleUpdateTable={handleUpdateTable} // new function
+            handleUpdateTable={handleUpdateTable}
             editableTable={editableTable}
             setEditableTable={setEditableTable}
             designPattern={designPattern}

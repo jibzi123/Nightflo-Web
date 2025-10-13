@@ -125,7 +125,27 @@ body {
   flex-direction: column;
   background: #111;
 }
+/* Add this to your style.css */
+.unsaved-indicator {
+  color: #ff6b6b;
+  font-weight: bold;
+  margin-left: 4px;
+  animation: pulse 2s infinite;
+}
 
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .canvas-header {
   height: 50px;
   background: #1a1a1a;
@@ -175,6 +195,8 @@ body {
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
+      margin-top: 10px;
+
 }
 
 .btn-primary {

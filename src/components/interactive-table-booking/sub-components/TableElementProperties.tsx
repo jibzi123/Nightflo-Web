@@ -10,7 +10,7 @@ export type TableStatus = "available" | "reserved" | "occupied";
 export interface PointOfInterest {
   id: string;
   name: string;
-  type: "bar" | "stage" | "dj" | "entry" | "vip" | "restroom";
+  type: any;
   width: number;
   height: number;
 }

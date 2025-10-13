@@ -11,6 +11,11 @@ interface FloorCanvasProps {
   setActiveTab: React.Dispatch<
     React.SetStateAction<"floors" | "tables" | "settings">
   >;
+  onElementPositionUpdate?: (
+    elementId: string,
+    xAxis: number,
+    yAxis: number
+  ) => void;
 }
 
 const FloorCanvas: React.FC<FloorCanvasProps> = ({
@@ -19,6 +24,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
   selectedElement,
   onElementSelect,
   setActiveTab,
+  onElementPositionUpdate,
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -36,74 +42,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
     return { width: rect?.width ?? 1, height: rect?.height ?? 1 };
   };
 
-  // Export layout as JSON maintaining your exact structure
-  const exportLayoutJSON = useCallback(() => {
-    // Simply return the floor object as-is, it already has the correct structure
-    const layoutData = {
-      name: floor.name,
-      club: floor.club,
-      status: floor.status,
-      designPatterns:
-        floor.designPatterns?.map((d) => ({
-          id: d.id,
-          name: d.name,
-          type: d.type,
-          xAxis: d.xAxis,
-          yAxis: d.yAxis,
-          width: d.width,
-          height: d.height,
-          rotation: d.rotation || 0,
-        })) || [],
-      pointsOfInterest:
-        floor.pointsOfInterest?.map((poi) => ({
-          id: poi.id,
-          name: poi.name,
-          type: poi.type,
-          xAxis: poi.xAxis,
-          yAxis: poi.yAxis,
-          width: poi.width,
-          height: poi.height,
-          rotation: poi.rotation || 0,
-        })) || [],
-      createdAt: floor.createdAt,
-      updatedAt: floor.updatedAt,
-      __v: floor.__v,
-      tables:
-        floor.tables?.map((table) => ({
-          _id: table._id,
-          club: table.club,
-          tableNumber: table.tableNumber,
-          tableType: table.tableType,
-          description: table.description,
-          price: table.price,
-          tableCount: table.tableCount,
-          capacity: table.capacity,
-          xAxis: table.xAxis,
-          yAxis: table.yAxis,
-          width: table.width,
-          height: table.height,
-          status: table.status,
-          floor: table.floor,
-          createdAt: table.createdAt,
-          updatedAt: table.updatedAt,
-          __v: table.__v,
-          rotation: table.rotation || 0,
-        })) || [],
-      tableCount: floor.tableCount,
-      id: floor.id,
-    };
 
-    return layoutData;
-  }, [floor]);
-
-  // Import layout from JSON - your exact structure
-  const importLayoutJSON = useCallback(
-    (layoutData: any) => {
-      // The data is already in the correct format, just update the floor
-      onFloorUpdate(layoutData);
-    },
-    [onFloorUpdate]
-  );
 
   const handleElementMouseDown = useCallback(
     (
@@ -139,8 +78,8 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
 
       const element = [
         ...floor?.tables,
-        ...floor?.pointsOfInterest,
-        ...floor?.designPatterns,
+        ...(floor?.pointsOfInterest || []),
+        ...(floor?.designPatterns || []),
       ].find((el) => el.id === selectedElement || el._id === selectedElement);
 
       if (!element) return;
@@ -185,38 +124,42 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
             break;
         }
 
+        // FIXED: Only update the floor with new dimensions
+        // The parent will handle separating server vs unsaved state
         const updatedFloor = { ...floor };
-        const tableIndex = updatedFloor.tables.findIndex(
+        const tableIndex = updatedFloor.tables?.findIndex(
           (t) => t._id === selectedElement
         );
-        const poiIndex = updatedFloor.pointsOfInterest.findIndex(
+        const poiIndex = updatedFloor.pointsOfInterest?.findIndex(
           (p) => p.id === selectedElement
         );
-        const dIndex = updatedFloor.designPatterns.findIndex(
+        const dIndex = updatedFloor.designPatterns?.findIndex(
           (d) => d.id === selectedElement
         );
 
-        if (tableIndex >= 0) {
+        if (tableIndex !== undefined && tableIndex >= 0) {
           updatedFloor.tables[tableIndex] = {
             ...updatedFloor.tables[tableIndex],
             width: newWidth,
             height: newHeight,
           };
-        } else if (poiIndex >= 0) {
+          onFloorUpdate(updatedFloor);
+        } else if (poiIndex !== undefined && poiIndex >= 0) {
           updatedFloor.pointsOfInterest[poiIndex] = {
             ...updatedFloor.pointsOfInterest[poiIndex],
             width: newWidth,
             height: newHeight,
           };
-        } else if (dIndex >= 0) {
+          onFloorUpdate(updatedFloor);
+        } else if (dIndex !== undefined && dIndex >= 0) {
           updatedFloor.designPatterns[dIndex] = {
             ...updatedFloor.designPatterns[dIndex],
             width: newWidth,
             height: newHeight,
           };
+          onFloorUpdate(updatedFloor);
         }
 
-        onFloorUpdate(updatedFloor);
         return;
       }
 
@@ -231,9 +174,9 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       let elementHeight = 0;
 
       const element = [
-        ...floor?.tables,
-        ...floor?.pointsOfInterest,
-        ...floor?.designPatterns,
+        ...(floor?.tables || []),
+        ...(floor?.pointsOfInterest || []),
+        ...(floor?.designPatterns || []),
       ].find((el) => el.id === selectedElement || el._id === selectedElement);
 
       if (element) {
@@ -250,7 +193,6 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       let newYPercent = (newY / canvasHeight) * 100;
 
       // Calculate boundaries based on element type
-      // For rotated elements, we need to account for the bounding box
       const rotation = element?.rotation || 0;
 
       // Calculate rotated bounding box dimensions
@@ -264,8 +206,6 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
         elementWidthPercent * sin + elementHeightPercent * cos;
 
       // Clamp position to keep element fully within canvas
-      // X: from 0% to (100% - element's rotated width)
-      // Y: from 0% to (100% - element's rotated height)
       newXPercent = Math.max(
         0,
         Math.min(100 - rotatedWidthPercent, newXPercent)
@@ -275,40 +215,47 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
         Math.min(100 - rotatedHeightPercent, newYPercent)
       );
 
-      const updatedFloor = { ...floor };
-      if (!updatedFloor.tables) return;
+      // FIXED: Use the new onElementPositionUpdate if available
+      if (onElementPositionUpdate) {
+        onElementPositionUpdate(selectedElement, newXPercent, newYPercent);
+      } else {
+        // Fallback to old method (for backward compatibility)
+        const updatedFloor = { ...floor };
+        if (!updatedFloor.tables) return;
 
-      const tableIndex = updatedFloor.tables.findIndex(
-        (t) => t._id === selectedElement
-      );
-      const poiIndex = (updatedFloor.pointsOfInterest || []).findIndex(
-        (p) => p.id === selectedElement
-      );
-      const dIndex = (updatedFloor.designPatterns || []).findIndex(
-        (d) => d.id === selectedElement
-      );
+        const tableIndex = updatedFloor.tables.findIndex(
+          (t) => t._id === selectedElement
+        );
+        const poiIndex = (updatedFloor.pointsOfInterest || []).findIndex(
+          (p) => p.id === selectedElement
+        );
+        const dIndex = (updatedFloor.designPatterns || []).findIndex(
+          (d) => d.id === selectedElement
+        );
 
-      if (tableIndex >= 0) {
-        updatedFloor.tables[tableIndex] = {
-          ...updatedFloor.tables[tableIndex],
-          xAxis: newXPercent,
-          yAxis: newYPercent,
-        };
-      } else if (poiIndex >= 0) {
-        updatedFloor.pointsOfInterest[poiIndex] = {
-          ...updatedFloor.pointsOfInterest[poiIndex],
-          xAxis: newXPercent,
-          yAxis: newYPercent,
-        };
-      } else if (dIndex >= 0) {
-        updatedFloor.designPatterns[dIndex] = {
-          ...updatedFloor.designPatterns[dIndex],
-          xAxis: newXPercent,
-          yAxis: newYPercent,
-        };
+        if (tableIndex >= 0) {
+          updatedFloor.tables[tableIndex] = {
+            ...updatedFloor.tables[tableIndex],
+            xAxis: newXPercent,
+            yAxis: newYPercent,
+          };
+          onFloorUpdate(updatedFloor);
+        } else if (poiIndex >= 0) {
+          updatedFloor.pointsOfInterest[poiIndex] = {
+            ...updatedFloor.pointsOfInterest[poiIndex],
+            xAxis: newXPercent,
+            yAxis: newYPercent,
+          };
+          onFloorUpdate(updatedFloor);
+        } else if (dIndex >= 0) {
+          updatedFloor.designPatterns[dIndex] = {
+            ...updatedFloor.designPatterns[dIndex],
+            xAxis: newXPercent,
+            yAxis: newYPercent,
+          };
+          onFloorUpdate(updatedFloor);
+        }
       }
-
-      onFloorUpdate(updatedFloor);
     },
     [
       isDragging,
@@ -316,6 +263,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       selectedElement,
       floor,
       onFloorUpdate,
+      onElementPositionUpdate,
       dragOffset,
       resizeHandle,
       initialSize,
@@ -342,22 +290,17 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       tableCount: table.tableCount,
       description: table.description,
       status: table?.status,
-      xAxis: table?.xAxis, // Percentage (0-100)
-      yAxis: table?.yAxis, // Percentage (0-100)
-      width: table?.width, // Absolute pixels
-      height: table?.height, // Absolute pixels
+      xAxis: table?.xAxis,
+      yAxis: table?.yAxis,
+      width: table?.width,
+      height: table?.height,
       rotation: table?.rotation || 0,
     };
 
     await callApi("POST", "/tables/update", params, {
       onSuccess: (data) => {
         if (!UserData) return;
-        // Optionally export JSON after successful update
-        const layoutJSON = exportLayoutJSON();
-        console.log(
-          "Updated layout JSON:",
-          JSON.stringify(layoutJSON, null, 2)
-        );
+        
       },
       onError: (err) => console.error("Error:", err),
     });
@@ -381,9 +324,9 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
 
       if (isResizing && selectedElement && floor) {
         const element = [
-          ...floor.tables,
-          ...floor.pointsOfInterest,
-          ...floor.designPatterns,
+          ...(floor.tables || []),
+          ...(floor.pointsOfInterest || []),
+          ...(floor.designPatterns || []),
         ].find((el) => el.id === selectedElement || el._id === selectedElement);
 
         if (element) {
@@ -425,13 +368,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
     }
   }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
 
-  // Log JSON structure on load
-  useEffect(() => {
-    if (floor?.tables?.length > 0) {
-      const layoutJSON = exportLayoutJSON();
-      console.log("Current floor JSON structure:", layoutJSON);
-    }
-  }, []);
+
 
   function getTableIcon(table) {
     if (!table) return TableIcons.default;
@@ -457,63 +394,6 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
 
   return (
     <div className="canvas-container">
-      {/* Export/Import buttons */}
-      <div style={{ position: "absolute", top: 10, right: 10, zIndex: 1000 }}>
-        <button
-          onClick={() => {
-            const json = exportLayoutJSON();
-            console.log("Exported JSON:", json);
-            // Download JSON file
-            const blob = new Blob([JSON.stringify(json, null, 2)], {
-              type: "application/json",
-            });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `floor-layout-${floor.id}.json`;
-            a.click();
-          }}
-          style={{
-            padding: "8px 16px",
-            background: "#4CAF50",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-            marginRight: "8px",
-          }}
-        >
-          Export JSON
-        </button>
-        <button
-          onClick={() => {
-            const input = document.createElement("input");
-            input.type = "file";
-            input.accept = ".json";
-            input.onchange = (e: any) => {
-              const file = e.target.files[0];
-              const reader = new FileReader();
-              reader.onload = (event) => {
-                const json = JSON.parse(event.target?.result as string);
-                importLayoutJSON(json);
-                console.log("Imported JSON:", json);
-              };
-              reader.readAsText(file);
-            };
-            input.click();
-          }}
-          style={{
-            padding: "8px 16px",
-            background: "#2196F3",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          Import JSON
-        </button>
-      </div>
 
       <div
         ref={canvasRef}
@@ -571,8 +451,8 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
               style={{
                 left: `${table.xAxis}%`,
                 top: `${table.yAxis}%`,
-                width: `${table.width}px`,
-                height: `${table.height}px`,
+                // width: `${table.width}px`,
+                // height: `${table.height}px`,
                 transform: `rotate(${table.rotation || 0}deg)`,
                 position: "absolute",
                 zIndex: 20,

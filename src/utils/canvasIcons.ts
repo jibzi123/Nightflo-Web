@@ -18,7 +18,7 @@ import TripleSofa from "./../assets/canvas-vectors/TripleSofa.svg";
 import Washroom from "./../assets/canvas-vectors/Washroom.svg";
 
 export const POIIcons = {
-  "barriers-railing": BarriersRailing,
+  barriers: BarriersRailing,
   "circular-bar": CircularBar,
   "dancing-floor": DancingFloor,
   "dj-booth": DJBooth,
@@ -39,49 +39,35 @@ export const POIIcons = {
   default: SingleDoorBar, // fallback icon if type not matched
 };
 
-import T2R_Indoor from "./../assets/canvas-vectors/T2R_Indoor.svg";
-import T2R_Outdoor from "./../assets/canvas-vectors/T2R_Outdoor.svg";
-import T2VR_Indoor from "./../assets/canvas-vectors/T2VR_Indoor.svg";
-import T2VR_Outdoor from "./../assets/canvas-vectors/T2VR_Outdoor.svg";
-import T4_outdoor from "./../assets/canvas-vectors/T4_outdoor.svg";
-import T4R_Indoor from "./../assets/canvas-vectors/T4R_Indoor.svg";
-import T4R_Outdoor from "./../assets/canvas-vectors/T4R_Outdoor.svg";
-import T4V_Indoor from "./../assets/canvas-vectors/T4V_Indoor.svg";
-import T4V_outdoor from "./../assets/canvas-vectors/T4V_outdoor.svg";
-import T4VR_Indoor from "./../assets/canvas-vectors/T4VR_Indoor.svg";
-import T4VR_outdoor from "./../assets/canvas-vectors/T4VR_outdoor.svg";
-import T6_Indoor from "./../assets/canvas-vectors/T6_Indoor.svg";
-import T8V_Outdoor from "./../assets/canvas-vectors/T8V_Outdoor.svg";
+import T2_Round_Outdoor from "./../assets/canvas-vectors/T2-round-outdoor.svg";
+import T2_Round_Indoor from "./../assets/canvas-vectors/T2-round-Indoor.svg";
+import T4_Box_Indoor from "./../assets/canvas-vectors/T4-box-indoor.svg";
 
-import T8VR_Indoor from "./../assets/canvas-vectors/T8VR_Indoor.svg";
+import T4_Box_Outdoor from "./../assets/canvas-vectors/T4-box-outdoor.svg";
+import T4_Round_Indoor from "./../assets/canvas-vectors/T4-round-Indoor.svg";
+import T4_Round_Outdoor from "./../assets/canvas-vectors/T4-round-outdoor.svg";
 
-import T10_Indoor from "./../assets/canvas-vectors/T10_Indoor.svg";
+import T6_Box_Indoor from "./../assets/canvas-vectors/T6-box-Indoor.svg";
+import T6_Box_Outdoor from "./../assets/canvas-vectors/T8-box-outdoor.svg";
 
-import T10V_Outdoor from "./../assets/canvas-vectors/T10V_Outdoor.svg";
-import T10VR_Indoor from "./../assets/canvas-vectors/T10VR_Indoor.svg";
+import T10_Box_Indoor from "./../assets/canvas-vectors/T10-box-indoor.svg";
+import T10_Box_Outdoor from "./../assets/canvas-vectors/T10-box-outdoor.svg";
 
 export const TableIcons = {
-  "t2r-indoor": T2R_Indoor,
-  "t2r-outdoor": T2R_Outdoor,
-  "t2vr-indoor": T2VR_Indoor,
-  "t2vr-outdoor": T2VR_Outdoor,
+  t2_round_outdoor: T2_Round_Outdoor,
+  t2_round_indoor: T2_Round_Indoor,
 
-  "t4-outdoor": T4_outdoor,
-  "t4r-indoor": T4R_Indoor,
-  "t4r-outdoor": T4R_Outdoor,
-  "t4v-indoor": T4V_Indoor,
-  "t4v-outdoor": T4V_outdoor,
-  "t4vr-indoor": T4VR_Indoor,
-  "t4vr-outdoor": T4VR_outdoor,
+  t4_box_indoor: T4_Box_Indoor,
+  t4_box_outdoor: T4_Box_Outdoor,
+  t4_round_indoor: T4_Round_Indoor,
 
-  "t6-indoor": T6_Indoor,
+  t4_round_outdoor: T4_Round_Outdoor,
 
-  "t8v-outdoor": T8V_Outdoor,
-  "t8vr-indoor": T8VR_Indoor,
+  t6_box_indoor: T6_Box_Indoor,
+  t6_box_outdoor: T6_Box_Outdoor,
 
-  "t10-indoor": T10_Indoor,
-  "t10v-outdoor": T10V_Outdoor,
-  "t10vr-indoor": T10VR_Indoor,
+  t10_box_indoor: T10_Box_Indoor,
+  t10_box_outdoor: T10_Box_Outdoor,
 
-  default: T4R_Indoor, // fallback icon
+  default: T4_Box_Indoor, // fallback icon
 };

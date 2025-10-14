@@ -9,14 +9,11 @@ import {
   Reservation,
   UserData,
   PointOfInterest,
-  DesignPatterns,
 } from "./types";
 import { useApi } from "../../utils/custom-hooks/useApi";
 
-// Type for tracking unsaved changes per floor
 interface UnsavedChanges {
   pointsOfInterest: PointOfInterest[];
-  designPatterns: DesignPatterns[];
 }
 
 function InteractiveTableBooking() {
@@ -24,14 +21,10 @@ function InteractiveTableBooking() {
     localStorage.getItem("activeFloorId") || ""
   );
   const storedUser = localStorage.getItem("userData");
-
-  // Server state - floors from API
-  const [floors, setFloors] = useState<Floor[]>([]);
-
-  // Local state - unsaved changes per floor
+  const [floors, setFloors] = useState<Floor[]>([]); // Server state - floors from API
   const [unsavedChangesByFloor, setUnsavedChangesByFloor] = useState<
     Record<string, UnsavedChanges>
-  >({});
+  >({}); // Local state - unsaved changes per floor
 
   // Track if there are any modifications (new items or position/size changes)
   const [hasModifications, setHasModifications] = useState<
@@ -40,14 +33,9 @@ function InteractiveTableBooking() {
 
   // Guard to prevent duplicate additions
   const [isAddingPoi, setIsAddingPoi] = useState(false);
-  const [isAddingPattern, setIsAddingPattern] = useState(false);
 
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
-  const [clubHours] = useState<ClubHours>({
-    openTime: "22:00",
-    closeTime: "04:00",
-    isOpen: true,
-  });
+
   const [activeTab, setActiveTab] = useState<"tables" | "floors" | "settings">(
     "tables"
   );
@@ -55,8 +43,8 @@ function InteractiveTableBooking() {
     tableNumber: "",
     price: "",
     capacity: "",
-    width: "",
-    height: "",
+    width: 80,
+    height: 70,
     tableCount: 0,
     tableType: "circle",
     description: "",
@@ -74,14 +62,8 @@ function InteractiveTableBooking() {
   const [newPoiData, setNewPoiData] = useState({
     name: "",
     type: "main-bar" as PointOfInterest["type"],
-    width: 20,
-    height: 20,
-  });
-  const [designPattern, setNewDesignPattern] = useState({
-    name: "",
-    type: "single-door-line" as DesignPatterns["type"],
-    width: 20,
-    height: 20,
+    width: 80,
+    height: 70,
   });
 
   const UserData: UserData | null = storedUser
@@ -98,7 +80,6 @@ function InteractiveTableBooking() {
 
     const unsaved = unsavedChangesByFloor[activeFloorId] || {
       pointsOfInterest: [],
-      designPatterns: [],
     };
 
     const mergedFloor = {
@@ -106,10 +87,6 @@ function InteractiveTableBooking() {
       pointsOfInterest: [
         ...(serverFloor.pointsOfInterest || []),
         ...unsaved.pointsOfInterest,
-      ],
-      designPatterns: [
-        ...(serverFloor.designPatterns || []),
-        ...unsaved.designPatterns,
       ],
     };
 
@@ -119,9 +96,6 @@ function InteractiveTableBooking() {
       serverPOIs: serverFloor.pointsOfInterest?.length || 0,
       unsavedPOIs: unsaved.pointsOfInterest.length,
       totalPOIs: mergedFloor.pointsOfInterest.length,
-      serverPatterns: serverFloor.designPatterns?.length || 0,
-      unsavedPatterns: unsaved.designPatterns.length,
-      totalPatterns: mergedFloor.designPatterns.length,
     });
 
     return mergedFloor;
@@ -137,11 +111,7 @@ function InteractiveTableBooking() {
     const unsaved = unsavedChangesByFloor[floorId];
 
     // Check if there are new unsaved POIs or patterns
-    const hasNewItems = Boolean(
-      unsaved &&
-        (unsaved.pointsOfInterest.length > 0 ||
-          unsaved.designPatterns.length > 0)
-    );
+    const hasNewItems = Boolean(unsaved && unsaved.pointsOfInterest.length > 0);
 
     // Check if server POIs/patterns have been modified (position/size changes)
     const serverPoisModified = serverFloor.pointsOfInterest?.some((poi) => {
@@ -158,23 +128,7 @@ function InteractiveTableBooking() {
       );
     });
 
-    const serverPatternsModified = serverFloor.designPatterns?.some(
-      (pattern) => {
-        const originalPattern = floors
-          .find((f) => f.id === floorId)
-          ?.designPatterns?.find((p) => p.id === pattern.id);
-        return (
-          originalPattern &&
-          (originalPattern.xAxis !== pattern.xAxis ||
-            originalPattern.yAxis !== pattern.yAxis ||
-            originalPattern.width !== pattern.width ||
-            originalPattern.height !== pattern.height ||
-            originalPattern.rotation !== pattern.rotation)
-        );
-      }
-    );
-
-    return hasNewItems || serverPoisModified || serverPatternsModified;
+    return hasNewItems || serverPoisModified;
   };
 
   // Fetch floors from server
@@ -212,6 +166,7 @@ function InteractiveTableBooking() {
   // IMPORTANT: Do NOT use this for POIs or design patterns - use unsaved state instead
   const updateFloor = (updatedFloor: Floor) => {
     console.log(
+      updatedFloor,
       "updateFloor called - this should NOT be used for POIs/patterns"
     );
     console.trace(); // Show where it's being called from
@@ -223,7 +178,6 @@ function InteractiveTableBooking() {
           return {
             ...updatedFloor,
             pointsOfInterest: f.pointsOfInterest, // Keep original server POIs
-            designPatterns: f.designPatterns, // Keep original server patterns
           };
         }
         return f;
@@ -302,40 +256,14 @@ function InteractiveTableBooking() {
       );
       return;
     }
-
-    // Check if it's an unsaved design pattern
-    const isUnsavedPattern = unsaved?.designPatterns.some(
-      (d) => d.id === elementId
-    );
-    if (isUnsavedPattern) {
-      updateSelectedDP({ xAxis, yAxis });
-      return;
-    }
-
-    // Check if it's a server design pattern
-    const isServerPattern = serverFloor.designPatterns?.some(
-      (d) => d.id === elementId
-    );
-    if (isServerPattern) {
-      setFloors((prev) =>
-        prev.map((floor) => {
-          if (floor.id === activeFloorId) {
-            return {
-              ...floor,
-              designPatterns: floor.designPatterns?.map((d) =>
-                d.id === elementId ? { ...d, xAxis, yAxis } : d
-              ),
-            };
-          }
-          return floor;
-        })
-      );
-    }
   };
 
   // Add POI - store in unsaved changes for active floor
-  const handleAddPoi = () => {
-    console.log("handleAddPoi called", { activeFloorId, isAddingPoi });
+  const handleAddPoi = (newPOI) => {
+    console.log("handleAddPoi called", {
+      activeFloorId,
+      isAddingPoi,
+    });
 
     if (!activeFloorId || isAddingPoi) {
       console.log(" Blocked - already adding or no active floor");
@@ -346,12 +274,12 @@ function InteractiveTableBooking() {
 
     const newPoi: PointOfInterest = {
       id: `poi-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      name: newPoiData.name || newPoiData.type.toUpperCase(),
-      type: newPoiData.type,
+      name: newPOI.type.toUpperCase(),
+      type: newPOI.type,
       xAxis: 10,
       yAxis: 20,
-      width: newPoiData.width,
-      height: newPoiData.height,
+      width: newPOI.width,
+      height: newPOI.height,
       rotation: 0,
     };
 
@@ -360,10 +288,10 @@ function InteractiveTableBooking() {
     setUnsavedChangesByFloor((prev) => {
       const currentUnsaved = prev[activeFloorId] || {
         pointsOfInterest: [],
-        designPatterns: [],
       };
 
       console.log(
+        currentUnsaved,
         "📊 Current unsaved POIs:",
         currentUnsaved.pointsOfInterest.length
       );
@@ -372,7 +300,6 @@ function InteractiveTableBooking() {
         ...prev,
         [activeFloorId]: {
           pointsOfInterest: [...currentUnsaved.pointsOfInterest, newPoi],
-          designPatterns: currentUnsaved.designPatterns,
         },
       };
 
@@ -384,53 +311,10 @@ function InteractiveTableBooking() {
       return updated;
     });
 
-    setNewPoiData({ name: "", type: "bar", width: 20, height: 20 });
+    setNewPoiData({ name: "", type: "", width: 120, height: 120 });
 
     // Reset guard after a short delay
     setTimeout(() => setIsAddingPoi(false), 300);
-  };
-
-  // Add Design Pattern - store in unsaved changes for active floor
-  const handleAddDesignPattern = () => {
-    if (!activeFloorId || isAddingPattern) return;
-
-    setIsAddingPattern(true);
-
-    const newDesignPattern: DesignPatterns = {
-      id: `dp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      name: designPattern.name || designPattern.type.toUpperCase(),
-      type: designPattern.type,
-      xAxis: 10,
-      yAxis: 20,
-      width: designPattern.width,
-      height: designPattern.height,
-      rotation: 0,
-    };
-
-    setUnsavedChangesByFloor((prev) => {
-      const currentUnsaved = prev[activeFloorId] || {
-        pointsOfInterest: [],
-        designPatterns: [],
-      };
-
-      return {
-        ...prev,
-        [activeFloorId]: {
-          pointsOfInterest: currentUnsaved.pointsOfInterest,
-          designPatterns: [...currentUnsaved.designPatterns, newDesignPattern],
-        },
-      };
-    });
-
-    setNewDesignPattern({
-      name: "",
-      type: "single-door-line",
-      width: 20,
-      height: 20,
-    });
-
-    // Reset guard after a short delay
-    setTimeout(() => setIsAddingPattern(false), 300);
   };
 
   // Update POI position/properties in unsaved changes
@@ -453,7 +337,6 @@ function InteractiveTableBooking() {
       setUnsavedChangesByFloor((prev) => {
         const currentUnsaved = prev[activeFloorId] || {
           pointsOfInterest: [],
-          designPatterns: [],
         };
 
         return {
@@ -483,49 +366,52 @@ function InteractiveTableBooking() {
       );
     }
   };
+  // Handler to rotate POI by 90 degrees (0 -> 90 -> 180 -> 270 -> 0)
+  const handleRotatePOI = (poiId: string) => {
+    if (!activeFloorId) return;
 
-  // Update Design Pattern in unsaved changes
-  const updateSelectedDP = (updates: Partial<DesignPatterns>) => {
-    console.log(" Updating Design Pattern:", selectedElement, updates);
-
-    if (!selectedElement || !activeFloorId) return;
+    console.log("🔄 Rotating POI:", poiId);
 
     // Mark floor as modified
     setHasModifications((prev) => ({ ...prev, [activeFloorId]: true }));
 
-    // Check if it's in unsaved changes (local pattern)
-    const unsaved = unsavedChangesByFloor[activeFloorId];
-    const isLocalPattern = unsaved?.designPatterns.some(
-      (d) => d.id === selectedElement
-    );
+    const serverFloor = floors.find((f) => f.id === activeFloorId);
+    if (!serverFloor) return;
 
-    if (isLocalPattern) {
-      // Update in unsaved changes
+    // Check if it's in unsaved changes (local POI)
+    const unsaved = unsavedChangesByFloor[activeFloorId];
+    const isUnsavedPoi = unsaved?.pointsOfInterest.some((p) => p.id === poiId);
+
+    if (isUnsavedPoi) {
+      // Update rotation in unsaved changes
       setUnsavedChangesByFloor((prev) => {
         const currentUnsaved = prev[activeFloorId] || {
           pointsOfInterest: [],
-          designPatterns: [],
         };
 
         return {
           ...prev,
           [activeFloorId]: {
             ...currentUnsaved,
-            designPatterns: currentUnsaved.designPatterns.map((d) =>
-              d.id === selectedElement ? { ...d, ...updates } : d
+            pointsOfInterest: currentUnsaved.pointsOfInterest.map((p) =>
+              p.id === poiId
+                ? { ...p, rotation: ((p.rotation || 0) + 90) % 360 }
+                : p
             ),
           },
         };
       });
     } else {
-      // It's a server pattern - update in floors state
+      // It's a server POI - update in floors state
       setFloors((prev) =>
         prev.map((floor) => {
           if (floor.id === activeFloorId) {
             return {
               ...floor,
-              designPatterns: floor.designPatterns?.map((d) =>
-                d.id === selectedElement ? { ...d, ...updates } : d
+              pointsOfInterest: floor.pointsOfInterest?.map((p) =>
+                p.id === poiId
+                  ? { ...p, rotation: ((p.rotation || 0) + 90) % 360 }
+                  : p
               ),
             };
           }
@@ -534,7 +420,6 @@ function InteractiveTableBooking() {
       );
     }
   };
-
   // Delete element (table, POI, or design pattern)
   const handleDeleteSelected = async () => {
     if (!selectedElement || !activeFloorId) return;
@@ -571,25 +456,18 @@ function InteractiveTableBooking() {
     const isUnsavedPoi = unsaved?.pointsOfInterest.some(
       (p) => p.id === selectedElement
     );
-    const isUnsavedPattern = unsaved?.designPatterns.some(
-      (d) => d.id === selectedElement
-    );
 
-    if (isUnsavedPoi || isUnsavedPattern) {
+    if (isUnsavedPoi) {
       // Delete from unsaved changes
       console.log("🗑️ Deleting from unsaved changes");
       setUnsavedChangesByFloor((prev) => {
         const currentUnsaved = prev[activeFloorId] || {
           pointsOfInterest: [],
-          designPatterns: [],
         };
 
         const updatedUnsaved = {
           pointsOfInterest: currentUnsaved.pointsOfInterest.filter(
             (p) => p.id !== selectedElement
-          ),
-          designPatterns: currentUnsaved.designPatterns.filter(
-            (d) => d.id !== selectedElement
           ),
         };
 
@@ -606,11 +484,8 @@ function InteractiveTableBooking() {
     const isServerPoi = serverFloor.pointsOfInterest?.some(
       (p) => p.id === selectedElement
     );
-    const isServerPattern = serverFloor.designPatterns?.some(
-      (d) => d.id === selectedElement
-    );
 
-    if (isServerPoi || isServerPattern) {
+    if (isServerPoi) {
       // Delete from server state and mark as modified
       console.log("🗑️ Deleting from server state");
       setFloors((prev) =>
@@ -620,9 +495,6 @@ function InteractiveTableBooking() {
               ...floor,
               pointsOfInterest: floor.pointsOfInterest?.filter(
                 (p) => p.id !== selectedElement
-              ),
-              designPatterns: floor.designPatterns?.filter(
-                (d) => d.id !== selectedElement
               ),
             };
           }
@@ -649,7 +521,6 @@ function InteractiveTableBooking() {
 
     const unsaved = unsavedChangesByFloor[activeFloorId] || {
       pointsOfInterest: [],
-      designPatterns: [],
     };
 
     const floorToSave = {
@@ -657,10 +528,6 @@ function InteractiveTableBooking() {
       pointsOfInterest: [
         ...(serverFloor.pointsOfInterest || []),
         ...unsaved.pointsOfInterest,
-      ],
-      designPatterns: [
-        ...(serverFloor.designPatterns || []),
-        ...unsaved.designPatterns,
       ],
     };
 
@@ -834,6 +701,8 @@ function InteractiveTableBooking() {
             onElementSelect={setSelectedElement}
             setActiveTab={setActiveTab}
             onElementPositionUpdate={handleElementPositionUpdate}
+            onRotatePOI={handleRotatePOI}
+            onDeletePOI={handleDeleteSelected} // Add this
           />
         </div>
 
@@ -844,8 +713,6 @@ function InteractiveTableBooking() {
           onAddFloor={addFloor}
           onDeleteFloor={deleteFloor}
           selectedElement={selectedElement}
-          onElementSelect={setSelectedElement}
-          clubHours={clubHours}
           fetchFloors={fetchFloors}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -856,12 +723,7 @@ function InteractiveTableBooking() {
           setEditableTable={setEditableTable}
           newPoiData={newPoiData}
           setNewPoiData={setNewPoiData}
-          designPattern={designPattern}
-          setNewDesignPattern={setNewDesignPattern}
           handleAddPoi={handleAddPoi}
-          handleAddDesignPattern={handleAddDesignPattern}
-          updateSelectedPoi={updateSelectedPoi}
-          updateSelectedDP={updateSelectedDP}
           handleDeleteSelected={handleDeleteSelected}
         />
       </div>

@@ -12,7 +12,16 @@
 //   tableType: "standard" | "vip" | "premium";
 //   description: string;
 // }
-
+export interface Wall {
+  id: string;
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+  thickness: number;
+  color: string;
+  style?: "solid" | "dotted" | "dashed";
+}
 export interface PointOfInterest {
   id: string;
   name: string;
@@ -26,23 +35,6 @@ export interface PointOfInterest {
     | "double-sofa"
     | "single-sofa"
     | "triple-sofa";
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  rotation: number;
-}
-export interface DesignPatterns {
-  id: string;
-  name: string;
-  type:
-    | "barriers-railing"
-    | "main-entrance"
-    | "single-door-line"
-    | "single-door"
-    | "vip"
-    | "stairs"
-    | "stairs";
   x: number;
   y: number;
   width: number;
@@ -164,4 +156,18 @@ interface Club {
 export interface ApiResponse<T> {
   statusCode: number;
   payLoad: T;
+}
+
+
+export interface CardItem {
+  type: string;
+  label: string;
+  width: number;
+  height: number;
+}
+export interface NewPoiData {
+  name: string;
+  type: PointOfInterest["type"];
+  width: number | string;
+  height: number | string;
 }

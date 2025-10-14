@@ -15,7 +15,7 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
   selectedElement,
 }) => {
   const [activeTab, setActiveTab] = React.useState<
-    "tables" | "pois" | "design" | "reservations"
+    "tables" | "pois" | "reservations"
   >("tables");
 
   const confirmedReservations = reservations.filter(
@@ -69,12 +69,7 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
         >
           POIs
         </button>
-        <button
-          className={`admin-tab ${activeTab === "design" ? "active" : ""}`}
-          onClick={() => setActiveTab("design")}
-        >
-          Design
-        </button>
+
         <button
           className={`admin-tab ${
             activeTab === "reservations" ? "active" : ""
@@ -218,29 +213,7 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
             ))}
           </div>
         )}
-        {activeTab === "design" && (
-          <div className="reservation-section">
-            <h3 className="section-title">
-              Design Patterns ({activeFloor?.designPatterns?.length})
-            </h3>
-            {activeFloor?.designPatterns?.map((d) => (
-              <div
-                key={d.id}
-                className={`reservation-item poi ${
-                  selectedElement === d.id ? "selected-item" : ""
-                }`}
-                onClick={() => onElementSelect(d.id)}
-              >
-                <div className="customer-name">{d.name}</div>
-                <div className="reservation-details">
-                  Type: {d.type.toUpperCase()}
-                  <br />
-                  Size: {d.width}×{d.height}px
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+
         {activeTab === "reservations" && (
           <>
             {confirmedReservations.length > 0 && (
@@ -322,15 +295,6 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
               <div className="customer-name">No POIs created</div>
               <div className="reservation-details">
                 Add points of interest like bars, stages, or DJ booths
-              </div>
-            </div>
-          )}
-        {activeTab === "design" &&
-          activeFloor?.designPatterns?.length === 0 && (
-            <div className="empty-state">
-              <div className="customer-name">No Design Patterns Added</div>
-              <div className="reservation-details">
-                Add Design Patterns like Railing, Entrance, or Walls
               </div>
             </div>
           )}

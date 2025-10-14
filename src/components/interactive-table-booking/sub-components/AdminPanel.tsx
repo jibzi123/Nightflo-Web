@@ -5,15 +5,13 @@ import {
   ClubHours,
   UserData,
   PointOfInterest,
-  DesignPatterns,
-} from "../types";
-import TableElementProperties, {
   NewPoiData,
-  NewTableData,
-} from "./TableElementProperties";
+} from "../types";
+import TableElementProperties from "./TableElementProperties";
 import FloorManager from "./FloorManager";
 import { useApi } from "../../../utils/custom-hooks/useApi";
 import { getRandomPercent } from "../../../utils/tableUtil";
+import POICardGrid from "./POICardGrid";
 
 interface AdminPanelProps {
   floors: Floor[];
@@ -25,9 +23,9 @@ interface AdminPanelProps {
   onElementSelect: (id: string | null) => void;
   clubHours: ClubHours;
   fetchFloors: (id: string) => void;
-  activeTab: "floors" | "tables" | "settings";
+  activeTab: "floors" | "tables" | "pois";
   setActiveTab: React.Dispatch<
-    React.SetStateAction<"floors" | "tables" | "settings">
+    React.SetStateAction<"floors" | "tables" | "pois">
   >;
   handleUpdateFloor: (
     floorId: string,
@@ -37,26 +35,17 @@ interface AdminPanelProps {
   setNewTableData: (d: Table) => void;
   editableTable: Table;
   setEditableTable: (d: Table) => void;
-  newPoiData: NewPoiData;
   setNewPoiData: (d: NewPoiData) => void;
-  designPattern: DesignPatterns;
-  setNewDesignPattern: (d: DesignPatterns) => void;
   handleAddPoi: () => void;
-  handleAddDesignPattern: () => void;
-  updateSelectedPoi: (updates: Partial<PointOfInterest>) => void;
-  updateSelectedDP: (updates: Partial<DesignPatterns>) => void;
   handleDeleteSelected: () => void;
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({
   floors,
   activeFloor,
-  onFloorUpdate,
   onAddFloor,
   onDeleteFloor,
   selectedElement,
-  onElementSelect,
-  clubHours,
   fetchFloors,
   activeTab,
   setActiveTab,
@@ -65,14 +54,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   setNewTableData,
   editableTable,
   setEditableTable,
-  newPoiData,
   setNewPoiData,
-  designPattern,
-  setNewDesignPattern,
   handleAddPoi,
-  handleAddDesignPattern,
-  updateSelectedPoi,
-  updateSelectedDP,
   handleDeleteSelected,
 }) => {
   const [newFloorName, setNewFloorName] = useState("");
@@ -92,13 +75,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       ? activeFloor?.tables.find((t) => t._id === selectedElement)
       : null;
 
-  const selectedPoi = selectedElement
-    ? activeFloor?.pointsOfInterest?.find((p) => p.id === selectedElement)
-    : null;
+  // const selectedPoi = selectedElement
+  //   ? activeFloor?.pointsOfInterest?.find((p) => p.id === selectedElement)
+  //   : null;
 
-  const selectedDesignPattern = selectedElement
-    ? activeFloor?.designPatterns?.find((d) => d.id === selectedElement)
-    : null;
 
   useEffect(() => {
     if (selectedTable) {
@@ -162,7 +142,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     const tableCount = (countRes?.payLoad?.count ?? 0) + 1;
 
     const params = {
-      tableId: editableTable?.id,
+      tableId: editableTable?._id,
       tableNumber: editableTable.tableNumber,
       floorId: editableTable?.floor.id,
       price: editableTable.price,
@@ -202,35 +182,28 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           Floors
         </button>
         <button
-          className={`admin-tab ${activeTab === "settings" ? "active" : ""}`}
-          onClick={() => setActiveTab("settings")}
+          className={`admin-tab ${activeTab === "pois" ? "active" : ""}`}
+          onClick={() => setActiveTab("pois")}
         >
-          Settings
+          POIs
         </button>
       </div>
 
-      <div className="admin-content">
+      <div
+        className="admin-content"
+        style={{ display: "flex", flexDirection: "column", height: "100vh" }}
+      >
         {activeTab === "tables" && (
           <TableElementProperties
             selectedElement={selectedElement}
             selectedTable={selectedTable}
-            selectedPoi={selectedPoi}
-            updateSelectedPoi={updateSelectedPoi}
             handleDeleteSelected={handleDeleteSelected}
             newTableData={newTableData}
             setNewTableData={setNewTableData}
             handleAddTable={createTable}
-            newPoiData={newPoiData}
-            setNewPoiData={setNewPoiData}
-            handleAddPoi={handleAddPoi}
             handleUpdateTable={handleUpdateTable}
             editableTable={editableTable}
             setEditableTable={setEditableTable}
-            designPattern={designPattern}
-            setNewDesignPattern={setNewDesignPattern}
-            handleAddDesignPattern={handleAddDesignPattern}
-            selectedDesignPattern={selectedDesignPattern}
-            updateSelectedDP={updateSelectedDP}
           />
         )}
 
@@ -248,59 +221,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           />
         )}
 
-        {activeTab === "settings" && (
-          <div>
-            <div className="form-group">
-              <label className="form-label">Club Hours</label>
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Open Time</label>
-                  <input
-                    type="time"
-                    className="form-input-field"
-                    value={clubHours.openTime}
-                    readOnly
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Close Time</label>
-                  <input
-                    type="time"
-                    className="form-input-field"
-                    value={clubHours.closeTime}
-                    readOnly
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Club Status</label>
-              <div className={`status ${clubHours.isOpen ? "open" : "closed"}`}>
-                {clubHours.isOpen ? "OPEN" : "CLOSED"}
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Statistics</label>
-              <div className="reservation-item">
-                <div className="customer-name">Total Tables</div>
-                <div className="reservation-details">
-                  {activeFloor.tables && activeFloor.tables.length} tables
-                  across {floors.length} floors
-                </div>
-              </div>
-
-              <div className="reservation-item">
-                <div className="customer-name">Available Tables</div>
-                <div className="reservation-details">
-                  {activeFloor.tables &&
-                    activeFloor.tables.filter((t) => t.status === "available")
-                      .length}{" "}
-                  available
-                </div>
-              </div>
-            </div>
+        {activeTab === "pois" && (
+          <div className="form-group">
+            <POICardGrid
+              setNewPoiData={setNewPoiData}
+              onAddPOI={handleAddPoi}
+            />
           </div>
         )}
       </div>

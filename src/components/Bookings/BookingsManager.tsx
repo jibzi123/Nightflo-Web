@@ -92,8 +92,10 @@ useEffect(() => {
         if (activeTab === "event-tickets" && selectedEventId) {
           res = await apiClient.getBookingsByEventId(
             selectedEventId,
+            user?.club?.id || "",
             statusFilter !== "all" ? statusFilter : undefined,
             dateFilter || undefined
+            
           );
         } else if (activeTab === "table-bookings" && user?.club?.id) {
           res = await apiClient.getBookingsByClubId(
@@ -255,40 +257,60 @@ useEffect(() => {
             <button
               type="button"
               onClick={() => setActiveTab("event-tickets")}
-              className={`modal-tab-button ${activeTab === "event-tickets" ? "active" : ""}`}
+              className={`modal-tab-button ${
+                activeTab === "event-tickets" ? "active" : ""
+              }`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px", // adds space between icon and text
+                paddingRight: "12px", // extra right space for neatness
+              }}
             >
               <Calendar size={16} />
-              Event Bookings
-              {activeTab === "event-tickets" && (
-                <>
-                  {" ("}
-                  {
-                    bookings.filter(
-                      (b) => b.bookingType === "ticket" || b.bookingType === "table"
-                    ).length
-                  }
-                  {")"}
-                </>
-              )}
+              <span>
+                Event Bookings
+                {activeTab === "event-tickets" && (
+                  <>
+                    {" ("}
+                    {
+                      bookings.filter(
+                        (b) => b.bookingType === "ticket" || b.bookingType === "table"
+                      ).length
+                    }
+                    {")"}
+                  </>
+                )}
+              </span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab("table-bookings")}
-              className={`modal-tab-button ${activeTab === "table-bookings" ? "active" : ""}`}
+              className={`modal-tab-button ${
+                activeTab === "table-bookings" ? "active" : ""
+              }`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                paddingRight: "12px",
+              }}
             >
               <MapPin size={16} />
-              Table Reservations
-              {activeTab === "table-bookings" && (
-                <>
-                  {" ("}
-                  {bookings.filter((b) => b.bookingType === "unknown").length}
-                  {")"}
-                </>
-              )}
+              <span>
+                Table Reservations
+                {activeTab === "table-bookings" && (
+                  <>
+                    {" ("}
+                    {bookings.filter((b) => b.bookingType === "unknown").length}
+                    {")"}
+                  </>
+                )}
+              </span>
             </button>
-
           </div>
+
 
           {/* Filters */}
           <div className="search-filter-container">

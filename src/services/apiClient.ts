@@ -190,12 +190,13 @@ export const apiClient = {
       { method: "GET" }
     );
   },
-  async getBookingsByEventId(eventId: string, status?: string, date?: string) {
+  async getBookingsByEventId(eventId: string, clubId: string, status?: string, date?: string) {
     let query = `eventId=${encodeURIComponent(eventId)}`;
+    query += `&clubId=${encodeURIComponent(clubId)}`;
     if (status) query += `&status=${encodeURIComponent(status)}`;
     if (date) query += `&date=${encodeURIComponent(date)}`;
 
-    return request(`/bookings/BookingDetailsByEventId?${query}`, {
+    return request(`/bookings/EventBookingDetails?${query}`, {
       method: "GET",
     });
   },
@@ -205,7 +206,13 @@ export const apiClient = {
     if (status) query += `&status=${encodeURIComponent(status)}`;
     if (date) query += `&date=${encodeURIComponent(date)}`;
 
-    return request(`/bookings/BookingDetailsByClubId?${query}`, {
+    return request(`/bookings/GeneralBookingDetailsByClubId?${query}`, {
+      method: "GET",
+    });
+  },
+  async getCustomersByClubId(clubId: string) {
+    const query = `clubId=${encodeURIComponent(clubId)}`;
+    return request(`/customers/CustomerDetailsByClubId?${query}`, {
       method: "GET",
     });
   },

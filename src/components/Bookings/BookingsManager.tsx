@@ -69,6 +69,7 @@ const BookingsManager: React.FC = () => {
 
         if (allEvents.length > 0) {
           setSelectedEventId(allEvents[0].id);
+          console.log("Default selected event ID:", allEvents[0].id);
         }
       } catch (err) {
         console.error("Failed to fetch club events", err);
@@ -90,6 +91,7 @@ useEffect(() => {
         let res: any = { payLoad: { tickets: [], tables: [] } };
 
         if (activeTab === "event-tickets" && selectedEventId) {
+          console.log("Fetching bookings for event ID:", selectedEventId);
           res = await apiClient.getBookingsByEventId(
             selectedEventId,
             user?.club?.id || "",

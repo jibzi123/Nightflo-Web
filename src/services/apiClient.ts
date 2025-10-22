@@ -4,7 +4,7 @@ import { API_BASE_URL } from "../config";
 
 const getDefaultHeaders = () => {
   const token = localStorage.getItem("authToken");
-  console.log("Using token:", token);
+  //console.log("Using token:", token);
   const appVersion = "1.0.0"; // could be read from package.json
   const platform = "web";
 
@@ -216,4 +216,21 @@ export const apiClient = {
       method: "GET",
     });
   },
+  // ✅ Add inside apiClient
+  async getStaffByClubId(
+    clubId: string,
+    role?: string,
+    status?: string,
+    eventId?: string
+  ) {
+    let query = `clubId=${encodeURIComponent(clubId)}`;
+    if (role) query += `&role=${encodeURIComponent(role)}`;
+    if (status) query += `&status=${encodeURIComponent(status)}`;
+    if (eventId) query += `&eventId=${encodeURIComponent(eventId)}`;
+
+    return request(`/staff/StaffByClubId?${query}`, {
+      method: "GET",
+    });
+  },
+
 };

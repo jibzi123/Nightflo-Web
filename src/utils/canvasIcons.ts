@@ -39,35 +39,35 @@ export const POIIcons = {
   default: SingleDoorBar, // fallback icon if type not matched
 };
 
-import T2_Round_Outdoor from "./../assets/canvas-vectors/T2-round-outdoor.svg";
-import T2_Round_Indoor from "./../assets/canvas-vectors/T2-round-Indoor.svg";
-import T4_Box_Indoor from "./../assets/canvas-vectors/T4-box-indoor.svg";
+import T2_Round_Reserved from "./../assets/canvas-vectors/T2-round-reserved.svg";
+import T2_Round from "./../assets/canvas-vectors/T2-round.svg";
+import T4_Box from "./../assets/canvas-vectors/T4-box.svg";
 
-import T4_Box_Outdoor from "./../assets/canvas-vectors/T4-box-outdoor.svg";
-import T4_Round_Indoor from "./../assets/canvas-vectors/T4-round-Indoor.svg";
-import T4_Round_Outdoor from "./../assets/canvas-vectors/T4-round-outdoor.svg";
+import T4_Box_Reserved from "./../assets/canvas-vectors/T4-box-reserved.svg";
+import T4_Round from "./../assets/canvas-vectors/T4-round.svg";
+import T4_Round_Reserved from "./../assets/canvas-vectors/T4-round-reserved.svg";
 
-import T6_Box_Indoor from "./../assets/canvas-vectors/T6-box-Indoor.svg";
-import T6_Box_Outdoor from "./../assets/canvas-vectors/T8-box-outdoor.svg";
+import T8_Box from "./../assets/canvas-vectors/T8-box.svg";
+import T8_Box_Reserved from "./../assets/canvas-vectors/T8-box-reserved.svg";
 
-import T10_Box_Indoor from "./../assets/canvas-vectors/T10-box-indoor.svg";
-import T10_Box_Outdoor from "./../assets/canvas-vectors/T10-box-outdoor.svg";
+import T10_Box from "./../assets/canvas-vectors/T10-box.svg";
+import T10_Box_Reserved from "./../assets/canvas-vectors/T10-box-reserved.svg";
 
 export const TableIcons = {
-  t2_round_outdoor: T2_Round_Outdoor,
-  t2_round_indoor: T2_Round_Indoor,
+  t2_round_reserved: T2_Round_Reserved,
+  t2_round: T2_Round,
 
-  t4_box_indoor: T4_Box_Indoor,
-  t4_box_outdoor: T4_Box_Outdoor,
-  t4_round_indoor: T4_Round_Indoor,
+  t4_box: T4_Box,
+  t4_box_reserved: T4_Box_Reserved,
 
-  t4_round_outdoor: T4_Round_Outdoor,
+  t4_round: T4_Round,
+  t4_round_reserved: T4_Round_Reserved,
 
-  t6_box_indoor: T6_Box_Indoor,
-  t6_box_outdoor: T6_Box_Outdoor,
+  t8_Box: T8_Box,
+  t8_box_reserved: T8_Box_Reserved,
 
-  t10_box_indoor: T10_Box_Indoor,
-  t10_box_outdoor: T10_Box_Outdoor,
+  t10_box: T10_Box,
+  t10_box_reserved: T10_Box_Reserved,
 
-  default: T4_Box_Indoor, // fallback icon
+  default: T8_Box, // fallback icon
 };

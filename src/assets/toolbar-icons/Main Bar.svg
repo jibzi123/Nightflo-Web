@@ -1,0 +1,16 @@
+<svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="7.63493" y="13.1926" width="3.61878" height="1.06919" rx="0.534593" transform="rotate(-180 7.63493 13.1926)" fill="white" stroke="white" stroke-width="0.246735"/>
+<rect x="12.6519" y="13.1926" width="3.61878" height="1.06919" rx="0.534593" transform="rotate(-180 12.6519 13.1926)" fill="white" stroke="white" stroke-width="0.246735"/>
+<rect x="17.6689" y="13.1926" width="3.61878" height="1.06919" rx="0.534593" transform="rotate(-180 17.6689 13.1926)" fill="white" stroke="white" stroke-width="0.246735"/>
+<rect x="7.63481" y="1.19255" width="3.61878" height="1.06919" rx="0.534593" transform="rotate(-180 7.63481 1.19255)" fill="white" stroke="white" stroke-width="0.246735"/>
+<rect x="12.6518" y="1.19255" width="3.61878" height="1.06919" rx="0.534593" transform="rotate(-180 12.6518 1.19255)" fill="white" stroke="white" stroke-width="0.246735"/>
+<rect x="17.6687" y="1.19255" width="3.61878" height="1.06919" rx="0.534593" transform="rotate(-180 17.6687 1.19255)" fill="white" stroke="white" stroke-width="0.246735"/>
+<rect x="0.123368" y="5.92326" width="2.79956" height="1.06919" rx="0.534593" transform="rotate(-90 0.123368 5.92326)" fill="white" stroke="white" stroke-width="0.246735"/>
+<rect x="0.123368" y="9.96941" width="2.79956" height="1.06919" rx="0.534593" transform="rotate(-90 0.123368 9.96941)" fill="white" stroke="white" stroke-width="0.246735"/>
+<rect x="20.1231" y="5.92302" width="2.79956" height="1.06919" rx="0.534593" transform="rotate(-90 20.1231 5.92302)" fill="white" stroke="white" stroke-width="0.246735"/>
+<rect x="20.1231" y="9.87688" width="2.79956" height="1.06919" rx="0.534593" transform="rotate(-90 20.1231 9.87688)" fill="white" stroke="white" stroke-width="0.246735"/>
+<mask id="path-11-inside-1_217_149" fill="white">
+<rect x="2" y="2" width="17" height="9" rx="0.32898"/>
+</mask>
+<rect x="2" y="2" width="17" height="9" rx="0.32898" stroke="white" stroke-width="2" mask="url(#path-11-inside-1_217_149)"/>
+</svg>

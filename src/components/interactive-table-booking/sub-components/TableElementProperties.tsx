@@ -212,9 +212,11 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                   className="form-select-field"
                   value={editableTable.status ?? ""}
                   onChange={(e) =>
-                    setEditableTable({
-                      status: e.target.value as Table["status"],
-                    })
+                    setEditableTable((prev: []) =>
+                      prev
+                        ? { ...prev, status: e.target.value as Table["status"] }
+                        : prev
+                    )
                   }
                 >
                   <option value="available">Available</option>

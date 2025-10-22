@@ -195,7 +195,9 @@ body {
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
-      margin-top: 10px;
+}
+.margin-top{
+ margin-top: 10px;
 
 }
 
@@ -1044,16 +1046,20 @@ body {
 }
 
 .item-card {
+
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  padding: 10px 12px;
+  padding: 14px 12px;
   background: #1e1e1e;
   border: 1px solid #3a3a3a;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
+  gap: 8px;
+      align-items: center;
+
 }
 
 .item-card:hover {
@@ -1083,4 +1089,52 @@ body {
 
 .item-card:hover .item-label {
   color: #10b981;
+}
+.item-card {
+  /* border: 1px solid #ccc; */
+  color: #999;
+  background-color: #333;
+  transition: all 0.2s ease-in-out;
+}
+
+.item-card .icon {
+  filter: brightness(0) saturate(100%) invert(62%) sepia(0%) saturate(0%)
+    hue-rotate(180deg) brightness(85%) contrast(90%);
+  transition: all 0.2s ease-in-out;
+}
+
+.item-card .label {
+  color: #999;
+  transition: color 0.2s ease-in-out;
+}
+
+.item-card:hover {
+  background-color: #333;
+  border-color: #00d4aa;
+  color: #00d4aa;
+}
+
+.item-card:hover .icon {
+  filter: brightness(0) saturate(100%) invert(61%) sepia(70%) saturate(471%)
+    hue-rotate(120deg) brightness(101%) contrast(97%);
+}
+
+.item-card:hover .label {
+  color: #00d4aa;
+}
+
+/* When selected */
+.item-card.selected {
+  border-color: #00d4aa;
+  background-color: #333;
+  color: #00d4aa;
+}
+
+.item-card.selected .icon {
+  filter: brightness(0) saturate(100%) invert(61%) sepia(70%) saturate(471%)
+    hue-rotate(120deg) brightness(101%) contrast(97%);
+}
+
+.item-card.selected .label {
+  color: #00d4aa;
 }

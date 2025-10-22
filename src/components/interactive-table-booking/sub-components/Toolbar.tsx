@@ -1,5 +1,5 @@
 import React from "react";
-import { Hand, Minus, Check, X } from "lucide-react";
+import { Hand, Minus, Check, X, Undo } from "lucide-react";
 
 interface FloorToolbarProps {
   drawingMode: "select" | "wall" | string;
@@ -9,9 +9,13 @@ interface FloorToolbarProps {
   isDrawingWall: boolean;
   handleFinishWall: () => void;
   handleCancelWall: () => void;
+  handleUndoPoint?: () => void;
+  handleUndoWall?: () => void;
   wallPoints: { x: number; y: number }[];
   wallStyle?: "solid" | "dotted" | "dashed";
   setWallStyle?: (style: "solid" | "dotted" | "dashed") => void;
+  setIsDrawingWall: (bool: boolean) => void;
+  setWallPoints: (x: number, y: number) => void;
 }
 
 const FloorToolbar: React.FC<FloorToolbarProps> = ({
@@ -22,9 +26,12 @@ const FloorToolbar: React.FC<FloorToolbarProps> = ({
   isDrawingWall,
   handleFinishWall,
   handleCancelWall,
+  handleUndoWall,
   wallPoints,
   wallStyle = "solid",
   setWallStyle,
+  setIsDrawingWall,
+  setWallPoints,
 }) => {
   const buttonStyle = (active?: boolean): React.CSSProperties => ({
     padding: "8px 12px",
@@ -89,6 +96,8 @@ const FloorToolbar: React.FC<FloorToolbarProps> = ({
         onClick={() => {
           console.log("🔄 Switched to Select mode");
           setDrawingMode("select");
+          setIsDrawingWall(false);
+          setWallPoints([]);
         }}
         style={iconButtonStyle(drawingMode === "select")}
         title="Select Mode (Esc)"
@@ -120,6 +129,17 @@ const FloorToolbar: React.FC<FloorToolbarProps> = ({
           <line x1="2" y1="12" x2="22" y2="12" />
         </svg>
       </button>
+
+      {/* Undo Wall Button */}
+      {handleUndoWall && (
+        <button
+          onClick={() => handleUndoWall()}
+          style={iconButtonStyle()}
+          title="Undo Last Wall"
+        >
+          <Undo size={18} />
+        </button>
+      )}
 
       {/* Divider */}
       {drawingMode === "wall" && (

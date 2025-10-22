@@ -147,8 +147,8 @@ export const validateTable = (tableData: TableData) => {
     errors.capacity = "Capacity must be between 1 and 50";
   }
 
-  if (!tableData.width) errors.width = "Width is Required";
-  if (!tableData.height) errors.height = "Height is Required";
+  // if (!tableData.width) errors.width = "Width is Required";
+  // if (!tableData.height) errors.height = "Height is Required";
   if (!tableData.description) errors.description = "Description is Required";
 
   return {

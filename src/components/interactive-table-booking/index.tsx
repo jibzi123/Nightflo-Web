@@ -9,11 +9,14 @@ import {
   Reservation,
   UserData,
   PointOfInterest,
+  Wall,
 } from "./types";
 import { useApi } from "../../utils/custom-hooks/useApi";
+import { toast } from "react-toastify";
 
 interface UnsavedChanges {
   pointsOfInterest: PointOfInterest[];
+  boundaryWalls: Wall[];
 }
 
 function InteractiveTableBooking() {
@@ -21,10 +24,14 @@ function InteractiveTableBooking() {
     localStorage.getItem("activeFloorId") || ""
   );
   const storedUser = localStorage.getItem("userData");
-  const [floors, setFloors] = useState<Floor[]>([]); // Server state - floors from API
+
+  // Server state - floors from API
+  const [floors, setFloors] = useState<Floor[]>([]);
+
+  // Local state - unsaved changes per floor
   const [unsavedChangesByFloor, setUnsavedChangesByFloor] = useState<
     Record<string, UnsavedChanges>
-  >({}); // Local state - unsaved changes per floor
+  >({});
 
   // Track if there are any modifications (new items or position/size changes)
   const [hasModifications, setHasModifications] = useState<
@@ -35,7 +42,11 @@ function InteractiveTableBooking() {
   const [isAddingPoi, setIsAddingPoi] = useState(false);
 
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
-
+  const [clubHours] = useState<ClubHours>({
+    openTime: "22:00",
+    closeTime: "04:00",
+    isOpen: true,
+  });
   const [activeTab, setActiveTab] = useState<"tables" | "floors" | "settings">(
     "tables"
   );
@@ -43,8 +54,8 @@ function InteractiveTableBooking() {
     tableNumber: "",
     price: "",
     capacity: "",
-    width: 80,
-    height: 70,
+    width: 100,
+    height: 100,
     tableCount: 0,
     tableType: "circle",
     description: "",
@@ -80,6 +91,7 @@ function InteractiveTableBooking() {
 
     const unsaved = unsavedChangesByFloor[activeFloorId] || {
       pointsOfInterest: [],
+      boundaryWalls: [],
     };
 
     const mergedFloor = {
@@ -87,6 +99,10 @@ function InteractiveTableBooking() {
       pointsOfInterest: [
         ...(serverFloor.pointsOfInterest || []),
         ...unsaved.pointsOfInterest,
+      ],
+      boundaryWalls: [
+        ...(serverFloor.boundaryWalls || []),
+        ...unsaved.boundaryWalls,
       ],
     };
 
@@ -96,6 +112,9 @@ function InteractiveTableBooking() {
       serverPOIs: serverFloor.pointsOfInterest?.length || 0,
       unsavedPOIs: unsaved.pointsOfInterest.length,
       totalPOIs: mergedFloor.pointsOfInterest.length,
+      serverWalls: serverFloor.boundaryWalls?.length || 0,
+      unsavedWalls: unsaved.boundaryWalls.length,
+      totalWalls: mergedFloor.boundaryWalls.length,
     });
 
     return mergedFloor;
@@ -105,30 +124,14 @@ function InteractiveTableBooking() {
 
   // Check if a floor has unsaved changes
   const hasUnsavedChanges = (floorId: string): boolean => {
-    const serverFloor = floors.find((f) => f.id === floorId);
-    if (!serverFloor) return false;
-
     const unsaved = unsavedChangesByFloor[floorId];
+    const hasNewItems = Boolean(
+      unsaved &&
+        (unsaved.pointsOfInterest.length > 0 ||
+          unsaved.boundaryWalls.length > 0)
+    );
 
-    // Check if there are new unsaved POIs or patterns
-    const hasNewItems = Boolean(unsaved && unsaved.pointsOfInterest.length > 0);
-
-    // Check if server POIs/patterns have been modified (position/size changes)
-    const serverPoisModified = serverFloor.pointsOfInterest?.some((poi) => {
-      const originalPoi = floors
-        .find((f) => f.id === floorId)
-        ?.pointsOfInterest?.find((p) => p.id === poi.id);
-      return (
-        originalPoi &&
-        (originalPoi.xAxis !== poi.xAxis ||
-          originalPoi.yAxis !== poi.yAxis ||
-          originalPoi.width !== poi.width ||
-          originalPoi.height !== poi.height ||
-          originalPoi.rotation !== poi.rotation)
-      );
-    });
-
-    return hasNewItems || serverPoisModified;
+    return hasNewItems || hasModifications[floorId] || false;
   };
 
   // Fetch floors from server
@@ -163,21 +166,18 @@ function InteractiveTableBooking() {
   }, []);
 
   // Update floor - only for server-synced changes (tables, floor properties)
-  // IMPORTANT: Do NOT use this for POIs or design patterns - use unsaved state instead
+  // IMPORTANT: Do NOT use this for POIs or boundary walls - use unsaved state instead
   const updateFloor = (updatedFloor: Floor) => {
-    console.log(
-      updatedFloor,
-      "updateFloor called - this should NOT be used for POIs/patterns"
-    );
-    console.trace(); // Show where it's being called from
+    console.log("⚠️ updateFloor called - preserving POIs/walls from server");
 
     setFloors((prevFloors) =>
       prevFloors.map((f) => {
         if (f.id === updatedFloor.id) {
-          // Only update server-managed properties, preserve POIs/patterns from server
+          // Only update server-managed properties, preserve POIs/walls from server
           return {
             ...updatedFloor,
-            pointsOfInterest: f.pointsOfInterest, // Keep original server POIs
+            pointsOfInterest: f.pointsOfInterest,
+            boundaryWalls: f.boundaryWalls,
           };
         }
         return f;
@@ -191,7 +191,7 @@ function InteractiveTableBooking() {
     xAxis: number,
     yAxis: number
   ) => {
-    console.log("Position update:", elementId, { xAxis, yAxis });
+    console.log("📍 Position update:", elementId, { xAxis, yAxis });
 
     if (!activeFloorId) return;
 
@@ -259,14 +259,11 @@ function InteractiveTableBooking() {
   };
 
   // Add POI - store in unsaved changes for active floor
-  const handleAddPoi = (newPOI) => {
-    console.log("handleAddPoi called", {
-      activeFloorId,
-      isAddingPoi,
-    });
+  const handleAddPoi = (newPOI: any) => {
+    console.log("🔵 handleAddPoi called", { activeFloorId, isAddingPoi });
 
     if (!activeFloorId || isAddingPoi) {
-      console.log(" Blocked - already adding or no active floor");
+      console.log("❌ Blocked - already adding or no active floor");
       return;
     }
 
@@ -283,15 +280,15 @@ function InteractiveTableBooking() {
       rotation: 0,
     };
 
-    console.log("Adding new POI:", newPoi.id);
+    console.log("✅ Adding new POI:", newPoi.id);
 
     setUnsavedChangesByFloor((prev) => {
       const currentUnsaved = prev[activeFloorId] || {
         pointsOfInterest: [],
+        boundaryWalls: [],
       };
 
       console.log(
-        currentUnsaved,
         "📊 Current unsaved POIs:",
         currentUnsaved.pointsOfInterest.length
       );
@@ -300,6 +297,7 @@ function InteractiveTableBooking() {
         ...prev,
         [activeFloorId]: {
           pointsOfInterest: [...currentUnsaved.pointsOfInterest, newPoi],
+          boundaryWalls: currentUnsaved.boundaryWalls,
         },
       };
 
@@ -311,15 +309,55 @@ function InteractiveTableBooking() {
       return updated;
     });
 
-    setNewPoiData({ name: "", type: "", width: 120, height: 120 });
+    setNewPoiData({ name: "", type: "main-bar", width: 80, height: 70 });
 
     // Reset guard after a short delay
     setTimeout(() => setIsAddingPoi(false), 300);
   };
 
+  // Add boundary wall - store in unsaved changes for active floor
+  const handleAddBoundaryWall = (newWalls: Wall[]) => {
+    console.log("🧱 Adding boundary walls:", newWalls.length);
+
+    if (!activeFloorId) {
+      console.log("❌ No active floor");
+      return;
+    }
+
+    setUnsavedChangesByFloor((prev) => {
+      const currentUnsaved = prev[activeFloorId] || {
+        pointsOfInterest: [],
+        boundaryWalls: [],
+      };
+
+      console.log(
+        "📊 Current unsaved walls:",
+        currentUnsaved.boundaryWalls.length
+      );
+
+      const updated = {
+        ...prev,
+        [activeFloorId]: {
+          pointsOfInterest: currentUnsaved.pointsOfInterest,
+          boundaryWalls: [...currentUnsaved.boundaryWalls, ...newWalls],
+        },
+      };
+
+      console.log(
+        "📊 Updated unsaved walls:",
+        updated[activeFloorId].boundaryWalls.length
+      );
+
+      return updated;
+    });
+
+    // Mark floor as modified
+    setHasModifications((prev) => ({ ...prev, [activeFloorId]: true }));
+  };
+
   // Update POI position/properties in unsaved changes
   const updateSelectedPoi = (updates: Partial<PointOfInterest>) => {
-    console.log(" Updating POI:", selectedElement, updates);
+    console.log("🔄 Updating POI:", selectedElement, updates);
 
     if (!selectedElement || !activeFloorId) return;
 
@@ -337,6 +375,7 @@ function InteractiveTableBooking() {
       setUnsavedChangesByFloor((prev) => {
         const currentUnsaved = prev[activeFloorId] || {
           pointsOfInterest: [],
+          boundaryWalls: [],
         };
 
         return {
@@ -366,6 +405,7 @@ function InteractiveTableBooking() {
       );
     }
   };
+
   // Handler to rotate POI by 90 degrees (0 -> 90 -> 180 -> 270 -> 0)
   const handleRotatePOI = (poiId: string) => {
     if (!activeFloorId) return;
@@ -387,6 +427,7 @@ function InteractiveTableBooking() {
       setUnsavedChangesByFloor((prev) => {
         const currentUnsaved = prev[activeFloorId] || {
           pointsOfInterest: [],
+          boundaryWalls: [],
         };
 
         return {
@@ -420,7 +461,82 @@ function InteractiveTableBooking() {
       );
     }
   };
-  // Delete element (table, POI, or design pattern)
+  const handleRotateTable = async (tableId: string) => {
+    if (!activeFloorId) return;
+
+    console.log("🔄 Rotating table:", tableId);
+
+    const serverFloor = floors.find((f) => f.id === activeFloorId);
+    if (!serverFloor) return;
+
+    const table = serverFloor.tables?.find(
+      (t) => t._id === tableId || t.id === tableId
+    );
+
+    if (!table) return;
+
+    // Calculate new rotation
+    const newRotation = ((table.rotation || 0) + 90) % 360;
+
+    // Update table rotation in state first (for immediate UI feedback)
+    setFloors((prev) =>
+      prev.map((floor) => {
+        if (floor.id === activeFloorId) {
+          return {
+            ...floor,
+            tables: floor.tables?.map((t) =>
+              t._id === tableId || t.id === tableId
+                ? { ...t, rotation: newRotation }
+                : t
+            ),
+          };
+        }
+        return floor;
+      })
+    );
+
+    const params = {
+      tableId: table._id,
+      tableNumber: table.tableNumber,
+      floorId: table?.floor?.id || table?.floor,
+      price: table.price,
+      capacity: table.capacity,
+      tableCount: table.tableCount,
+      description: table.description,
+      status: table?.status,
+      xAxis: table?.xAxis,
+      yAxis: table?.yAxis,
+      width: table?.width,
+      height: table?.height,
+      rotation: newRotation,
+    };
+
+    await callApi("POST", "/tables/update", params, {
+      onSuccess: (data) => {
+        console.log("Table rotation saved successfully");
+      },
+      onError: (err) => {
+        console.error(" Error saving table rotation:", err);
+        // Revert rotation on error
+        setFloors((prev) =>
+          prev.map((floor) => {
+            if (floor.id === activeFloorId) {
+              return {
+                ...floor,
+                tables: floor.tables?.map((t) =>
+                  t._id === tableId || t.id === tableId
+                    ? { ...t, rotation: table.rotation || 0 }
+                    : t
+                ),
+              };
+            }
+            return floor;
+          })
+        );
+      },
+    });
+  };
+  // Delete element (table, POI, or boundary wall)
   const handleDeleteSelected = async () => {
     if (!selectedElement || !activeFloorId) return;
 
@@ -451,23 +567,30 @@ function InteractiveTableBooking() {
       return;
     }
 
-    // Check if it's in unsaved changes (local POI or pattern)
+    // Check if it's in unsaved changes (local POI or wall)
     const unsaved = unsavedChangesByFloor[activeFloorId];
     const isUnsavedPoi = unsaved?.pointsOfInterest.some(
       (p) => p.id === selectedElement
     );
+    const isUnsavedWall = unsaved?.boundaryWalls.some(
+      (w) => w.id === selectedElement
+    );
 
-    if (isUnsavedPoi) {
+    if (isUnsavedPoi || isUnsavedWall) {
       // Delete from unsaved changes
       console.log("🗑️ Deleting from unsaved changes");
       setUnsavedChangesByFloor((prev) => {
         const currentUnsaved = prev[activeFloorId] || {
           pointsOfInterest: [],
+          boundaryWalls: [],
         };
 
         const updatedUnsaved = {
           pointsOfInterest: currentUnsaved.pointsOfInterest.filter(
             (p) => p.id !== selectedElement
+          ),
+          boundaryWalls: currentUnsaved.boundaryWalls.filter(
+            (w) => w.id !== selectedElement
           ),
         };
 
@@ -480,12 +603,15 @@ function InteractiveTableBooking() {
       return;
     }
 
-    // Check if it's a server POI or pattern
+    // Check if it's a server POI or wall
     const isServerPoi = serverFloor.pointsOfInterest?.some(
       (p) => p.id === selectedElement
     );
+    const isServerWall = serverFloor.boundaryWalls?.some(
+      (w) => w.id === selectedElement
+    );
 
-    if (isServerPoi) {
+    if (isServerPoi || isServerWall) {
       // Delete from server state and mark as modified
       console.log("🗑️ Deleting from server state");
       setFloors((prev) =>
@@ -495,6 +621,9 @@ function InteractiveTableBooking() {
               ...floor,
               pointsOfInterest: floor.pointsOfInterest?.filter(
                 (p) => p.id !== selectedElement
+              ),
+              boundaryWalls: floor.boundaryWalls?.filter(
+                (w) => w.id !== selectedElement
               ),
             };
           }
@@ -508,8 +637,59 @@ function InteractiveTableBooking() {
       return;
     }
 
-    console.log(" Element not found:", selectedElement);
+    console.log("❌ Element not found:", selectedElement);
     setSelectedElement(null);
+  };
+
+  // Undo last wall (from unsaved changes or server state)
+  const handleUndoWall = () => {
+    if (!activeFloorId) return;
+
+    console.log("↩️ Undoing last wall");
+
+    const unsaved = unsavedChangesByFloor[activeFloorId];
+
+    // First try to remove from unsaved changes
+    if (unsaved && unsaved.boundaryWalls.length > 0) {
+      console.log("🗑️ Removing from unsaved walls");
+      setUnsavedChangesByFloor((prev) => {
+        const currentUnsaved = prev[activeFloorId];
+        return {
+          ...prev,
+          [activeFloorId]: {
+            ...currentUnsaved,
+            boundaryWalls: currentUnsaved.boundaryWalls.slice(0, -1),
+          },
+        };
+      });
+      return;
+    }
+
+    // Otherwise remove from server state
+    const serverFloor = floors.find((f) => f.id === activeFloorId);
+    if (
+      serverFloor &&
+      serverFloor.boundaryWalls &&
+      serverFloor.boundaryWalls.length > 0
+    ) {
+      console.log("🗑️ Removing from server walls");
+      setFloors((prev) =>
+        prev.map((floor) => {
+          if (floor.id === activeFloorId) {
+            return {
+              ...floor,
+              boundaryWalls: floor.boundaryWalls?.slice(0, -1),
+            };
+          }
+          return floor;
+        })
+      );
+
+      // Mark floor as modified
+      setHasModifications((prev) => ({ ...prev, [activeFloorId]: true }));
+    } else {
+      console.log("⚠️ No walls to undo");
+    }
   };
 
   // Save floor setup - merge unsaved changes and send to server
@@ -521,6 +701,7 @@ function InteractiveTableBooking() {
 
     const unsaved = unsavedChangesByFloor[activeFloorId] || {
       pointsOfInterest: [],
+      boundaryWalls: [],
     };
 
     const floorToSave = {
@@ -528,6 +709,10 @@ function InteractiveTableBooking() {
       pointsOfInterest: [
         ...(serverFloor.pointsOfInterest || []),
         ...unsaved.pointsOfInterest,
+      ],
+      boundaryWalls: [
+        ...(serverFloor.boundaryWalls || []),
+        ...unsaved.boundaryWalls,
       ],
     };
 
@@ -552,11 +737,11 @@ function InteractiveTableBooking() {
         // Refresh floors from server
         fetchFloors(UserData.club.id);
 
-        alert("Floor setup saved successfully!");
+        toast.success("Floor setup saved successfully!");
       },
       onError: (err) => {
         console.error("Error saving floor:", err);
-        alert("Failed to save floor setup");
+        toast.error("Failed to save floor setup");
       },
     });
   };
@@ -702,7 +887,10 @@ function InteractiveTableBooking() {
             setActiveTab={setActiveTab}
             onElementPositionUpdate={handleElementPositionUpdate}
             onRotatePOI={handleRotatePOI}
-            onDeletePOI={handleDeleteSelected} // Add this
+            onDeleteElement={handleDeleteSelected}
+            onAddBoundaryWall={handleAddBoundaryWall}
+            onUndoWall={handleUndoWall}
+            handleRotateTable={handleRotateTable}
           />
         </div>
 

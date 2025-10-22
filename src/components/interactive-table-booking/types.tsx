@@ -158,12 +158,12 @@ export interface ApiResponse<T> {
   payLoad: T;
 }
 
-
 export interface CardItem {
   type: string;
   label: string;
   width: number;
   height: number;
+  icon: any;
 }
 export interface NewPoiData {
   name: string;

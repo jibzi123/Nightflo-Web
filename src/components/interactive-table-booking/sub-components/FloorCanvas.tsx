@@ -18,7 +18,10 @@ interface FloorCanvasProps {
     yAxis: number
   ) => void;
   onRotatePOI: (poiId: string) => void;
-  onDeletePOI: (poiId: string) => void;
+  onDeleteElement: () => void;
+  onAddBoundaryWall: (walls: Wall[]) => void;
+  onUndoWall: () => void;
+  handleRotateTable: (tableId: string) => void;
 }
 
 const FloorCanvas: React.FC<FloorCanvasProps> = ({
@@ -29,7 +32,10 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
   setActiveTab,
   onElementPositionUpdate,
   onRotatePOI,
-  onDeletePOI,
+  onDeleteElement,
+  onAddBoundaryWall,
+  onUndoWall,
+  handleRotateTable,
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -57,6 +63,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
   const [wallStyle, setWallStyle] = useState<"solid" | "dotted" | "dashed">(
     "solid"
   );
+  const [hoveredWall, setHoveredWall] = useState<string | null>(null);
 
   const getCanvasSize = () => {
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -101,7 +108,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
     (
       e: React.MouseEvent,
       elementId: string | any,
-      elementType: "table" | "poi" | "design"
+      elementType: "table" | "poi"
     ) => {
       e.preventDefault();
       e.stopPropagation();
@@ -122,28 +129,28 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
     [onElementSelect, setActiveTab]
   );
 
-  const handleResizeStart = useCallback(
-    (e: React.MouseEvent, handle: string) => {
-      e.preventDefault();
-      e.stopPropagation();
+  // const handleResizeStart = useCallback(
+  //   (e: React.MouseEvent, handle: string) => {
+  //     e.preventDefault();
+  //     e.stopPropagation();
 
-      if (!selectedElement) return;
-      if (!floor.tables) return;
+  //     if (!selectedElement) return;
+  //     if (!floor.tables) return;
 
-      const element = [
-        ...floor?.tables,
-        ...(floor?.pointsOfInterest || []),
-      ].find((el) => el.id === selectedElement || el._id === selectedElement);
+  //     const element = [
+  //       ...floor?.tables,
+  //       ...(floor?.pointsOfInterest || []),
+  //     ].find((el) => el.id === selectedElement || el._id === selectedElement);
 
-      if (!element) return;
+  //     if (!element) return;
 
-      setIsResizing(true);
-      setResizeHandle(handle);
-      setInitialSize({ width: element.width, height: element.height });
-      setInitialMousePos({ xAxis: e.clientX, yAxis: e.clientY });
-    },
-    [selectedElement, floor]
-  );
+  //     setIsResizing(true);
+  //     setResizeHandle(handle);
+  //     setInitialSize({ width: element.width, height: element.height });
+  //     setInitialMousePos({ xAxis: e.clientX, yAxis: e.clientY });
+  //   },
+  //   [selectedElement, floor]
+  // );
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
@@ -379,16 +386,8 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       newWalls.push(wall);
     }
 
-    const updatedFloor = {
-      ...floor,
-      walls: [...(floor.walls || []), ...newWalls],
-    };
-
-    console.log(
-      "✅ Wall created successfully. Total walls:",
-      updatedFloor.walls.length
-    );
-    onFloorUpdate(updatedFloor);
+    console.log("✅ Walls created successfully. Total:", newWalls.length);
+    onAddBoundaryWall(newWalls);
 
     setWallPoints([]);
     setIsDrawingWall(false);
@@ -398,7 +397,6 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
   const handleCanvasClick = useCallback(
     (e: React.MouseEvent) => {
       if (!canvasRef.current) return;
-
       const rect = canvasRef.current.getBoundingClientRect();
       console.log(rect, "rect");
       let x = ((e.clientX - rect.left) / rect.width) * 100;
@@ -449,6 +447,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
           to: { x: x.toFixed(2), y: y.toFixed(2) },
         });
       }
+      const walls = floor.boundaryWalls.find((b) => b.id === selectedElement);
 
       if (drawingMode === "wall") {
         console.log("🧱 Adding wall point:", {
@@ -458,6 +457,9 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
         });
         setWallPoints((prev) => [...prev, { x, y }]);
         setIsDrawingWall(true);
+      } else if (drawingMode === "select" && walls) {
+        console.log("✋ Deselecting elements");
+        onElementSelect(null);
       } else if (drawingMode === "select" && e.target === canvasRef.current) {
         console.log("✋ Deselecting elements");
         onElementSelect(null);
@@ -513,27 +515,25 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
   function getTableIcon(table) {
     if (!table) return TableIcons.default;
 
-    let icon;
+    const isReserved = table.status === "reserved";
+    const suffix = isReserved ? "_reserved" : "";
+
+    let iconKey = "default";
 
     if (table.tableType === "circle") {
-      if (table.capacity <= 2) icon = TableIcons["t2_round_indoor"];
-      else if (table.capacity <= 4) icon = TableIcons["t4_round_indoor"];
-      else if (table.capacity <= 6) icon = TableIcons["t6_box_indoor"];
-      else if (table.capacity <= 8) icon = TableIcons["t8_box_indoor"];
-      else icon = TableIcons["t4_box_indoor"];
+      if (table.capacity <= 2) iconKey = `t2_round${suffix}`;
+      else if (table.capacity <= 4) iconKey = `t4_round${suffix}`;
+      else iconKey = `t4_round${suffix}`; // fallback for larger circles
     } else if (table.tableType === "box") {
-      if (table.capacity <= 2) icon = TableIcons["t2_round_indoor"];
-      else if (table.capacity <= 4) icon = TableIcons["t4_box_indoor"];
-      else if (table.capacity <= 6) icon = TableIcons["t6_box_indoor"];
-      else if (table.capacity <= 8) icon = TableIcons["t8_box_indoor"];
-      else if (table.capacity <= 10) icon = TableIcons["t10_box_indoor"];
-      else icon = TableIcons["t4_box_indoor"];
-    } else {
-      icon = TableIcons.default;
+      if (table.capacity <= 4) iconKey = `t4_box${suffix}`;
+      else if (table.capacity <= 8) iconKey = `t8_box${suffix}`;
+      else if (table.capacity <= 10) iconKey = `t10_box${suffix}`;
+      else iconKey = `t4_box${suffix}`; // fallback
     }
 
-    return icon;
+    return TableIcons[iconKey] || TableIcons.default;
   }
+  console.log(selectedElement, "selectedElement");
 
   return (
     <>
@@ -545,9 +545,12 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
         isDrawingWall={isDrawingWall}
         handleFinishWall={handleFinishWall}
         handleCancelWall={handleCancelWall}
+        handleUndoWall={onUndoWall}
         wallPoints={wallPoints}
         wallStyle={wallStyle}
         setWallStyle={setWallStyle}
+        setIsDrawingWall={setIsDrawingWall}
+        setWallPoints={setWallPoints}
       />
       <div className="canvas-container">
         <div
@@ -594,7 +597,6 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
             </defs>
             <rect width="100%" height="100%" fill="url(#grid)" />
           </svg>
-
           {/* Walls Layer */}
           <svg
             style={{
@@ -603,31 +605,92 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
               left: 0,
               width: "100%",
               height: "100%",
-              pointerEvents: "none",
+              pointerEvents: drawingMode === "wall" ? "none" : "auto",
             }}
             viewBox="0 0 100 100"
             preserveAspectRatio="none"
           >
-            {floor?.walls?.map((wall) => {
+            {floor?.boundaryWalls?.map((wall) => {
               const strokeDasharray =
                 wall.style === "dotted"
                   ? "2,3"
                   : wall.style === "dashed"
                   ? "6,4"
                   : undefined;
+              const isSelected = selectedElement === wall.id;
+              const isHovered = hoveredWall === wall.id;
               return (
-                <line
-                  key={wall.id}
-                  x1={wall.startX}
-                  y1={wall.startY}
-                  x2={wall.endX}
-                  y2={wall.endY}
-                  stroke={wall.color}
-                  strokeWidth={wall.thickness}
-                  strokeDasharray={strokeDasharray}
-                  strokeLinecap="round"
-                  vectorEffect="non-scaling-stroke"
-                />
+                <g key={wall.id}>
+                  {/* Invisible wider line for easier clicking - disabled in drawing mode */}
+                  <line
+                    x1={wall.startX}
+                    y1={wall.startY}
+                    x2={wall.endX}
+                    y2={wall.endY}
+                    stroke="transparent"
+                    strokeWidth={Math.max(wall.thickness * 3, 10)}
+                    strokeLinecap="round"
+                    vectorEffect="non-scaling-stroke"
+                    style={{
+                      pointerEvents: drawingMode === "wall" ? "none" : "stroke",
+                      cursor: drawingMode === "wall" ? "default" : "pointer",
+                    }}
+                    onClick={(e) => {
+                      if (drawingMode !== "wall") {
+                        e.stopPropagation();
+                        handleElementMouseDown(e as any, wall.id, "wall");
+                      }
+                    }}
+                    onMouseEnter={() => {
+                      if (drawingMode !== "wall") {
+                        setHoveredWall(wall.id);
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      if (drawingMode !== "wall") {
+                        setHoveredWall(null);
+                      }
+                    }}
+                  />
+
+                  {/* Actual visible wall */}
+                  <line
+                    x1={wall.startX}
+                    y1={wall.startY}
+                    x2={wall.endX}
+                    y2={wall.endY}
+                    stroke={
+                      isSelected && drawingMode !== "wall"
+                        ? "#10b981"
+                        : isHovered && drawingMode !== "wall"
+                        ? "#60a5fa"
+                        : wall.color
+                    }
+                    strokeWidth={wall.thickness}
+                    strokeDasharray={strokeDasharray}
+                    strokeLinecap="round"
+                    vectorEffect="non-scaling-stroke"
+                    style={{ pointerEvents: "none" }}
+                  />
+
+                  {/* Selection indicator - hidden in drawing mode */}
+                  {isSelected && drawingMode !== "wall" && (
+                    <>
+                      <circle
+                        cx={wall.startX}
+                        cy={wall.startY}
+                        r={0.75}
+                        fill="#10b981"
+                      />
+                      <circle
+                        cx={wall.endX}
+                        cy={wall.endY}
+                        r={0.75}
+                        fill="#10b981"
+                      />
+                    </>
+                  )}
+                </g>
               );
             })}
 
@@ -681,10 +744,77 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
             )}
           </svg>
 
+          {/* Delete button for selected wall */}
+          {selectedElement &&
+            drawingMode !== "wall" &&
+            floor.boundaryWalls?.find((w) => w.id === selectedElement) && (
+              <div
+                style={{
+                  position: "absolute",
+                  left: `${
+                    (floor.boundaryWalls.find((w) => w.id === selectedElement)!
+                      .startX +
+                      floor.boundaryWalls.find((w) => w.id === selectedElement)!
+                        .endX) /
+                    2
+                  }%`,
+                  top: `${
+                    (floor.boundaryWalls.find((w) => w.id === selectedElement)!
+                      .startY +
+                      floor.boundaryWalls.find((w) => w.id === selectedElement)!
+                        .endY) /
+                    2
+                  }%`,
+                  transform: "translate(-50%, -50%)",
+                  zIndex: 100,
+                  pointerEvents: "auto",
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteElement(selectedElement);
+                  }}
+                  style={{
+                    width: "28px",
+                    height: "28px",
+                    borderRadius: "50%",
+                    border: "2px solid #ef4444",
+                    background: "#1f2937",
+                    color: "#ef4444",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "20px",
+                    padding: 0,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                    transition: "all 0.2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#ef4444";
+                    e.currentTarget.style.color = "#fff";
+                    e.currentTarget.style.transform = "scale(1.1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "#1f2937";
+                    e.currentTarget.style.color = "#ef4444";
+                    e.currentTarget.style.transform = "scale(1)";
+                  }}
+                  title="Delete Wall"
+                >
+                  ×
+                </button>
+              </div>
+            )}
           {/* Tables */}
           {floor?.tables?.map((table) => {
             const icon = getTableIcon(table);
-
+            const isSelected = selectedElement === table._id;
+            const rotation = table.rotation || 0;
+            // Check if POI is vertical (90° or 270°)
+            const isVertical = rotation === 90 || rotation === 270;
             return (
               <div
                 key={table._id}
@@ -714,7 +844,74 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
                     pointerEvents: "none",
                   }}
                 />
-                {selectedElement === table._id && (
+                {/* Control buttons - only show when selected */}
+                {isSelected && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: isVertical ? "-35px" : "-35px",
+                      right: isVertical ? "50%" : "-5px",
+                      left: isVertical ? "auto" : "auto",
+                      // transform: isVertical
+                      //   ? `translateX(50%) rotate(-${rotation}deg)`
+                      //   : `rotate(-${rotation}deg)`,
+                      display: "flex",
+                      gap: "5px",
+                      zIndex: 20,
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()} // Prevent dragging when clicking buttons
+                  >
+                    {/* Rotate button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRotateTable(table._id);
+                      }}
+                      style={{
+                        width: "20px",
+                        height: "20px",
+                        borderRadius: "50%",
+                        border: "2px solid #10b981",
+                        background: "#1f2937",
+                        color: "#10b981",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "16px",
+                        padding: 0,
+                      }}
+                      title="Rotate 90°"
+                    >
+                      ↻
+                    </button>
+                    {/* Delete button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteElement();
+                      }}
+                      style={{
+                        width: "20px",
+                        height: "20px",
+                        borderRadius: "50%",
+                        border: "2px solid #ef4444",
+                        background: "#1f2937",
+                        color: "#ef4444",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "18px",
+                        padding: 0,
+                      }}
+                      title="Delete"
+                    >
+                      ×
+                    </button>{" "}
+                  </div>
+                )}
+                {/* {selectedElement === table._id && (
                   <>
                     <div
                       className="resize-handle nw"
@@ -733,7 +930,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
                       onMouseDown={(e) => handleResizeStart(e, "se")}
                     />
                   </>
-                )}
+                )} */}
               </div>
             );
           })}
@@ -822,7 +1019,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onDeletePOI(poi.id);
+                        onDeleteElement(poi.id);
                       }}
                       style={{
                         width: "20px",

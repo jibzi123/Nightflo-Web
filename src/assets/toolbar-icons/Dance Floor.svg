@@ -1,0 +1,7 @@
+<svg width="21" height="21" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path className="fillColor strokeColor" d="M11.375 2.625H9.625C6.32517 2.625 4.67526 2.625 3.65012 3.65012C2.625 4.67526 2.625 6.32517 2.625 9.625V11.375C2.625 14.6748 2.625 16.3248 3.65012 17.3498C4.67526 18.375 6.32517 18.375 9.625 18.375H11.375C14.6748 18.375 16.3248 18.375 17.3498 17.3498C18.375 16.3248 18.375 14.6748 18.375 11.375V9.625C18.375 6.32517 18.375 4.67526 17.3498 3.65012C16.3248 2.625 14.6748 2.625 11.375 2.625Z" stroke="white" stroke-width="0.875" stroke-linecap="round" stroke-linejoin="round"/>
+<path className="fillColor strokeColor" d="M7.875 2.625V18.375" stroke="white" stroke-width="0.875" stroke-linecap="round" stroke-linejoin="round"/>
+<path className="fillColor strokeColor" d="M13.125 2.625V18.375" stroke="white" stroke-width="0.875" stroke-linecap="round" stroke-linejoin="round"/>
+<path className="fillColor strokeColor" d="M18.3751 7.875H2.62512" stroke="white" stroke-width="0.875" stroke-linecap="round" stroke-linejoin="round"/>
+<path className="fillColor strokeColor" d="M18.3751 13.125H2.62512" stroke="white" stroke-width="0.875" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

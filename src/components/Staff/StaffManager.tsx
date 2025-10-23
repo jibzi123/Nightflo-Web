@@ -350,8 +350,15 @@ const StaffManager: React.FC = () => {
           eventName: ev.eventName,
         }));
 
+        // Insert "All Events" option at the very top
+        allEvents.unshift({ id: undefined, eventName: "All Events" });
+
+        // Store the list
         setClubEvents(allEvents);
-        if (allEvents.length > 0) setEventFilter(allEvents[0].id);
+
+        // Set the default filter to undefined (so it fetches all)
+        setEventFilter(undefined);
+        //if (allEvents.length > 0) setEventFilter(allEvents[0].id);
       } catch (err) {
         console.error("Failed to fetch events:", err);
       } finally {
@@ -371,7 +378,8 @@ const StaffManager: React.FC = () => {
 
         const role = roleFilter !== "all" ? roleFilter : undefined;
         const status = statusFilter !== "all" ? statusFilter : undefined;
-        const eventId = eventFilter || undefined;
+        debugger
+        const eventId = eventFilter == "All Events" ? undefined : eventFilter || undefined;
 
         const res = await apiClient.getStaffByClubId(
           user.club.id,

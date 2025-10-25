@@ -1,10 +1,5 @@
 import React from "react";
-import { Floor } from "../types";
-
-type Position = {
-  x: number;
-  y: number;
-};
+import { Floor } from "../interactive-table-booking/types";
 
 interface FloorManagerProps {
   activeFloor: Floor;

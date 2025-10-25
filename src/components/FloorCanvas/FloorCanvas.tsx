@@ -1,8 +1,10 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
-import { Floor, PointOfInterest, UserData, Wall } from "./../types";
-import { useApi } from "../../../utils/custom-hooks/useApi";
-import { POIIcons, TableIcons } from "../../../utils/canvasIcons";
+import { Floor, UserData, Wall } from "./../interactive-table-booking/types";
+import { useApi } from "../../utils/custom-hooks/useApi";
+import { POIIcons, TableIcons } from "../../utils/canvasIcons";
 import FloorToolbar from "./Toolbar";
+import GridOverlay from "./GridOverlay";
+import { snapToAngle, snapToGrid } from "./SnapUtitilies";
 
 interface FloorCanvasProps {
   floor: Floor;
@@ -70,40 +72,6 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
     return { width: rect?.width ?? 1, height: rect?.height ?? 1 };
   };
 
-  // Snapping utilities
-  const snapToGrid = (value: number, gridSize: number = 2.5) => {
-    return Math.round(value / gridSize) * gridSize;
-  };
-
-  const snapToAngle = (
-    startPoint: { x: number; y: number },
-    endPoint: { x: number; y: number },
-    snapAngles: number[] = [0, 45, 90, 135, 180]
-  ) => {
-    const dx = endPoint.x - startPoint.x;
-    const dy = endPoint.y - startPoint.y;
-    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-
-    let closestAngle = snapAngles[0];
-    let minDiff = Math.abs(angle - closestAngle);
-
-    for (const snapAngle of snapAngles) {
-      const diff = Math.abs(angle - snapAngle);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closestAngle = snapAngle;
-      }
-    }
-
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    const radians = closestAngle * (Math.PI / 180);
-
-    return {
-      x: startPoint.x + distance * Math.cos(radians),
-      y: startPoint.y + distance * Math.sin(radians),
-    };
-  };
-
   const handleElementMouseDown = useCallback(
     (
       e: React.MouseEvent,
@@ -124,6 +92,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       setIsDragging(true);
 
       setActiveTab("tables");
+      console.log("I am running");
       onElementSelect(elementId);
     },
     [onElementSelect, setActiveTab]
@@ -167,7 +136,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
       if (!selectedElement) return;
 
       const { width: canvasWidth, height: canvasHeight } = getCanvasSize();
-
+      console.log(canvasWidth, canvasHeight, "canvas size");
       if (isResizing && resizeHandle) {
         const deltaX = e.clientX - initialMousePos.xAxis;
         const deltaY = e.clientY - initialMousePos.yAxis;
@@ -448,7 +417,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
         });
       }
       const walls = floor.boundaryWalls.find((b) => b.id === selectedElement);
-
+      console.log(drawingMode, e.target, canvasRef.current, "drawingMode");
       if (drawingMode === "wall") {
         console.log("🧱 Adding wall point:", {
           x: x.toFixed(2),
@@ -568,35 +537,8 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
             cursor: drawingMode === "wall" ? "crosshair" : "default",
           }}
         >
-          {/* Grid overlay */}
-          <svg
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              pointerEvents: "none",
-              opacity: 0.1,
-            }}
-          >
-            <defs>
-              <pattern
-                id="grid"
-                width="20"
-                height="20"
-                patternUnits="userSpaceOnUse"
-              >
-                <path
-                  d="M 20 0 L 0 0 0 20"
-                  fill="none"
-                  stroke="#cfc2c2ff"
-                  strokeWidth="1"
-                />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-          </svg>
+          <GridOverlay />
+         
           {/* Walls Layer */}
           <svg
             style={{
@@ -638,6 +580,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
                     onClick={(e) => {
                       if (drawingMode !== "wall") {
                         e.stopPropagation();
+                        console.log("yes comign from here");
                         handleElementMouseDown(e as any, wall.id, "wall");
                       }
                     }}
@@ -774,7 +717,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onDeleteElement(selectedElement);
+                    onDeleteElement();
                   }}
                   style={{
                     width: "28px",
@@ -808,6 +751,13 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
                 </button>
               </div>
             )}
+          {/* <TablesLayer
+            floor={floor}
+            selectedElement={selectedElement}
+            handleElementMouseDown={handleElementMouseDown}
+            handleRotateTable={handleRotateTable}
+            onDeleteElement={onDeleteElement}
+          /> */}
           {/* Tables */}
           {floor?.tables?.map((table) => {
             const icon = getTableIcon(table);
@@ -830,9 +780,10 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
                   position: "absolute",
                   zIndex: 20,
                 }}
-                onMouseDown={(e) =>
-                  handleElementMouseDown(e, table._id, "table")
-                }
+                onMouseDown={(e) => {
+                  console.log("coming from tab"),
+                    handleElementMouseDown(e, table._id, "table");
+                }}
               >
                 <img
                   src={icon}
@@ -947,10 +898,12 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
                 key={poi.id}
                 className={`poi-element ${isSelected ? "selected" : ""}`}
                 style={{
+                  // left: `calc(${poi.xAxis}% - ${poi.width}% / 2)`,
+                  // top: `calc(${poi.yAxis}% - ${poi.width}% / 2)`,
                   left: `${poi.xAxis}%`,
                   top: `${poi.yAxis}%`,
-                  width: poi.width ? `${poi.width}px` : "",
-                  height: poi.height ? `${poi.height}px` : "",
+                  width: `${poi.width}px`,
+                  height: `${poi.height}px`,
                   position: "absolute",
                   zIndex: 10,
                   transform: `rotate(${poi.rotation || 0}deg)`,
@@ -1019,7 +972,7 @@ const FloorCanvas: React.FC<FloorCanvasProps> = ({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onDeleteElement(poi.id);
+                        onDeleteElement();
                       }}
                       style={{
                         width: "20px",

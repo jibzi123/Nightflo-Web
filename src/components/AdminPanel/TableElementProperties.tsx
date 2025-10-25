@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Table } from "../types";
-import { validateTable } from "../../../utils/tableUtil";
+import { Table } from "../interactive-table-booking/types";
+import { validateTable } from "../../utils/tableUtil";
 
 // --- Types ---
 export type TableCategory = "standard" | "vip" | "premium";

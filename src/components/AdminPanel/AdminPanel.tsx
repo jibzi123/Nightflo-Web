@@ -4,13 +4,12 @@ import {
   Table,
   ClubHours,
   UserData,
-  PointOfInterest,
   NewPoiData,
-} from "../types";
+} from "../interactive-table-booking/types";
 import TableElementProperties from "./TableElementProperties";
 import FloorManager from "./FloorManager";
-import { useApi } from "../../../utils/custom-hooks/useApi";
-import { getRandomPercent } from "../../../utils/tableUtil";
+import { useApi } from "../../utils/custom-hooks/useApi";
+import { getRandomPercent } from "../../utils/tableUtil";
 import POICardGrid from "./POICardGrid";
 
 interface AdminPanelProps {
@@ -74,11 +73,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     selectedElement && activeFloor?.tables
       ? activeFloor?.tables.find((t) => t._id === selectedElement)
       : null;
-
-  // const selectedPoi = selectedElement
-  //   ? activeFloor?.pointsOfInterest?.find((p) => p.id === selectedElement)
-  //   : null;
-
 
   useEffect(() => {
     if (selectedTable) {

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import AdminPanel from "./sub-components/AdminPanel";
-import FloorCanvas from "./sub-components/FloorCanvas";
-import ReservationsPanel from "./sub-components/ReservationsPanel";
+import AdminPanel from "./../AdminPanel/AdminPanel";
+import FloorCanvas from "./../FloorCanvas/FloorCanvas";
+import ReservationsPanel from "../ReservationPanel/ReservationsPanel";
 import "./style.css";
 import {
   ClubHours,

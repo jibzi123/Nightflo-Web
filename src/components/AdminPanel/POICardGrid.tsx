@@ -1,22 +1,25 @@
 import React, { useState } from "react";
-import { CardItem, NewPoiData, PointOfInterest } from "../types";
+import {
+  CardItem,
+  NewPoiData,
+  PointOfInterest,
+} from "../interactive-table-booking/types";
 
-// 🖼️ Import SVG icons
-import CircularBarIcon from "./../../../assets/toolbar-icons/Circular Bar.svg";
-import DanceFloorIcon from "./../../../assets/toolbar-icons/Dance Floor.svg";
-import DJBoothIcon from "./../../../assets/toolbar-icons/DJ Booth.svg";
-import DoubleSofaIcon from "./../../../assets/toolbar-icons/Double Sofa.svg";
-import HelpDeskIcon from "./../../../assets/toolbar-icons/Help Desk.svg";
-import MainBarIcon from "./../../../assets/toolbar-icons/Main Bar.svg";
-import MainEntranceIcon from "./../../../assets/toolbar-icons/Main Entrance.svg";
-import MiniBarIcon from "./../../../assets/toolbar-icons/Mini Bar.svg";
-import RectangularPillarIcon from "./../../../assets/toolbar-icons/Rectangular Pillar.svg";
-import RoundPillarIcon from "./../../../assets/toolbar-icons/Round Pillar.svg";
-import SingleDoorIcon from "./../../../assets/toolbar-icons/Single Door.svg";
-import SingleSofaIcon from "./../../../assets/toolbar-icons/Single Sofa.svg";
-import TripleSofaIcon from "./../../../assets/toolbar-icons/Triple Sofa.svg";
-import StairsIcon from "./../../../assets/toolbar-icons/Stairs.svg";
-import WashroomIcon from "./../../../assets/toolbar-icons/Washroom.svg";
+import CircularBarIcon from "./../../assets/toolbar-icons/Circular Bar.svg";
+import DanceFloorIcon from "./../../assets/toolbar-icons/Dance Floor.svg";
+import DJBoothIcon from "./../../assets/toolbar-icons/DJ Booth.svg";
+import DoubleSofaIcon from "./../../assets/toolbar-icons/Double Sofa.svg";
+import HelpDeskIcon from "./../../assets/toolbar-icons/Help Desk.svg";
+import MainBarIcon from "./../../assets/toolbar-icons/Main Bar.svg";
+import MainEntranceIcon from "./../../assets/toolbar-icons/Main Entrance.svg";
+import MiniBarIcon from "./../../assets/toolbar-icons/Mini Bar.svg";
+import RectangularPillarIcon from "./../../assets/toolbar-icons/Rectangular Pillar.svg";
+import RoundPillarIcon from "./../../assets/toolbar-icons/Round Pillar.svg";
+import SingleDoorIcon from "./../../assets/toolbar-icons/Single Door.svg";
+import SingleSofaIcon from "./../../assets/toolbar-icons/Single Sofa.svg";
+import TripleSofaIcon from "./../../assets/toolbar-icons/Triple Sofa.svg";
+import StairsIcon from "./../../assets/toolbar-icons/Stairs.svg";
+import WashroomIcon from "./../../assets/toolbar-icons/Washroom.svg";
 
 interface POICardGridProps {
   setNewPoiData: (d: NewPoiData) => void;

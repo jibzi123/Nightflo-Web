@@ -108,7 +108,7 @@ export interface Floor {
 }
 
 export interface Table {
-  id?: string; // optional until saved
+  _id?: string; // optional until saved
   club?: string;
   tableNumber: string;
   tableType: string;

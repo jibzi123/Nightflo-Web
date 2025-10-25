@@ -1,5 +1,5 @@
 import React from "react";
-import { Reservation, Floor } from "./../types";
+import { Reservation, Floor } from "../interactive-table-booking/types";
 
 interface ReservationsPanelProps {
   reservations: Reservation[];
@@ -18,10 +18,10 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
     "tables" | "pois" | "reservations"
   >("tables");
 
-  const confirmedReservations = reservations.filter(
+  const confirmedReservations = reservations?.filter(
     (r) => r.status === "confirmed"
   );
-  const pendingReservations = reservations.filter(
+  const pendingReservations = reservations?.filter(
     (r) => r.status === "pending"
   );
   const totalRevenue = confirmedReservations.reduce(
@@ -31,10 +31,10 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
 
   const availableTables =
     activeFloor?.tables &&
-    activeFloor.tables.filter((t) => t.status === "available");
+    activeFloor?.tables.filter((t) => t.status === "available");
   const reservedTables =
     activeFloor?.tables &&
-    activeFloor.tables.filter((t) => t.status === "inactive");
+    activeFloor?.tables.filter((t) => t.status === "inactive");
   // const occupiedTables =
   //   activeFloor?.tables &&
   //   activeFloor.tables.filter((t) => t.status === "active");
@@ -48,7 +48,7 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
               `${activeFloor?.tables && activeFloor?.tables.length} Tables`}
             {activeTab === "pois" &&
               `${
-                activeFloor.tables && activeFloor?.pointsOfInterest?.length
+                activeFloor?.tables && activeFloor?.pointsOfInterest?.length
               } POIs`}
             {activeTab === "reservations" &&
               `Revenue: Dh ${totalRevenue.toLocaleString()}`}

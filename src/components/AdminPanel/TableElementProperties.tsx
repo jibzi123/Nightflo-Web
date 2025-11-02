@@ -168,7 +168,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                   )}
                 </div>
               </div>
-
+{/* 
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Width</label>
@@ -204,7 +204,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
                     <div className="error">{editTableErrors.height}</div>
                   )}
                 </div>
-              </div>
+              </div> */}
 
               <div className="form-group">
                 <label className="form-label">Status</label>
@@ -329,7 +329,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
           </div>
         </div>
 
-        <div className="form-row">
+        {/* <div className="form-row">
           <div className="form-group">
             <label className="form-label">Width</label>
             <input
@@ -366,7 +366,7 @@ const TableElementProperties: React.FC<ElementPropertiesProps> = ({
               <div className="error">{newTableErrors.height}</div>
             )}
           </div>
-        </div>
+        </div> */}
 
         <div className="form-group">
           <label className="form-label">Special Features</label>

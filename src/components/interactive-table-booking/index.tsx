@@ -4,20 +4,15 @@ import FloorCanvas from "./../FloorCanvas/FloorCanvas";
 import ReservationsPanel from "../ReservationPanel/ReservationsPanel";
 import "./style.css";
 import {
-  ClubHours,
   Floor,
   Reservation,
   UserData,
   PointOfInterest,
   Wall,
+  UnsavedChanges,
 } from "./types";
 import { useApi } from "../../utils/custom-hooks/useApi";
 import { toast } from "react-toastify";
-
-interface UnsavedChanges {
-  pointsOfInterest: PointOfInterest[];
-  boundaryWalls: Wall[];
-}
 
 function InteractiveTableBooking() {
   const [activeFloorId, setActiveFloorId] = useState<string>(
@@ -25,28 +20,20 @@ function InteractiveTableBooking() {
   );
   const storedUser = localStorage.getItem("userData");
 
-  // Server state - floors from API
-  const [floors, setFloors] = useState<Floor[]>([]);
+  const [floors, setFloors] = useState<Floor[]>([]); // Server state - floors from API
 
-  // Local state - unsaved changes per floor
   const [unsavedChangesByFloor, setUnsavedChangesByFloor] = useState<
     Record<string, UnsavedChanges>
-  >({});
+  >({}); // Local state - unsaved changes per floor
 
-  // Track if there are any modifications (new items or position/size changes)
   const [hasModifications, setHasModifications] = useState<
     Record<string, boolean>
-  >({});
+  >({}); // Track if there are any modifications (new items or position/size changes)
 
-  // Guard to prevent duplicate additions
-  const [isAddingPoi, setIsAddingPoi] = useState(false);
+  const [isAddingPoi, setIsAddingPoi] = useState(false); // Guard to prevent duplicate additions
 
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
-  const [clubHours] = useState<ClubHours>({
-    openTime: "22:00",
-    closeTime: "04:00",
-    isOpen: true,
-  });
+
   const [activeTab, setActiveTab] = useState<"tables" | "floors" | "settings">(
     "tables"
   );
@@ -59,6 +46,7 @@ function InteractiveTableBooking() {
     tableCount: 0,
     tableType: "circle",
     description: "",
+    rotation: 90,
   });
   const [editableTable, setEditableTable] = useState({
     tableNumber: "",
@@ -69,6 +57,7 @@ function InteractiveTableBooking() {
     tableCount: 0,
     tableType: "",
     description: "",
+    rotation: 90,
   });
   const [newPoiData, setNewPoiData] = useState({
     name: "",
@@ -80,7 +69,7 @@ function InteractiveTableBooking() {
   const UserData: UserData | null = storedUser
     ? (JSON.parse(storedUser) as UserData)
     : null;
-  const { loading, callApi } = useApi();
+  const { callApi } = useApi();
 
   const [reservations] = useState<Reservation[]>([]);
 
@@ -168,8 +157,6 @@ function InteractiveTableBooking() {
   // Update floor - only for server-synced changes (tables, floor properties)
   // IMPORTANT: Do NOT use this for POIs or boundary walls - use unsaved state instead
   const updateFloor = (updatedFloor: Floor) => {
-    console.log("⚠️ updateFloor called - preserving POIs/walls from server");
-
     setFloors((prevFloors) =>
       prevFloors.map((f) => {
         if (f.id === updatedFloor.id) {
@@ -191,11 +178,10 @@ function InteractiveTableBooking() {
     xAxis: number,
     yAxis: number
   ) => {
-    console.log("📍 Position update:", elementId, { xAxis, yAxis });
+    console.log(" Position update:", elementId, { xAxis, yAxis });
 
     if (!activeFloorId) return;
 
-    // Mark floor as modified
     setHasModifications((prev) => ({ ...prev, [activeFloorId]: true }));
 
     const serverFloor = floors.find((f) => f.id === activeFloorId);
@@ -260,10 +246,10 @@ function InteractiveTableBooking() {
 
   // Add POI - store in unsaved changes for active floor
   const handleAddPoi = (newPOI: any) => {
-    console.log("🔵 handleAddPoi called", { activeFloorId, isAddingPoi });
+    console.log(" handleAddPoi called", { activeFloorId, isAddingPoi });
 
     if (!activeFloorId || isAddingPoi) {
-      console.log("❌ Blocked - already adding or no active floor");
+      console.log(" Blocked - already adding or no active floor");
       return;
     }
 
@@ -280,7 +266,7 @@ function InteractiveTableBooking() {
       rotation: 0,
     };
 
-    console.log("✅ Adding new POI:", newPoi.id);
+    console.log("Adding new POI:", newPoi.id);
 
     setUnsavedChangesByFloor((prev) => {
       const currentUnsaved = prev[activeFloorId] || {
@@ -289,7 +275,7 @@ function InteractiveTableBooking() {
       };
 
       console.log(
-        "📊 Current unsaved POIs:",
+        " Current unsaved POIs:",
         currentUnsaved.pointsOfInterest.length
       );
 
@@ -302,7 +288,7 @@ function InteractiveTableBooking() {
       };
 
       console.log(
-        "📊 Updated unsaved POIs:",
+        " Updated unsaved POIs:",
         updated[activeFloorId].pointsOfInterest.length
       );
 
@@ -317,10 +303,10 @@ function InteractiveTableBooking() {
 
   // Add boundary wall - store in unsaved changes for active floor
   const handleAddBoundaryWall = (newWalls: Wall[]) => {
-    console.log("🧱 Adding boundary walls:", newWalls.length);
+    console.log(" Adding boundary walls:", newWalls.length);
 
     if (!activeFloorId) {
-      console.log("❌ No active floor");
+      console.log(" No active floor");
       return;
     }
 
@@ -331,7 +317,7 @@ function InteractiveTableBooking() {
       };
 
       console.log(
-        "📊 Current unsaved walls:",
+        " Current unsaved walls:",
         currentUnsaved.boundaryWalls.length
       );
 
@@ -344,7 +330,7 @@ function InteractiveTableBooking() {
       };
 
       console.log(
-        "📊 Updated unsaved walls:",
+        "Updated unsaved walls:",
         updated[activeFloorId].boundaryWalls.length
       );
 
@@ -357,7 +343,7 @@ function InteractiveTableBooking() {
 
   // Update POI position/properties in unsaved changes
   const updateSelectedPoi = (updates: Partial<PointOfInterest>) => {
-    console.log("🔄 Updating POI:", selectedElement, updates);
+    console.log(" Updating POI:", selectedElement, updates);
 
     if (!selectedElement || !activeFloorId) return;
 
@@ -410,7 +396,7 @@ function InteractiveTableBooking() {
   const handleRotatePOI = (poiId: string) => {
     if (!activeFloorId) return;
 
-    console.log("🔄 Rotating POI:", poiId);
+    console.log("Rotating POI:", poiId);
 
     // Mark floor as modified
     setHasModifications((prev) => ({ ...prev, [activeFloorId]: true }));
@@ -464,7 +450,7 @@ function InteractiveTableBooking() {
   const handleRotateTable = async (tableId: string) => {
     if (!activeFloorId) return;
 
-    console.log("🔄 Rotating table:", tableId);
+    console.log(" Rotating table:", tableId);
 
     const serverFloor = floors.find((f) => f.id === activeFloorId);
     if (!serverFloor) return;
@@ -578,7 +564,7 @@ function InteractiveTableBooking() {
 
     if (isUnsavedPoi || isUnsavedWall) {
       // Delete from unsaved changes
-      console.log("🗑️ Deleting from unsaved changes");
+      console.log("Deleting from unsaved changes");
       setUnsavedChangesByFloor((prev) => {
         const currentUnsaved = prev[activeFloorId] || {
           pointsOfInterest: [],
@@ -613,7 +599,7 @@ function InteractiveTableBooking() {
 
     if (isServerPoi || isServerWall) {
       // Delete from server state and mark as modified
-      console.log("🗑️ Deleting from server state");
+      console.log("Deleting from server state");
       setFloors((prev) =>
         prev.map((floor) => {
           if (floor.id === activeFloorId) {
@@ -637,7 +623,7 @@ function InteractiveTableBooking() {
       return;
     }
 
-    console.log("❌ Element not found:", selectedElement);
+    console.log(" Element not found:", selectedElement);
     setSelectedElement(null);
   };
 
@@ -645,7 +631,7 @@ function InteractiveTableBooking() {
   const handleUndoWall = () => {
     if (!activeFloorId) return;
 
-    console.log("↩️ Undoing last wall");
+    console.log(" Undoing last wall");
 
     const unsaved = unsavedChangesByFloor[activeFloorId];
 
@@ -672,7 +658,7 @@ function InteractiveTableBooking() {
       serverFloor.boundaryWalls &&
       serverFloor.boundaryWalls.length > 0
     ) {
-      console.log("🗑️ Removing from server walls");
+      console.log(" Removing from server walls");
       setFloors((prev) =>
         prev.map((floor) => {
           if (floor.id === activeFloorId) {
@@ -688,7 +674,7 @@ function InteractiveTableBooking() {
       // Mark floor as modified
       setHasModifications((prev) => ({ ...prev, [activeFloorId]: true }));
     } else {
-      console.log("⚠️ No walls to undo");
+      console.log(" No walls to undo");
     }
   };
 
@@ -874,7 +860,7 @@ function InteractiveTableBooking() {
                 onClick={saveFloorSetup}
                 // disabled={!hasUnsavedChanges(activeFloorId)}
               >
-                💾 Save Changes
+                Save Changes
                 {hasUnsavedChanges(activeFloorId) && " *"}
               </button>
             </div>

@@ -23,13 +23,14 @@ const POILayer: React.FC<POILayerProps> = ({
   onDeleteElement,
 }) => {
   return (
-    <div style={{ position: "absolute", inset: 0, pointerEvents: "auto" }}>
+    <div>
       {floor?.pointsOfInterest?.map((poi) => {
         const Icon = POIIcons[poi.type] || POIIcons.default;
         const isSelected = selectedElement === poi.id;
         const rotation = poi.rotation || 0;
-        const isVertical = rotation === 90 || rotation === 270;
 
+        // Check if POI is vertical (90° or 270°)
+        const isVertical = rotation === 90 || rotation === 270;
         return (
           <div
             key={poi.id}
@@ -37,8 +38,6 @@ const POILayer: React.FC<POILayerProps> = ({
             style={{
               left: `${poi.xAxis}%`,
               top: `${poi.yAxis}%`,
-              width: poi.width ? `${poi.width}px` : "",
-              height: poi.height ? `${poi.height}px` : "",
               position: "absolute",
               zIndex: 10,
               transform: `rotate(${poi.rotation || 0}deg)`,
@@ -46,21 +45,25 @@ const POILayer: React.FC<POILayerProps> = ({
               alignItems: "center",
               justifyContent: "center",
               cursor: "grab",
+              pointerEvents: "auto",
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation(); // Prevent canvas click event
+              handleElementMouseDown(e, poi.id, "poi");
             }}
             title={poi.name}
-            onMouseDown={(e) => handleElementMouseDown(e, poi.id, "poi")}
           >
             <img
               src={Icon}
               alt={poi.type}
               style={{
-                width: "100%",
-                height: "100%",
+                width: `${poi.width}px`,
+                height: `${poi.height}px`,
                 objectFit: "contain",
                 pointerEvents: "none",
               }}
             />
-            {isSelected && (
+            {selectedElement && selectedElement === poi.id && (
               <ElementControlButtons
                 isVertical={isVertical}
                 selectedElement={poi.id}

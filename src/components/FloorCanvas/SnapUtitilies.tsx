@@ -43,3 +43,75 @@ export const snapToAngle = (
     y: startPoint.y + distance * Math.sin(radians),
   };
 };
+
+export const TABLE_CONFIG = {
+  circle: [
+    {
+      range: [1, 2],
+      iconKey: "t2_round",
+      width: 50,
+      height: 50,
+    },
+    {
+      range: [3, 6],
+      iconKey: "t4_round",
+      width: 50,
+      height: 50,
+    },
+    {
+      range: [7, 12],
+      iconKey: "t4_round", // fallback
+      width: 50,
+      height: 50,
+    },
+  ],
+
+  box: [
+    {
+      range: [1, 4],
+      iconKey: "t4_box",
+      width: 50,
+      height: 50,
+    },
+    {
+      range: [5, 8],
+      iconKey: "t8_box",
+      width: 95,
+      height: 45,
+    },
+    {
+      range: [9, 12],
+      iconKey: "t10_box",
+      width: 95,
+      height: 45,
+    },
+  ],
+};
+import { TableIcons } from "../../utils/canvasIcons";
+
+export function getTableProperties(table) {
+  if (!table) {
+    return { icon: TableIcons.default, width: 60, height: 60 };
+  }
+
+  const isReserved = table.status === "reserved";
+  const suffix = isReserved ? "_reserved" : "";
+
+  const shapeConfig = TABLE_CONFIG[table.tableType];
+  if (!shapeConfig) {
+    return { icon: TableIcons.default, width: 60, height: 60 };
+  }
+
+  // find the config whose range matches the capacity
+  const matched = shapeConfig.find(
+    (cfg) => table.capacity >= cfg.range[0] && table.capacity <= cfg.range[1]
+  );
+
+  const iconKey = matched ? `${matched.iconKey}${suffix}` : `default`;
+
+  return {
+    icon: TableIcons[iconKey] || TableIcons.default,
+    width: matched?.width || 60,
+    height: matched?.height || 60,
+  };
+}

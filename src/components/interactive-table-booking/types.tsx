@@ -12,6 +12,11 @@
 //   tableType: "standard" | "vip" | "premium";
 //   description: string;
 // }
+
+export interface UnsavedChanges {
+  pointsOfInterest: PointOfInterest[];
+  boundaryWalls: Wall[];
+}
 export interface Wall {
   id: string;
   startX: number;

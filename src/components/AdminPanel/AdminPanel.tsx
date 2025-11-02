@@ -11,6 +11,7 @@ import FloorManager from "./FloorManager";
 import { useApi } from "../../utils/custom-hooks/useApi";
 import { getRandomPercent } from "../../utils/tableUtil";
 import POICardGrid from "./POICardGrid";
+import { getTableProperties } from "../FloorCanvas/SnapUtitilies";
 
 interface AdminPanelProps {
   floors: Floor[];
@@ -100,8 +101,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         tableCount,
         xAxis: getRandomPercent(),
         yAxis: getRandomPercent(),
-        width: newTableData.width,
-        height: newTableData.height,
+        // width: newTableData.width,
+        // height: newTableData.height,
         price: newTableData.price,
         capacity: newTableData.capacity,
         rotation: 0,
@@ -110,8 +111,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         floorId: activeFloor.id,
         clubId: UserData?.club.id,
       };
+      const { width, height } = getTableProperties(newTable);
+      const payload = {
+        ...newTable,
+        width,
+        height,
+      };
 
-      await callApi("POST", "/tables/create", newTable, {
+      await callApi("POST", "/tables/create", payload, {
         onSuccess: (data) => {
           console.log("Table Added:", data);
           setNewTableData({});
@@ -148,6 +155,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       yAxis: editableTable.yAxis,
       width: editableTable.width,
       height: editableTable.height,
+      rotation: editableTable.rotation,
     };
 
     await callApi("POST", "/tables/update", params, {

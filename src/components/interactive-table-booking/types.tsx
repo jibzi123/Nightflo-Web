@@ -13,10 +13,33 @@
 //   description: string;
 // }
 
+export interface UnsavedChanges {
+  pointsOfInterest: PointOfInterest[];
+  boundaryWalls: Wall[];
+}
+export interface Wall {
+  id: string;
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+  thickness: number;
+  color: string;
+  style?: "solid" | "dotted" | "dashed";
+}
 export interface PointOfInterest {
   id: string;
   name: string;
-  type: "bar" | "stage" | "dj" | "entry" | "vip" | "restroom";
+  type:
+    | "main-bar"
+    | "mini-bar"
+    | "circular-bar"
+    | "dj-booth"
+    | "dancing-floor"
+    | "front-desk"
+    | "double-sofa"
+    | "single-sofa"
+    | "triple-sofa";
   x: number;
   y: number;
   width: number;
@@ -90,7 +113,7 @@ export interface Floor {
 }
 
 export interface Table {
-  id?: string; // optional until saved
+  _id?: string; // optional until saved
   club?: string;
   tableNumber: string;
   tableType: string;
@@ -138,4 +161,18 @@ interface Club {
 export interface ApiResponse<T> {
   statusCode: number;
   payLoad: T;
+}
+
+export interface CardItem {
+  type: string;
+  label: string;
+  width: number;
+  height: number;
+  icon: any;
+}
+export interface NewPoiData {
+  name: string;
+  type: PointOfInterest["type"];
+  width: number | string;
+  height: number | string;
 }

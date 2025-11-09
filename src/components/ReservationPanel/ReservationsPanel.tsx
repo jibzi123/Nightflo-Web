@@ -1,5 +1,5 @@
 import React from "react";
-import { Reservation, Floor } from "./../types";
+import { Reservation, Floor } from "../interactive-table-booking/types";
 
 interface ReservationsPanelProps {
   reservations: Reservation[];
@@ -18,10 +18,10 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
     "tables" | "pois" | "reservations"
   >("tables");
 
-  const confirmedReservations = reservations.filter(
+  const confirmedReservations = reservations?.filter(
     (r) => r.status === "confirmed"
   );
-  const pendingReservations = reservations.filter(
+  const pendingReservations = reservations?.filter(
     (r) => r.status === "pending"
   );
   const totalRevenue = confirmedReservations.reduce(
@@ -31,10 +31,10 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
 
   const availableTables =
     activeFloor?.tables &&
-    activeFloor.tables.filter((t) => t.status === "available");
+    activeFloor?.tables.filter((t) => t.status === "available");
   const reservedTables =
     activeFloor?.tables &&
-    activeFloor.tables.filter((t) => t.status === "inactive");
+    activeFloor?.tables.filter((t) => t.status === "inactive");
   // const occupiedTables =
   //   activeFloor?.tables &&
   //   activeFloor.tables.filter((t) => t.status === "active");
@@ -46,7 +46,10 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
           <div className="stat">
             {activeTab === "tables" &&
               `${activeFloor?.tables && activeFloor?.tables.length} Tables`}
-            {/* {activeTab === 'pois' && `${activeFloor.tables && activeFloor.pointsOfInterest.length} POIs`} */}
+            {activeTab === "pois" &&
+              `${
+                activeFloor?.tables && activeFloor?.pointsOfInterest?.length
+              } POIs`}
             {activeTab === "reservations" &&
               `Revenue: Dh ${totalRevenue.toLocaleString()}`}
           </div>
@@ -60,12 +63,13 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
         >
           Tables
         </button>
-        {/* <button
-          className={`admin-tab ${activeTab === 'pois' ? 'active' : ''}`}
-          onClick={() => setActiveTab('pois')}
+        <button
+          className={`admin-tab ${activeTab === "pois" ? "active" : ""}`}
+          onClick={() => setActiveTab("pois")}
         >
           POIs
-        </button> */}
+        </button>
+
         <button
           className={`admin-tab ${
             activeTab === "reservations" ? "active" : ""
@@ -88,9 +92,9 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
                   <div
                     key={table.id}
                     className={`reservation-item available ${
-                      selectedElement === table.id ? "selected-item" : ""
+                      selectedElement === table._id ? "selected-item" : ""
                     }`}
-                    onClick={() => onElementSelect(table.id)}
+                    onClick={() => onElementSelect(table._id)}
                   >
                     <div className="customer-name">{table.tableNumber}</div>
                     <div className="reservation-details">
@@ -123,9 +127,9 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
                   <div
                     key={table.id}
                     className={`reservation-item reserved ${
-                      selectedElement === table.id ? "selected-item" : ""
+                      selectedElement === table._id ? "selected-item" : ""
                     }`}
-                    onClick={() => onElementSelect(table.id)}
+                    onClick={() => onElementSelect(table._id)}
                   >
                     <div className="customer-name">{table.tableNumber}</div>
                     <div className="reservation-details">
@@ -186,24 +190,29 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
           </>
         )}
 
-        {/* {activeTab === 'pois' && (
+        {activeTab === "pois" && (
           <div className="reservation-section">
-            <h3 className="section-title">Points of Interest ({activeFloor.pointsOfInterest.length})</h3>
-            {activeFloor.pointsOfInterest.map(poi => (
-              <div 
-                key={poi.id} 
-                className={`reservation-item poi ${selectedElement === poi.id ? 'selected-item' : ''}`}
+            <h3 className="section-title">
+              Points of Interest ({activeFloor?.pointsOfInterest?.length})
+            </h3>
+            {activeFloor?.pointsOfInterest?.map((poi) => (
+              <div
+                key={poi.id}
+                className={`reservation-item poi ${
+                  selectedElement === poi.id ? "selected-item" : ""
+                }`}
                 onClick={() => onElementSelect(poi.id)}
               >
                 <div className="customer-name">{poi.name}</div>
                 <div className="reservation-details">
-                  Type: {poi.type.toUpperCase()}<br/>
+                  Type: {poi.type.toUpperCase()}
+                  <br />
                   Size: {poi.width}×{poi.height}px
                 </div>
               </div>
             ))}
           </div>
-        )} */}
+        )}
 
         {activeTab === "reservations" && (
           <>
@@ -279,15 +288,16 @@ const ReservationsPanel: React.FC<ReservationsPanelProps> = ({
             </div>
           </div>
         )}
-        {/*         
-        {activeTab === 'pois' && activeFloor.pointsOfInterest.length === 0 && (
-          <div className="empty-state">
-            <div className="customer-name">No POIs created</div>
-            <div className="reservation-details">
-              Add points of interest like bars, stages, or DJ booths
+
+        {activeTab === "pois" &&
+          activeFloor?.pointsOfInterest?.length === 0 && (
+            <div className="empty-state">
+              <div className="customer-name">No POIs created</div>
+              <div className="reservation-details">
+                Add points of interest like bars, stages, or DJ booths
+              </div>
             </div>
-          </div>
-        )} */}
+          )}
       </div>
     </div>
   );

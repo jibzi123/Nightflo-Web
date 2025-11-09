@@ -1,9 +1,17 @@
 import React, { useEffect, useState } from "react";
-import { Floor, Table, ClubHours, UserData } from "../types";
-import TableElementProperties, { NewTableData } from "./TableElementProperties";
+import {
+  Floor,
+  Table,
+  ClubHours,
+  UserData,
+  NewPoiData,
+} from "../interactive-table-booking/types";
+import TableElementProperties from "./TableElementProperties";
 import FloorManager from "./FloorManager";
-import { useApi } from "../../../utils/custom-hooks/useApi";
-import { getRandomPercent } from "../../../utils/tableUtil";
+import { useApi } from "../../utils/custom-hooks/useApi";
+import { getRandomPercent } from "../../utils/tableUtil";
+import POICardGrid from "./POICardGrid";
+import { getTableProperties } from "../FloorCanvas/SnapUtitilies";
 
 interface AdminPanelProps {
   floors: Floor[];
@@ -14,42 +22,31 @@ interface AdminPanelProps {
   selectedElement: string | null;
   onElementSelect: (id: string | null) => void;
   clubHours: ClubHours;
-  backgroundScale: number;
-  setBackgroundScale: (scale: number) => void;
-  backgroundPosition: { x: number; y: number };
-  setBackgroundPosition: (position: { x: number; y: number }) => void;
-  // onRemoveBackground: () => void;
-  fetchFloorsAndTables: (id: string) => void;
-  activeTab: "floors" | "tables" | "settings";
+  fetchFloors: (id: string) => void;
+  activeTab: "floors" | "tables" | "pois";
   setActiveTab: React.Dispatch<
-    React.SetStateAction<"floors" | "tables" | "settings">
+    React.SetStateAction<"floors" | "tables" | "pois">
   >;
   handleUpdateFloor: (
     floorId: string,
     params: { name: string }
   ) => Promise<void>;
-  activeFloorTableCount: number;
   newTableData: Table;
   setNewTableData: (d: Table) => void;
   editableTable: Table;
   setEditableTable: (d: Table) => void;
+  setNewPoiData: (d: NewPoiData) => void;
+  handleAddPoi: () => void;
+  handleDeleteSelected: () => void;
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({
   floors,
   activeFloor,
-  onFloorUpdate,
   onAddFloor,
   onDeleteFloor,
   selectedElement,
-  onElementSelect,
-  clubHours,
-  backgroundScale,
-  setBackgroundScale,
-  backgroundPosition,
-  setBackgroundPosition,
-  // onRemoveBackground,
-  fetchFloorsAndTables,
+  fetchFloors,
   activeTab,
   setActiveTab,
   handleUpdateFloor,
@@ -57,6 +54,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   setNewTableData,
   editableTable,
   setEditableTable,
+  setNewPoiData,
+  handleAddPoi,
+  handleDeleteSelected,
 }) => {
   const [newFloorName, setNewFloorName] = useState("");
   const [editFloorName, setEditFloorName] = useState<{
@@ -69,28 +69,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const UserData: UserData | null = storedUser
     ? (JSON.parse(storedUser) as UserData)
     : null;
+
   const selectedTable =
     selectedElement && activeFloor?.tables
-      ? activeFloor?.tables.find((t) => t.id === selectedElement)
+      ? activeFloor?.tables.find((t) => t._id === selectedElement)
       : null;
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const updatedFloor = {
-          ...activeFloor,
-          backgroundImage: e.target?.result as string,
-        };
-        onFloorUpdate(updatedFloor);
-        // Reset background controls when new image is uploaded
-        setBackgroundScale(1);
-        setBackgroundPosition({ x: 0, y: 0 });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   useEffect(() => {
     if (selectedTable) {
@@ -118,8 +101,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         tableCount,
         xAxis: getRandomPercent(),
         yAxis: getRandomPercent(),
-        width: newTableData.width,
-        height: newTableData.height,
+        // width: newTableData.width,
+        // height: newTableData.height,
         price: newTableData.price,
         capacity: newTableData.capacity,
         rotation: 0,
@@ -128,13 +111,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         floorId: activeFloor.id,
         clubId: UserData?.club.id,
       };
+      const { width, height } = getTableProperties(newTable);
+      const payload = {
+        ...newTable,
+        width,
+        height,
+      };
 
-      await callApi("POST", "/tables/create", newTable, {
+      await callApi("POST", "/tables/create", payload, {
         onSuccess: (data) => {
           console.log("Table Added:", data);
           setNewTableData({});
           if (!UserData) return;
-          fetchFloorsAndTables(UserData?.club.id);
+          // Fetch floors - unsaved POIs/patterns are preserved in parent
+          fetchFloors(UserData?.club.id);
         },
         onError: (err) => console.error("Error:", err),
       });
@@ -145,7 +135,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const handleUpdateTable = async () => {
     if (!editableTable) return;
-    console.log(editableTable, "editableTable");
+
     const countRes: { payLoad?: { count?: number } } | null = await callApi(
       "GET",
       `/tables/countByFloor?floorId=${activeFloor.id}`
@@ -153,7 +143,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     const tableCount = (countRes?.payLoad?.count ?? 0) + 1;
 
     const params = {
-      tableId: editableTable?.id,
+      tableId: editableTable?._id,
       tableNumber: editableTable.tableNumber,
       floorId: editableTable?.floor.id,
       price: editableTable.price,
@@ -165,31 +155,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       yAxis: editableTable.yAxis,
       width: editableTable.width,
       height: editableTable.height,
+      rotation: editableTable.rotation,
     };
+
     await callApi("POST", "/tables/update", params, {
       onSuccess: (data) => {
         if (!UserData) return;
-        fetchFloorsAndTables(UserData?.club.id); // refresh
+        // Fetch floors - unsaved POIs/patterns are preserved in parent
+        fetchFloors(UserData?.club.id);
       },
       onError: (err) => console.error("Error:", err),
     });
-  };
-
-  const handleDeleteSelected = async () => {
-    if (!selectedElement) return;
-    await callApi(
-      "DELETE",
-      `/tables/delete`,
-      { tableId: selectedElement },
-      {
-        onSuccess: (data) => {
-          if (!UserData) return;
-          fetchFloorsAndTables(UserData?.club.id); // refresh
-        },
-        onError: (err) => console.error("Error:", err),
-      }
-    );
-    onElementSelect(null);
   };
 
   return (
@@ -208,14 +184,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           Floors
         </button>
         <button
-          className={`admin-tab ${activeTab === "settings" ? "active" : ""}`}
-          onClick={() => setActiveTab("settings")}
+          className={`admin-tab ${activeTab === "pois" ? "active" : ""}`}
+          onClick={() => setActiveTab("pois")}
         >
-          Settings
+          POIs
         </button>
       </div>
 
-      <div className="admin-content">
+      <div
+        className="admin-content"
+        style={{ display: "flex", flexDirection: "column", height: "100vh" }}
+      >
         {activeTab === "tables" && (
           <TableElementProperties
             selectedElement={selectedElement}
@@ -224,7 +203,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             newTableData={newTableData}
             setNewTableData={setNewTableData}
             handleAddTable={createTable}
-            handleUpdateTable={handleUpdateTable} // new function
+            handleUpdateTable={handleUpdateTable}
             editableTable={editableTable}
             setEditableTable={setEditableTable}
           />
@@ -236,12 +215,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             floors={floors}
             newFloorName={newFloorName}
             setNewFloorName={setNewFloorName}
-            backgroundScale={backgroundScale}
-            setBackgroundScale={setBackgroundScale}
-            backgroundPosition={backgroundPosition}
-            setBackgroundPosition={setBackgroundPosition}
-            handleFileUpload={handleFileUpload}
-            // onRemoveBackground={onRemoveBackground}
             onDeleteFloor={onDeleteFloor}
             onAddFloor={onAddFloor}
             editFloorName={editFloorName}
@@ -250,59 +223,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           />
         )}
 
-        {activeTab === "settings" && (
-          <div>
-            <div className="form-group">
-              <label className="form-label">Club Hours</label>
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Open Time</label>
-                  <input
-                    type="time"
-                    className="form-input-field"
-                    value={clubHours.openTime}
-                    readOnly
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Close Time</label>
-                  <input
-                    type="time"
-                    className="form-input-field"
-                    value={clubHours.closeTime}
-                    readOnly
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Club Status</label>
-              <div className={`status ${clubHours.isOpen ? "open" : "closed"}`}>
-                {clubHours.isOpen ? "OPEN" : "CLOSED"}
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Statistics</label>
-              <div className="reservation-item">
-                <div className="customer-name">Total Tables</div>
-                <div className="reservation-details">
-                  {activeFloor.tables && activeFloor.tables.length} tables
-                  across {floors.length} floors
-                </div>
-              </div>
-
-              <div className="reservation-item">
-                <div className="customer-name">Available Tables</div>
-                <div className="reservation-details">
-                  {activeFloor.tables &&
-                    activeFloor.tables.filter((t) => t.status === "available")
-                      .length}{" "}
-                  available
-                </div>
-              </div>
-            </div>
+        {activeTab === "pois" && (
+          <div className="form-group">
+            <POICardGrid
+              setNewPoiData={setNewPoiData}
+              onAddPOI={handleAddPoi}
+            />
           </div>
         )}
       </div>

@@ -125,7 +125,27 @@ body {
   flex-direction: column;
   background: #111;
 }
+/* Add this to your style.css */
+.unsaved-indicator {
+  color: #ff6b6b;
+  font-weight: bold;
+  margin-left: 4px;
+  animation: pulse 2s infinite;
+}
 
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .canvas-header {
   height: 50px;
   background: #1a1a1a;
@@ -176,6 +196,10 @@ body {
   cursor: pointer;
   transition: all 0.2s ease;
 }
+.margin-top{
+ margin-top: 10px;
+
+}
 
 .btn-primary {
   background: #00d4aa;
@@ -204,13 +228,13 @@ body {
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: #ffa500;
+  background: #00b894;
   color: #000;
   font-weight: 600;
 }
 
 .btn-save:hover {
-  background: #ff8c00;
+  background: #017961;
 }
 
 .btn-danger {
@@ -622,12 +646,19 @@ body {
   position: relative;
   overflow: hidden;
   background: #1a1a1a;
+  padding: 60px 140px;
+
+  
 }
 
 .canvas {
   width: 100%;
   height: 100%;
   cursor: grab;
+    position: relative;
+    border: 1px solid;
+    border-radius: 8px;
+
 }
 
 .canvas:active {
@@ -636,8 +667,8 @@ body {
 
 .table-element {
   position: absolute;
-  background: #333;
-  border: 2px solid #555;
+  /* background: #333;
+  border: 2px solid #555; */
   border-radius: 4px;
   cursor: move;
   user-select: none;
@@ -712,7 +743,7 @@ body {
   box-shadow: 0 0 10px rgba(0, 212, 170, 0.5);
 }
 
-.table-element.available {
+/* .table-element.available {
   background: #2d5a2d;
   border-color: #4a8f4a;
   color: #8fff8f;
@@ -728,7 +759,7 @@ body {
   background: #5a2d2d;
   border-color: #8f4a4a;
   color: #ff8f8f;
-}
+} */
 
 .table-element.vip {
   border-width: 3px;
@@ -774,8 +805,8 @@ body {
 
 .poi-element {
   position: absolute;
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px dashed #777;
+  /* background: rgba(255, 255, 255, 0.1);
+  border: 2px dashed #777; */
   border-radius: 4px;
   cursor: move;
   user-select: none;
@@ -1003,4 +1034,106 @@ body {
 .action-btns {
   display: flex;
   justify-content: space-around;
+}
+
+
+/* Cards Grid */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.item-card {
+
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 12px;
+  background: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  gap: 8px;
+      align-items: center;
+
+}
+
+.item-card:hover {
+  border-color: #10b981;
+  background: #252525;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.item-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+  filter: grayscale(0.3);
+}
+
+.item-card:hover .item-icon {
+  filter: grayscale(0);
+}
+
+.item-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #9ca3af;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.item-card:hover .item-label {
+  color: #10b981;
+}
+.item-card {
+  /* border: 1px solid #ccc; */
+  color: #999;
+  background-color: #333;
+  transition: all 0.2s ease-in-out;
+}
+
+.item-card .icon {
+  filter: brightness(0) saturate(100%) invert(62%) sepia(0%) saturate(0%)
+    hue-rotate(180deg) brightness(85%) contrast(90%);
+  transition: all 0.2s ease-in-out;
+}
+
+.item-card .label {
+  color: #999;
+  transition: color 0.2s ease-in-out;
+}
+
+.item-card:hover {
+  background-color: #333;
+  border-color: #00d4aa;
+  color: #00d4aa;
+}
+
+.item-card:hover .icon {
+  filter: brightness(0) saturate(100%) invert(61%) sepia(70%) saturate(471%)
+    hue-rotate(120deg) brightness(101%) contrast(97%);
+}
+
+.item-card:hover .label {
+  color: #00d4aa;
+}
+
+/* When selected */
+.item-card.selected {
+  border-color: #00d4aa;
+  background-color: #333;
+  color: #00d4aa;
+}
+
+.item-card.selected .icon {
+  filter: brightness(0) saturate(100%) invert(61%) sepia(70%) saturate(471%)
+    hue-rotate(120deg) brightness(101%) contrast(97%);
+}
+
+.item-card.selected .label {
+  color: #00d4aa;
 }

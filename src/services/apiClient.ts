@@ -2,227 +2,235 @@
 import { storeUserData, storeRememberMe } from "../utils/storage";
 import { API_BASE_URL } from "../config";
 
-// adjust according to your backend response shape
+const getDefaultHeaders = () => {
+  const token = localStorage.getItem("authToken");
+  //console.log("Using token:", token);
+  const appVersion = "1.0.0"; // could be read from package.json
+  const platform = "web";
+
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    appVersion,
+    platform,
+  };
+};
+
+async function request(path: string, options: RequestInit = {}) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      ...getDefaultHeaders(),
+      ...(options.headers || {}),
+    },
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Request failed: ${errText}`);
+  }
+
+  return response.json();
+}
+
 export const apiClient = {
+  // ✅ login keeps custom handling
   async login(credentials: { email: string; password: string; isRememberMe?: boolean }) {
-    try {
-      // TEMPORARY: skip Firebase token if not ready on web
-      const firebaseToken = "";
+    const firebaseToken = "";
 
-      const response = await fetch(`${API_BASE_URL}/users/signin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: credentials.email,
-          password: credentials.password,
-          firebaseToken,
-        }),
-      });
+    const response = await fetch(`${API_BASE_URL}/users/signin`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: credentials.email,
+        password: credentials.password,
+        firebaseToken,
+      }),
+    });
 
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Login failed: ${errText}`);
-      }
-
-      const data = await response.json();
-      console.log("🔑 Login API Response:", data);
-
-      const userData = data.payLoad;
-      // store user in localStorage (or IndexedDB) for persistence
-      storeUserData(userData);
-
-      if (credentials.isRememberMe) {
-        storeRememberMe(credentials.email);
-      }
-
-      return {
-        user: userData,
-        token: userData.token, // make sure backend sends this
-      };
-    } catch (err) {
-      console.error("❌ Login error:", err);
-      throw err;
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Login failed: ${errText}`);
     }
+
+    const data = await response.json();
+    const userData = data.payLoad;
+
+    storeUserData(userData);
+    if (credentials.isRememberMe) {
+      storeRememberMe(credentials.email);
+    }
+
+    return {
+      user: userData,
+      token: userData.token,
+    };
   },
 
-   async logout() {
+  async logout() {
     localStorage.removeItem("authToken");
     localStorage.removeItem("userData");
   },
 
-  async get(path: string) {
-    const token = localStorage.getItem("authToken");
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Request failed: ${errText}`);
-    }
-
-    return response.json();
+  // 🔥 now all endpoints share same request() with headers
+  async getClubEvents() {
+    return request("/events", { method: "GET" });
   },
-
   async getUpcomingEvents() {
-    return this.get("/events/allUpcoming");
+    return request("/events/allUpcoming", { method: "GET" });
   },
   async getPastEvents() {
-    return this.get("/events/past");
+    return request("/events/past", { method: "GET" });
   },
-  // services/apiClient.ts
   async createEvent(eventData: any) {
-    const token = localStorage.getItem("authToken");
-    const response = await fetch(`${API_BASE_URL}/events`, {
+    return request("/events", {
       method: "POST",
-      headers: { "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`, // ✅ from useAuth
-      },
       body: JSON.stringify(eventData),
     });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Failed to create event: ${errText}`);
-    }
-
-    return response.json();
   },
   async deleteEvent(eventId: string) {
-    const token = localStorage.getItem("authToken");
-    const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Failed to delete event: ${errText}`);
-    }
-
-    return response.json();
+    return request(`/events/${eventId}`, { method: "DELETE" });
   },
   async updateEvent(eventId: string, eventData: any) {
-    const token = localStorage.getItem("authToken");
-    const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
+    return request(`/events/${eventId}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
       body: JSON.stringify(eventData),
     });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Failed to update event: ${errText}`);
-    }
-
-    return response.json();
   },
   async getImageUploadUrl(eventId: string) {
-    const token = localStorage.getItem("authToken");
-    const response = await fetch(`${API_BASE_URL}/eventImage/${eventId}`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Failed to get signed URL: ${errText}`);
-    }
-
-    return response.json(); // could be { payLoad: { signedUrl } } OR { signedUrl }
+    return request(`/eventImage/${eventId}`, { method: "GET" });
   },
   async getTicketsByEvent(eventId: string) {
-    const token = localStorage.getItem("authToken");
-    const response = await fetch(
-      `${API_BASE_URL}/tickets/getAllByEvent?eventId=${eventId}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Failed to fetch tickets: ${errText}`);
-    }
-
-    return response.json(); // expected: { payLoad: [...] }
+    return request(`/tickets/getAllByEvent?eventId=${eventId}`, { method: "GET" });
   },
-
   async deleteTicket(ticketId: string) {
-    const token = localStorage.getItem("authToken");
-    const response = await fetch(`${API_BASE_URL}/tickets/delete`, {
-      method: "DELETE", // ✅ keep DELETE
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ ticketId }), // ✅ send JSON body
+    return request("/tickets/delete", {
+      method: "DELETE",
+      body: JSON.stringify({ ticketId }),
     });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Failed to delete ticket: ${errText}`);
-    }
-
-    return response.json();
   },
-
-
   async updateTicket(ticketData: any) {
-    const token = localStorage.getItem("authToken");
-    const response = await fetch(`${API_BASE_URL}/tickets/update`, {
+    return request("/tickets/update", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
       body: JSON.stringify(ticketData),
     });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Failed to update ticket: ${errText}`);
-    }
-
-    return response.json();
   },
-  async createTicket(ticketData: {
-    name: string;
-    price: number;
-    count: number;
-    description: string[];
-    eventId: string;
-  }) {
-    const token = localStorage.getItem("authToken");
-    const response = await fetch(`${API_BASE_URL}/tickets/create`, {
+  async createTicket(ticketData: any) {
+    return request("/tickets/create", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
       body: JSON.stringify(ticketData),
     });
+  },
+  async getTablesByEvent(eventId: string) {
+    return request(`/tables/getAllByEvent?eventId=${eventId}`, { method: "GET" });
+  },
+  async createTable(tableData: any) {
+    return request("/tables/create", {
+      method: "POST",
+      body: JSON.stringify(tableData),
+    });
+  },
+  async updateTable(tableData: any) {
+    return request("/tables/update", {
+      method: "POST",
+      body: JSON.stringify(tableData),
+    });
+  },
+  async deleteTable(tableId: string) {
+    return request("/tables/delete", {
+      method: "DELETE",
+      body: JSON.stringify({ tableId }),
+    });
+  },
+  async getEventSummary(eventId: string) {
+    return request(`/bookings/generalSummary?eventId=${encodeURIComponent(eventId)}`, { method: "GET" });
+  },
+  // async getBookingsSummary(eventId: string, userType: string) {
+  //   return request(
+  //     `/bookings/summary?eventId=${encodeURIComponent(eventId)}&userType=${encodeURIComponent(userType)}`,
+  //     { method: "GET" }
+  //   );
+  // },
+  // async getBookingsSummaryByType(eventId: string, bookingType: string) {
+  //   return request(
+  //     `/bookings/summaryByType?eventId=${encodeURIComponent(eventId)}&bookingType=${encodeURIComponent(bookingType)}`,
+  //     { method: "GET" }
+  //   );
+  // },
+  async getAllEventsOrganizers(eventId: string) {
+    return request(`/eventsorganizers/allByEventId/${encodeURIComponent(eventId)}`, { method: "GET" });
+  },
+  async getAllEventsOrganizersByEventAndUsertype(eventId: string, userType: string) {
+    return request(
+      `/eventsorganizers/allByEventId/${encodeURIComponent(eventId)}/${userType}`,
+      { method: "GET" }
+    );
+  },
+  async addOrganizerInEvent(eventId: string, organizerId: string, userType: string) {
+    return request(`/eventsorganizers/${encodeURIComponent(userType)}`, {
+      method: "POST",
+      body: JSON.stringify({ eventId, organizerId }),
+    });
+  },
+  async removeOrganizerFromEvent(eventId: string, organizerId: string, userType: string) {
+    return request(`/eventsorganizers/${encodeURIComponent(userType)}`, {
+      method: "POST",
+      body: JSON.stringify({ eventId, organizerId }),
+    });
+  },
+  async toggleArchive(eventId: string, memberId: string, moveToArchive: boolean) {
+    return request("/community/archive", {
+      method: "POST",
+      body: JSON.stringify({ eventId, memberId, moveToArchive }),
+    });
+  },
+  async getBookingsByStatus(eventId: string, status: string) {
+    return request(
+      `/bookings/getBookingsByStatus?eventId=${encodeURIComponent(eventId)}&status=${encodeURIComponent(status)}`,
+      { method: "GET" }
+    );
+  },
+  async getBookingsByEventId(eventId: string, clubId: string, status?: string, date?: string) {
+    let query = `eventId=${encodeURIComponent(eventId)}`;
+    query += `&clubId=${encodeURIComponent(clubId)}`;
+    if (status) query += `&status=${encodeURIComponent(status)}`;
+    if (date) query += `&date=${encodeURIComponent(date)}`;
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Failed to create ticket: ${errText}`);
-    }
-
-    return response.json(); // { status: "Success", payLoad: {...} }
+    return request(`/bookings/EventBookingDetails?${query}`, {
+      method: "GET",
+    });
   },
 
+  async getBookingsByClubId(clubId: string, status?: string, date?: string) {
+    let query = `clubId=${encodeURIComponent(clubId)}`;
+    if (status) query += `&status=${encodeURIComponent(status)}`;
+    if (date) query += `&date=${encodeURIComponent(date)}`;
+
+    return request(`/bookings/GeneralBookingDetailsByClubId?${query}`, {
+      method: "GET",
+    });
+  },
+  async getCustomersByClubId(clubId: string) {
+    const query = `clubId=${encodeURIComponent(clubId)}`;
+    return request(`/customers/CustomerDetailsByClubId?${query}`, {
+      method: "GET",
+    });
+  },
+  // ✅ Add inside apiClient
+  async getStaffByClubId(
+    clubId: string,
+    role?: string,
+    status?: string,
+    eventId?: string
+  ) {
+    let query = `clubId=${encodeURIComponent(clubId)}`;
+    if (role) query += `&role=${encodeURIComponent(role)}`;
+    if (status) query += `&status=${encodeURIComponent(status)}`;
+    if (eventId) query += `&eventId=${encodeURIComponent(eventId)}`;
+
+    return request(`/staff/StaffByClubId?${query}`, {
+      method: "GET",
+    });
+  },
 
 };

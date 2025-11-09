@@ -180,6 +180,7 @@ const AppRoutes: React.FC = () => {
             <EventCreator
               mode="create"
               onEventCreated={() => navigate("/admin-portal/events")}
+              onBack={() => navigate("/admin-portal/events")}
             />
           }
         />
@@ -193,6 +194,7 @@ const AppRoutes: React.FC = () => {
                 handleEventUpdated(updatedEvent);
                 navigate("/admin-portal/events");
               }}
+              onBack={() => navigate("/admin-portal/events")}
             />
           }
         />

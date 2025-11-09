@@ -59,6 +59,16 @@ export interface TicketTier {
   description: string[];
 }
 
+export interface Table {
+  id: string;
+  tableNumber: string;
+  price: number;
+  capacity: number;
+  tableCount: number;
+  description: string[];
+  status?: string;
+}
+
 export interface DashboardStats {
   totalRevenue: number;
   totalEvents: number;
@@ -68,4 +78,31 @@ export interface DashboardStats {
   eventGrowth: number;
   recentEvents: Event[];
   topPerformingClubs: Club[];
+}
+
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  profileImage?: string;
+  scansCompleted?: number; // only for doormen
+  ticketsSold?: number;    // only for promoters
+  tablesSold?: number;     // only for promoters
+  commission?: number;     // optional for promoters
+}
+
+export interface EventSummaryData {
+  // summary counts
+  totalGuestsCheckedIn: number;
+  totalExpectedGuests: number;
+  totalTicketSold: number;
+  totalTableSold: number;
+
+  // teams
+  admins: TeamMember[];
+  doormen: TeamMember[];
+  promoters: TeamMember[];
+  staff: TeamMember[];
 }

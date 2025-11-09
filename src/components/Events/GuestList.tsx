@@ -3,6 +3,7 @@ import { Event } from '../../types/api';
 import { Users, Search, Download, UserPlus, X, DollarSign, TrendingUp, UserCheck } from 'lucide-react';
 import ProfileImage from '../common/ProfileImage';
 import '../../styles/components.css';
+import { apiClient } from '../../services/apiClient';
 
 interface GuestListProps {
   event: Event | null;
@@ -27,83 +28,68 @@ interface Guest {
 }
 
 const GuestList: React.FC<GuestListProps> = ({ event, isOpen, onClose }) => {
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [ticketFilter, setTicketFilter] = useState('all');
 
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'verified'>('all');
+  const [loading, setLoading] = useState(false);
+
+
   React.useEffect(() => {
-    if (isOpen && event) {
-      // Mock guest data
-      setGuests([
-        {
-          id: '1',
-          firstName: 'Alice',
-          lastName: 'Smith',
-          email: 'alice.smith@email.com',
-          phone: '+1 555-0201',
-          ticketType: 'VIP',
-          quantity: 2,
-          totalPaid: 150,
-          bookingDate: '2025-01-15',
-          status: 'checked_in',
-          profileImage: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150'
-        },
-        {
-          id: '2',
-          firstName: 'Bob',
-          lastName: 'Johnson',
-          email: 'bob.johnson@email.com',
-          phone: '+1 555-0202',
-          ticketType: 'General',
-          quantity: 1,
-          totalPaid: 25,
-          bookingDate: '2025-01-18',
-          status: 'confirmed',
-          invitedBy: 'Lisa Chen (Promoter)'
-        },
-        {
-          id: '3',
-          firstName: 'Carol',
-          lastName: 'Williams',
-          email: 'carol.w@email.com',
-          phone: '+1 555-0203',
-          ticketType: 'VIP',
-          quantity: 4,
-          totalPaid: 300,
-          bookingDate: '2025-01-20',
-          status: 'no_show',
-          profileImage: 'https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=150',
-          specialRequests: 'Birthday celebration table'
-        },
-        {
-          id: '4',
-          firstName: 'Daniel',
-          lastName: 'Kim',
-          email: 'daniel.k@email.com',
-          phone: '+1 555-0204',
-          ticketType: 'General',
-          quantity: 2,
-          totalPaid: 50,
-          bookingDate: '2025-01-19',
-          status: 'checked_in',
-          invitedBy: 'Club Owner',
-          profileImage: 'https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=150'
-        },
-        {
-          id: '5',
-          firstName: 'Emma',
-          lastName: 'Davis',
-          email: 'emma.d@email.com',
-          phone: '+1 555-0205',
-          ticketType: 'Early Bird',
-          quantity: 3,
-          totalPaid: 60,
-          bookingDate: '2025-01-12',
-          status: 'confirmed'
-        }
-      ]);
-    }
+    const fetchGuests = async () => {
+      if (!event) return;
+      try {
+        debugger;
+        setLoading(true);
+
+        // mimic mobile logic
+        const pendingRes = await apiClient.getBookingsByStatus(event.id, "pending");
+        const verifiedRes = await apiClient.getBookingsByStatus(event.id, "verified");
+
+        // merge data into guests state
+        const allGuests = [
+          ...(pendingRes.payLoad ?? []).map((g: any) => ({
+            id: g.id,
+            firstName: g.bookedBy?.firstName || "",
+            lastName: g.bookedBy?.lastName || "",
+            email: g.bookedBy?.email || "",
+            phone: g.bookedBy?.phoneNumber || "",
+            ticketType: g.ticketType?.name || "General",
+            quantity: g.quantity ?? 1,
+            totalPaid: g.totalPaid ?? 0,
+            bookingDate: g.bookingDate,
+            status: "confirmed", // default for pending
+            invitedBy: g.invitedBy?.fullName,
+            profileImage: g.bookedBy?.imageUrl,
+            specialRequests: g.specialRequests,
+          })),
+          ...(verifiedRes.payLoad ?? []).map((g: any) => ({
+            id: g.id,
+            firstName: g.bookedBy?.firstName || "",
+            lastName: g.bookedBy?.lastName || "",
+            email: g.bookedBy?.email || "",
+            phone: g.bookedBy?.phoneNumber || "",
+            ticketType: g.ticketType?.name || "General",
+            quantity: g.quantity ?? 1,
+            totalPaid: g.totalPaid ?? 0,
+            bookingDate: g.bookingDate,
+            status: "checked_in", // for verified
+            invitedBy: g.invitedBy?.fullName,
+            profileImage: g.bookedBy?.imageUrl,
+            specialRequests: g.specialRequests,
+          })),
+        ];
+
+        setGuests(allGuests);
+      } catch (err) {
+        console.error("Failed to load guest list:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isOpen && event) fetchGuests();
   }, [isOpen, event]);
 
   const handleStatusChange = (guestId: string, newStatus: 'confirmed' | 'checked_in' | 'no_show') => {

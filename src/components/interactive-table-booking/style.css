@@ -388,11 +388,8 @@ body {
 }
 
 .empty-state {
-  background: #2a2a2a;
-  border-radius: 8px;
   padding: 20px;
   text-align: center;
-  border-left: 3px solid #555;
 }
 
 .empty-state .customer-name {

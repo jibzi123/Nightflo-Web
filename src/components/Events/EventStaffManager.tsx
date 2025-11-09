@@ -1,29 +1,46 @@
-import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Mail, Target, Percent } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Users, UserPlus, Mail, Target, Percent, Shield } from 'lucide-react';
 import ProfileImage from '../common/ProfileImage';
 import '../../styles/components.css';
+import { apiClient } from '../../services/apiClient';
+import { EventSummaryData, TeamMember } from '../../types/api';
 
-interface Staff {
+
+type RoleKey = "admin" | "doorteam" | "promoter" | "staff";
+type SubListKey = "team" | "suggestions" | "archivedSuggestions";
+
+interface OrganizerRaw {
   id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: string;
-  phone: string;
-  isAssigned: boolean;
-  profileImage?: string;
+  organizer: {
+    id?: string;
+    fullName?: string;
+    email?: string;
+    imageUrl?: string;
+    userType?: string;
+  };
+  requestId?: string;
+  requestStatus?: string;
+  movedToArchive?: boolean;
+  isActivation?: boolean;
+  // ... any other fields
 }
 
-interface Promoter {
+interface OrganizerItem {
   id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  commissionRate: number;
-  salesTarget?: number;
-  isAssigned: boolean;
-  profileImage?: string;
+  fullName: string;
+  email?: string;
+  imageUrl?: string;
+  userType?: string;
+  requestId?: string;
+  requestStatus?: string;
+  movedToArchive?: boolean;
+  isActivation?: boolean;
+}
+
+interface RolePayload {
+  team: OrganizerRaw[];
+  suggestions: OrganizerRaw[];
+  archivedSuggestions: OrganizerRaw[];
 }
 
 interface EventStaffManagerProps {
@@ -33,98 +50,214 @@ interface EventStaffManagerProps {
   onClose: () => void;
 }
 
+const ROLE_LABELS: Record<RoleKey, string> = {
+  admin: "Admins",
+  doorteam: "Door Team",
+  promoter: "Promoters",
+  staff: "Staff",
+};
+
+const ROLE_API_TYPE: Record<RoleKey, string> = {
+  admin: "admin",
+  doorteam: "doorteam",
+  promoter: "promoter",
+  staff: "staff",
+};
+
 const EventStaffManager: React.FC<EventStaffManagerProps> = ({ eventId, eventName, isOpen, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'staff' | 'promoters'>('staff');
-  const [staff, setStaff] = useState<Staff[]>([]);
-  const [promoters, setPromoters] = useState<Promoter[]>([]);
+  const [activeTab, setActiveTab] = useState<'staff' | 'promoter'>('staff');
+  const [staff, setStaff] = useState<TeamMember[]>([]);
+  const [promoters, setPromoters] = useState<TeamMember[]>([]);
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [inviteType, setInviteType] = useState<'staff' | 'promoter'>('staff');
+  const [summaryData, setSummaryData] = useState<EventSummaryData | null>(null);
+  const [activeRole, setActiveRole] = useState<RoleKey>("promoter");
+  const [activeSubList, setActiveSubList] = useState<SubListKey>("team");
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+
+
+  const [rolesData, setRolesData] = useState<Record<RoleKey, RolePayload>>({
+    admin: { team: [], suggestions: [], archivedSuggestions: [] },
+    doorteam: { team: [], suggestions: [], archivedSuggestions: [] },
+    promoter: { team: [], suggestions: [], archivedSuggestions: [] },
+    staff: { team: [], suggestions: [], archivedSuggestions: [] },
+  });
 
   useEffect(() => {
     if (isOpen) {
-      fetchStaffAndPromoters();
+      fetchAllRoles(eventId);
     }
   }, [isOpen]);
 
-  const fetchStaffAndPromoters = async () => {
-    // Mock data
-    setStaff([
-      {
-        id: '1',
-        firstName: 'John',
-        lastName: 'Smith',
-        email: 'john.smith@club.com',
-        role: 'Bartender',
-        phone: '+1 555-0101',
-        isAssigned: true,
-        profileImage: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150'
-      },
-      {
-        id: '2',
-        firstName: 'Sarah',
-        lastName: 'Johnson',
-        email: 'sarah.j@club.com',
-        role: 'Security',
-        phone: '+1 555-0102',
-        isAssigned: false
-      },
-      {
-        id: '3',
-        firstName: 'Mike',
-        lastName: 'Wilson',
-        email: 'mike.w@club.com',
-        role: 'DJ',
-        phone: '+1 555-0103',
-        isAssigned: true
+  async function fetchAllRoles(eId: string) {
+  try {
+    setLoading(true);
+    const roleKeys: RoleKey[] = ["admin", "doorteam", "promoter"];
+
+    await Promise.all(
+      roleKeys.map(async (rk) => {
+        try {
+          const res = await apiClient.getAllEventsOrganizersByEventAndUsertype(
+            eId,
+            ROLE_API_TYPE[rk]
+          );
+
+          // each payload should have { team, suggestions, archivedSuggestions }
+          const payload: RolePayload = res?.payLoad ?? {
+            team: [],
+            suggestions: [],
+            archivedSuggestions: []
+          };
+
+          setRolesData((prev) => ({ ...prev, [rk]: payload }));
+        } catch (err) {
+          console.error(`Failed to load ${rk}`, err);
+          setRolesData((prev) => ({
+            ...prev,
+            [rk]: { team: [], suggestions: [], archivedSuggestions: [] }
+          }));
+        }
+      })
+    );
+  } finally {
+    setLoading(false);
+  }
+}
+
+  const mapRawToItem = (r: OrganizerRaw): OrganizerItem => ({
+    id: r.id ?? r.requestId ?? r.organizer?.id ?? "",
+    fullName: r.organizer?.fullName ?? "",
+    email: r.organizer?.email ?? "",
+    imageUrl: r.organizer?.imageUrl ?? "",
+    userType: r.organizer?.userType ?? "",
+    movedToArchive: r.movedToArchive ?? false,
+    isActivation: r.isActivation ?? false
+  });
+
+
+  const displayedList = useMemo(() => {
+    const payload = rolesData[activeRole][activeSubList] ?? [];
+    const mapped = payload.map(mapRawToItem);
+    if (!search?.trim()) return mapped;
+    const q = search.trim().toLowerCase();
+    return mapped.filter((it) => (it.fullName || "").toLowerCase().includes(q) || (it.email || "").toLowerCase().includes(q));
+  }, [rolesData, activeRole, activeSubList, search]);
+
+async function handleAdd(user: OrganizerRaw) {
+  try {
+    setLoading(true);
+
+    const res = await apiClient.addOrganizerInEvent(
+      eventId,
+      user?.organizer.id,
+      ROLE_API_TYPE[activeRole]
+    );
+
+    const added = { ...res?.payLoad, isActivation: true };
+
+    setRolesData((prev) => {
+      const newTeam = [...prev[activeRole].team, added];
+      const newSuggestions = prev[activeRole].suggestions.filter(
+        (s) => s.organizer.id !== user.organizer.id
+      );
+      return {
+        ...prev,
+        [activeRole]: {
+          ...prev[activeRole],
+          team: newTeam,
+          suggestions: newSuggestions,
+        },
+      };
+    });
+  } catch (err) {
+    console.error("Failed to add:", err);
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function handleRemove(user: OrganizerRaw) {
+  try {
+    setLoading(true);
+
+    await apiClient.removeOrganizerFromEvent(
+      eventId,
+      user?.organizer.id,
+      ROLE_API_TYPE[activeRole]
+    );
+
+    setRolesData((prev) => {
+      const newTeam = prev[activeRole].team.filter(
+        (t) => t.organizer.id !== user.organizer.id
+      );
+
+      const newSuggestions = user.movedToArchive
+        ? prev[activeRole].suggestions
+        : [...prev[activeRole].suggestions, { ...user, isActivation: false }];
+
+      return {
+        ...prev,
+        [activeRole]: {
+          ...prev[activeRole],
+          team: newTeam,
+          suggestions: newSuggestions,
+        },
+      };
+    });
+  } catch (err) {
+    console.error("Failed to remove:", err);
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function handleArchiveToggle(user: OrganizerRaw, moveToArchive: boolean) {
+  try {
+    setLoading(true);
+
+    await apiClient.toggleArchive(
+      eventId,
+      user?.organizer.id,
+      moveToArchive
+    );
+
+    setRolesData((prev) => {
+      const roleData = prev[activeRole];
+      let archived = [...roleData.archivedSuggestions];
+      let suggestions = [...roleData.suggestions];
+
+      if (moveToArchive) {
+        archived.push({ ...user, movedToArchive: true });
+        suggestions = suggestions.filter((s) => s.organizer.id !== user.organizer.id);
+      } else {
+        suggestions.push({ ...user, movedToArchive: false });
+        archived = archived.filter((a) => a.organizer.id !== user.organizer.id);
       }
-    ]);
 
-    setPromoters([
-      {
-        id: '1',
-        firstName: 'Lisa',
-        lastName: 'Chen',
-        email: 'lisa.chen@promoter.com',
-        phone: '+1 555-0201',
-        commissionRate: 15,
-        salesTarget: 100,
-        isAssigned: true,
-        profileImage: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150'
-      },
-      {
-        id: '2',
-        firstName: 'David',
-        lastName: 'Rodriguez',
-        email: 'david.r@promoter.com',
-        phone: '+1 555-0202',
-        commissionRate: 12,
-        salesTarget: 75,
-        isAssigned: false
-      }
-    ]);
-  };
+      return {
+        ...prev,
+        [activeRole]: {
+          ...roleData,
+          archivedSuggestions: archived,
+          suggestions,
+        },
+      };
+    });
+  } catch (err) {
+    console.error("Failed to archive toggle:", err);
+  } finally {
+    setLoading(false);
+  }
+}
 
-  const toggleStaffAssignment = (staffId: string) => {
-    setStaff(prev => prev.map(s => 
-      s.id === staffId ? { ...s, isAssigned: !s.isAssigned } : s
-    ));
-  };
-
-  const togglePromoterAssignment = (promoterId: string) => {
-    setPromoters(prev => prev.map(p => 
-      p.id === promoterId ? { ...p, isAssigned: !p.isAssigned } : p
-    ));
-  };
-
-  const updatePromoterCommission = (promoterId: string, rate: number, target?: number) => {
-    setPromoters(prev => prev.map(p => 
-      p.id === promoterId ? { ...p, commissionRate: rate, salesTarget: target } : p
-    ));
-  };
-
-  const handleInvite = (type: 'staff' | 'promoter') => {
-    setInviteType(type);
-    setShowInviteForm(true);
+  const renderRoleIcon = (rk: RoleKey) => {
+    switch (rk) {
+      case "admin": return <Shield size={14} />;
+      case "doorteam": return <Users size={14} />;
+      case "promoter": return <Target size={14} />;
+      case "staff": return <UserPlus size={14} />;
+    }
   };
 
   if (!isOpen) return null;
@@ -133,196 +266,91 @@ const EventStaffManager: React.FC<EventStaffManagerProps> = ({ eventId, eventNam
     <div className="modal-overlay">
       <div className="modal-content" style={{ maxWidth: '900px' }}>
         <div className="modal-header">
-          <h2 className="modal-title">Manage Staff & Promoters - {eventName}</h2>
+          <h2 className="modal-title">Manage Staff</h2>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
+        <div style={{ padding: '16px 24px 16px 24px', borderBottom: '1px solid #e5e7eb', marginBottom: 16 }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            {/* Role tabs */}
+            {(["admin","doorteam","promoter","staff"] as RoleKey[]).map((rk) => (
+              <button
+                key={rk}
+                className={`btn ${activeRole === rk ? "btn-primary" : "btn-outline"}`}
+                onClick={() => { setActiveRole(rk); setActiveSubList("team"); setSearch(""); }}
+              >
+                <span style={{ marginRight: 8, display: "inline-flex", verticalAlign: "middle" }}>{renderRoleIcon(rk)}</span>
+                {ROLE_LABELS[rk]}
+              </button>
+            ))}
+          </div>
 
-        <div className="modal-tabs">
-          <button
-            type="button"
-            onClick={() => setActiveTab('staff')}
-            className={`modal-tab-button ${activeTab === 'staff' ? 'active' : ''}`}
-          >
-            <Users size={16} />
-            Staff ({staff.filter(s => s.isAssigned).length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('promoters')}
-            className={`modal-tab-button ${activeTab === 'promoters' ? 'active' : ''}`}
-          >
-            <Target size={16} />
-            Promoters ({promoters.filter(p => p.isAssigned).length})
-          </button>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className={`btn ${activeSubList === "team" ? "btn-primary" : "btn-outline"}`} onClick={() => setActiveSubList("team")}>Added in this event ({rolesData[activeRole].team.length})</button>
+              <button className={`btn ${activeSubList === "suggestions" ? "btn-primary" : "btn-outline"}`} onClick={() => setActiveSubList("suggestions")}>Quick add ({rolesData[activeRole].suggestions.length})</button>
+              <button className={`btn ${activeSubList === "archivedSuggestions" ? "btn-primary" : "btn-outline"}`} onClick={() => setActiveSubList("archivedSuggestions")}>Archived ({rolesData[activeRole].archivedSuggestions.length})</button>
+            </div>
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <input placeholder="Search name or email" value={search} onChange={(e) => setSearch(e.target.value)} className="form-input" />
+              <button className="btn btn-outline" onClick={() => { setSearch(""); fetchAllRoles(eventId); }}>Refresh</button>
+            </div>
+          </div>
         </div>
+        
 
-        <div className="modal-body">
-          {activeTab === 'staff' && (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h3 style={{ color: '#1e293b', fontSize: '16px', fontWeight: '600', margin: 0 }}>
-                  Event Staff Assignment
-                </h3>
-                <button className="btn btn-primary" onClick={() => handleInvite('staff')}>
-                  <Mail size={16} />
-                  Invite New Staff
-                </button>
-              </div>
-
-              <div className="table-container">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Staff Member</th>
-                      <th>Role</th>
-                      <th>Contact</th>
-                      <th>Assigned</th>
+        <div style={{ minHeight: 120 }}>
+          {loading ? (
+            <div style={{ padding: 24, textAlign: "center" }}>Loading...</div>
+          ) : displayedList.length === 0 ? (
+            <div style={{ padding: 24, textAlign: "center", color: "#64748b" }}>No items</div>
+          ) : (
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th style={{ width: 220 }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayedList.map((it) => {
+                  // find the raw object for actions (we need requestId etc.)
+                  const rawCandidates = rolesData[activeRole][activeSubList];
+                  const raw = rawCandidates.find(r => (r.requestId ?? r.id) === it.id) ?? rawCandidates.find(r => (r.organizer?.id ?? r.id) === it.id);
+                  return (
+                    <tr key={it.id}>
+                      <td>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <ProfileImage firstName={it.fullName?.split(" ")[0] || ""} lastName={(it.fullName?.split(" ")[1] || "")} imageUrl={it.imageUrl} size="sm" />
+                          <div>
+                            <div style={{ fontWeight: 600 }}>{it.fullName}</div>
+                            <div style={{ fontSize: 12, color: "#64748b" }}>{it.userType || ""}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>{it.email}</td>
+                      <td>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        {activeSubList === "suggestions" && (
+                          <button className="btn btn-primary" onClick={() => raw && handleAdd(raw)}>Add</button>
+                        )}
+                        {activeSubList === "team" && (
+                          <button className="btn btn-outline-danger" onClick={() => raw && handleRemove(raw)}>Remove</button>
+                        )}
+                        {activeSubList !== "archivedSuggestions" && (
+                          <button className="btn btn-outline" onClick={() => raw && handleArchiveToggle(raw, true)}>Archive</button>
+                        )}
+                        {activeSubList === "archivedSuggestions" && (
+                          <button className="btn btn-primary" onClick={() => raw && handleArchiveToggle(raw, false)}>Unarchive</button>
+                        )}
+                      </div>
+                    </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {staff.map((member) => (
-                      <tr key={member.id}>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <ProfileImage 
-                              firstName={member.firstName}
-                              lastName={member.lastName}
-                              imageUrl={member.profileImage}
-                              size="sm"
-                            />
-                            <div>
-                              <div style={{ fontWeight: '600', color: '#1e293b' }}>
-                                {member.firstName} {member.lastName}
-                              </div>
-                              <div style={{ fontSize: '12px', color: '#64748b' }}>
-                                {member.email}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td>{member.role}</td>
-                        <td>{member.phone}</td>
-                        <td>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                            <input
-                              type="checkbox"
-                              checked={member.isAssigned}
-                              onChange={() => toggleStaffAssignment(member.id)}
-                              style={{ accentColor: '#405189' }}
-                            />
-                            <span style={{ color: '#1e293b', fontSize: '13px' }}>
-                              {member.isAssigned ? 'Assigned' : 'Available'}
-                            </span>
-                          </label>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'promoters' && (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h3 style={{ color: '#1e293b', fontSize: '16px', fontWeight: '600', margin: 0 }}>
-                  Event Promoters Assignment
-                </h3>
-                <button className="btn btn-primary" onClick={() => handleInvite('promoter')}>
-                  <Mail size={16} />
-                  Invite New Promoter
-                </button>
-              </div>
-
-              <div className="table-container">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Promoter</th>
-                      <th>Commission</th>
-                      <th>Sales Target</th>
-                      <th>Contact</th>
-                      <th>Assigned</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {promoters.map((promoter) => (
-                      <tr key={promoter.id}>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <ProfileImage 
-                              firstName={promoter.firstName}
-                              lastName={promoter.lastName}
-                              imageUrl={promoter.profileImage}
-                              size="sm"
-                            />
-                            <div>
-                              <div style={{ fontWeight: '600', color: '#1e293b' }}>
-                                {promoter.firstName} {promoter.lastName}
-                              </div>
-                              <div style={{ fontSize: '12px', color: '#64748b' }}>
-                                {promoter.email}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <input
-                              type="number"
-                              value={promoter.commissionRate}
-                              onChange={(e) => updatePromoterCommission(promoter.id, parseFloat(e.target.value) || 0, promoter.salesTarget)}
-                              style={{
-                                width: '60px',
-                                padding: '4px 8px',
-                                border: '1px solid #d1d5db',
-                                borderRadius: '4px',
-                                fontSize: '12px'
-                              }}
-                              min="0"
-                              max="100"
-                              step="0.5"
-                            />
-                            <Percent size={14} style={{ color: '#64748b' }} />
-                          </div>
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            value={promoter.salesTarget || ''}
-                            onChange={(e) => updatePromoterCommission(promoter.id, promoter.commissionRate, parseInt(e.target.value) || undefined)}
-                            placeholder="No target"
-                            style={{
-                              width: '80px',
-                              padding: '4px 8px',
-                              border: '1px solid #d1d5db',
-                              borderRadius: '4px',
-                              fontSize: '12px'
-                            }}
-                            min="0"
-                          />
-                        </td>
-                        <td>{promoter.phone}</td>
-                        <td>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                            <input
-                              type="checkbox"
-                              checked={promoter.isAssigned}
-                              onChange={() => togglePromoterAssignment(promoter.id)}
-                              style={{ accentColor: '#405189' }}
-                            />
-                            <span style={{ color: '#1e293b', fontSize: '13px' }}>
-                              {promoter.isAssigned ? 'Assigned' : 'Available'}
-                            </span>
-                          </label>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                  );
+                })}
+              </tbody>
+            </table>
           )}
         </div>
 

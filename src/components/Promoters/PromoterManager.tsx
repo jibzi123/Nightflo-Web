@@ -1,120 +1,170 @@
-import React, { useEffect, useState } from 'react';
-import { apiClient } from '../../services/apiClient';
-import { useAuth } from '../../contexts/AuthContext';
-import { Search, Filter, Mail, Plus, Percent } from 'lucide-react';
-import ProfileImage from '../common/ProfileImage';
-import '../../styles/components.css';
+import React, { useEffect, useState } from "react";
+import { apiClient } from "../../services/apiClient";
+import { useAuth } from "../../contexts/AuthContext";
+import { Search, Mail, Plus } from "lucide-react";
+import ProfileImage from "../common/ProfileImage";
+import "../../styles/components.css";
+import { toast } from "react-toastify";
 
 interface Promoter {
   id: string;
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
-  phone: string;
-  commissionRate: number;
-  totalCommissions: number;
-  eventsPromoted: number;
+  imageUrl?: string;
   ticketsSold: number;
-  status: 'active' | 'inactive';
-  profileImage?: string;
+  totalEarnings: number;
+  eventsCount: number;
+  status: "active" | "inactive";
+}
+
+interface ClubEvent {
+  id?: string;
+  eventName: string;
 }
 
 const PromoterManager: React.FC = () => {
   const { user } = useAuth();
   const [promoters, setPromoters] = useState<Promoter[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [clubEvents, setClubEvents] = useState<ClubEvent[]>([]);
+  const [eventFilter, setEventFilter] = useState<string | undefined>(undefined);
+  const [pageLoading, setPageLoading] = useState(false);
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: string; text: string } | null>(null);
+
+  // Fetch all club events (upcoming + past)
   useEffect(() => {
-    fetchPromoters();
+    const fetchClubEvents = async () => {
+      try {
+        setPageLoading(true);
+        const [upcomingRes, pastRes] = await Promise.all([
+          apiClient.getUpcomingEvents(),
+          apiClient.getPastEvents(),
+        ]);
+
+        const allEvents = [
+          ...(upcomingRes?.payLoad || []),
+          ...(pastRes?.payLoad || []),
+        ].map((ev: any) => ({
+          id: ev.id,
+          eventName: ev.eventName,
+        }));
+
+        // Insert "All Events" option at the top
+        allEvents.unshift({ id: undefined, eventName: "All Events" });
+        setClubEvents(allEvents);
+        setEventFilter(undefined);
+      } catch (err) {
+        console.error("Failed to fetch events:", err);
+      } finally {
+        setPageLoading(false);
+      }
+    };
+
+    fetchClubEvents();
   }, []);
+
+  // Fetch promoters whenever statusFilter or eventFilter changes
+  useEffect(() => {
+    if (user?.club?.id) {
+      fetchPromoters();
+    }
+  }, [statusFilter, eventFilter]);
 
   const fetchPromoters = async () => {
     try {
       setLoading(true);
-      const data = await apiClient.getPromoters();
-      setPromoters(data);
+      const statusParam =
+        statusFilter === "all" ? undefined : statusFilter;
+      const eventParam =
+        eventFilter === undefined || eventFilter === "" ? undefined : eventFilter;
+
+      const response = await apiClient.getPromotersByClubId(
+        user?.club?.id || "",
+        eventParam,
+        statusParam
+      );
+
+      const promotersData = response?.payLoad?.promoters || [];
+
+      const mappedPromoters: Promoter[] = promotersData.map((p: any) => {
+        const rawEmail = p.promoterInfo?.email || "-";
+        const cleanedEmail = rawEmail.replace(".inactive", "");
+
+        return {
+          id: p.promoterInfo?.id,
+          fullName: p.promoterInfo?.fullName || "Unnamed",
+          email: cleanedEmail,
+          imageUrl: p.promoterInfo?.imageUrl,
+          ticketsSold: p.stats?.ticketsSold || 0,
+          totalEarnings: p.stats?.totalEarnings || 0,
+          eventsCount: p.stats?.eventsCount || 0,
+          status: rawEmail.includes(".inactive") ? "inactive" : "active",
+        };
+      });
+
+      setPromoters(mappedPromoters);
     } catch (error) {
-      console.error('Failed to fetch promoters:', error);
-      // Mock data for demonstration
-      setPromoters([
-        {
-          id: '1',
-          firstName: 'Lisa',
-          lastName: 'Chen',
-          email: 'lisa.chen@promoter.com',
-          phone: '+1 555-0301',
-          commissionRate: 15,
-          totalCommissions: 3500,
-          eventsPromoted: 12,
-          ticketsSold: 280,
-          status: 'active',
-          profileImage: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150'
-        },
-        {
-          id: '2',
-          firstName: 'David',
-          lastName: 'Rodriguez',
-          email: 'david.r@promoter.com',
-          phone: '+1 555-0302',
-          commissionRate: 12,
-          totalCommissions: 2800,
-          eventsPromoted: 8,
-          ticketsSold: 190,
-          status: 'active'
-        },
-        // Additional promoters for super admin view
-        ...(user?.userType === 'super_admin' ? [
-          {
-            id: '3',
-            firstName: 'Jessica',
-            lastName: 'Wong',
-            email: 'jessica.w@globalpromoter.com',
-            phone: '+1 555-0303',
-            commissionRate: 18,
-            totalCommissions: 4200,
-            eventsPromoted: 15,
-            ticketsSold: 350,
-            status: 'active' as const,
-            profileImage: 'https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=150'
-          },
-          {
-            id: '4',
-            firstName: 'Marcus',
-            lastName: 'Thompson',
-            email: 'marcus.t@citypromoter.com',
-            phone: '+1 555-0304',
-            commissionRate: 14,
-            totalCommissions: 3100,
-            eventsPromoted: 10,
-            ticketsSold: 220,
-            status: 'active' as const
-          }
-        ] : [])
-      ]);
+      console.error("Failed to fetch promoters:", error);
+      setPromoters([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredPromoters = promoters.filter(promoter => {
-    const matchesSearch = 
-      promoter.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      promoter.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      promoter.email.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || promoter.status === statusFilter;
-    
+  // Filtering on search + status
+  const filteredPromoters = promoters.filter((promoter) => {
+    const search = searchTerm.toLowerCase();
+    const matchesSearch =
+      promoter.fullName.toLowerCase().includes(search) ||
+      promoter.email.toLowerCase().includes(search);
+
+    const matchesStatus =
+      statusFilter === "all" || promoter.status === statusFilter;
+
     return matchesSearch && matchesStatus;
   });
 
-  const updateCommissionRate = (promoterId: string, newRate: number) => {
-    setPromoters(prev => prev.map(p => 
-      p.id === promoterId ? { ...p, commissionRate: newRate } : p
-    ));
-  };
+  const handleSendInvite = async () => {
+  if (!inviteEmail.trim()) {
+    toast.error("Please enter an email.");
+    return;
+  }
 
+  const reg = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w\w+)+$/;
+  if (!reg.test(inviteEmail)) {
+    toast.error("Please enter a valid email address.");
+    return;
+  }
+
+  try {
+    setIsLoading(true);
+
+    const res = await apiClient.invitePromoterByEmail(inviteEmail);
+
+    toast.success(res.message || "Invitation sent successfully!");
+    setInviteEmail("");
+    setIsModalOpen(false);
+  } catch (err: any) {
+    toast.error(
+      err?.response?.data?.message ||
+        "Failed to send invitation. Maybe it's already sent."
+    );
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+
+  function isValidEmail(email: string) {
+    const reg = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w\w+)+$/;
+    return email.length > 0 ? reg.test(email) : false;
+  }
   if (loading) {
     return <div className="loading-spinner"></div>;
   }
@@ -124,40 +174,74 @@ const PromoterManager: React.FC = () => {
       <div className="card">
         <div className="card-header">
           <h2 className="card-title">Promoter Network</h2>
-          <p className="card-subtitle">Manage event promoters and track their performance</p>
+          <p className="card-subtitle">
+            Manage event promoters and track their performance
+          </p>
         </div>
 
-        <div style={{ marginBottom: '20px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-          <button className="btn btn-primary">
-            <span>+</span>
+        <div
+          style={{
+            marginBottom: "20px",
+            display: "flex",
+            gap: "16px",
+            flexWrap: "wrap",
+          }}
+        >
+          {/* <button className="btn btn-primary">
+            <Plus size={16} />
             Add Promoter
-          </button>
-          <button className="btn btn-secondary">
+          </button> */}
+          <button className="btn btn-primary"
+            onClick={() => setIsModalOpen(true)}>
             <Mail size={16} />
             Send Invitations
           </button>
-          <button className="btn btn-secondary">Commission Report</button>
         </div>
 
+        {/* Search + Filters */}
         <div className="search-filter-container">
-          <div style={{ position: 'relative', flex: 1, maxWidth: '300px' }}>
-            <Search size={16} style={{ 
-              position: 'absolute', 
-              left: '12px', 
-              top: '50%', 
-              transform: 'translateY(-50%)', 
-              color: '#64748b' 
-            }} />
+          {/* Search box */}
+          <div style={{ position: "relative", flex: 1, maxWidth: "300px" }}>
+            <Search
+              size={16}
+              style={{
+                position: "absolute",
+                left: "12px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "#64748b",
+              }}
+            />
             <input
               type="text"
               className="search-input"
               placeholder="Search promoters..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ paddingLeft: '40px' }}
+              style={{ paddingLeft: "40px" }}
             />
           </div>
-          
+
+          {/* Event dropdown */}
+          <select
+            className="filter-select"
+            value={eventFilter || ""}
+            onChange={(e) =>
+              setEventFilter(e.target.value || undefined)
+            }
+          >
+            {clubEvents.length === 0 ? (
+              <option value="">No Events Found</option>
+            ) : (
+              clubEvents.map((ev) => (
+                <option key={ev.id} value={ev.id || ""}>
+                  {ev.eventName}
+                </option>
+              ))
+            )}
+          </select>
+
+          {/* Status dropdown */}
           <select
             className="filter-select"
             value={statusFilter}
@@ -169,13 +253,13 @@ const PromoterManager: React.FC = () => {
           </select>
         </div>
 
+        {/* Promoters Table */}
         <div className="table-container">
           <table className="table">
             <thead>
               <tr>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Commission Rate</th>
                 <th>Total Earnings</th>
                 <th>Events</th>
                 <th>Tickets Sold</th>
@@ -184,71 +268,103 @@ const PromoterManager: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredPromoters.map((promoter) => (
-                <tr key={promoter.id}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <ProfileImage 
-                        firstName={promoter.firstName}
-                        lastName={promoter.lastName}
-                        imageUrl={promoter.profileImage}
-                        size="sm"
-                      />
-                      <div>
-                        <div style={{ fontWeight: '600', color: '#1e293b' }}>
-                          {promoter.firstName} {promoter.lastName}
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#64748b' }}>
-                          {promoter.phone}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>{promoter.email}</td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input
-                        type="number"
-                        value={promoter.commissionRate}
-                        onChange={(e) => updateCommissionRate(promoter.id, parseFloat(e.target.value) || 0)}
-                        style={{
-                          width: '60px',
-                          padding: '4px 8px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '4px',
-                          fontSize: '12px'
-                        }}
-                        min="0"
-                        max="100"
-                        step="0.5"
-                      />
-                      <Percent size={14} style={{ color: '#64748b' }} />
-                    </div>
-                  </td>
-                  <td>${promoter.totalCommissions.toLocaleString()}</td>
-                  <td>{promoter.eventsPromoted}</td>
-                  <td>{promoter.ticketsSold}</td>
-                  <td>
-                    <span className={`badge ${promoter.status === 'active' ? 'badge-success' : 'badge-warning'}`}>
-                      {promoter.status}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }}>
-                        View Details
-                      </button>
-                      <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }}>
-                        Edit
-                      </button>
-                    </div>
+              {filteredPromoters.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: "center", padding: "20px" }}>
+                    No promoters found.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredPromoters.map((promoter) => (
+                  <tr key={promoter.id}>
+                    <td>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <ProfileImage
+                          firstName={promoter.fullName.split(" ")[0] || ""}
+                          lastName={promoter.fullName.split(" ")[1] || ""}
+                          imageUrl={promoter.imageUrl}
+                          size="sm"
+                        />
+                        <div style={{ fontWeight: 600, color: "#1e293b" }}>
+                          {promoter.fullName}
+                        </div>
+                      </div>
+                    </td>
+                    <td>{promoter.email}</td>
+                    <td>${promoter.totalEarnings.toLocaleString()}</td>
+                    <td>{promoter.eventsCount}</td>
+                    <td>{promoter.ticketsSold}</td>
+                    <td>
+                      <span
+                        className={`badge ${
+                          promoter.status === "active"
+                            ? "badge-success"
+                            : "badge-warning"
+                        }`}
+                      >
+                        {promoter.status}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <button className="btn btn-secondary" style={{ padding: "6px 12px", fontSize: "12px" }}>
+                          View
+                        </button>
+                        <button className="btn btn-secondary" style={{ padding: "6px 12px", fontSize: "12px" }}>
+                          Edit
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
+
+    {isModalOpen && (
+      <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+        <div
+          className="modal-content"
+          style={{ maxWidth: "500px" }}
+          onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
+        >
+          <h2 className="modal-title" style={{paddingTop: 10, paddingLeft: 20}}>Send Promoter Invitation</h2>
+          <div className="modal-body">
+            <input
+              className="form-input"
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="Enter promoter email"
+            />
+          </div>
+
+          <div className="modal-footer">
+            <button
+              className="btn-secondary"
+              onClick={() => {
+                setIsModalOpen(false);
+                setMessage(null);
+              }}
+              disabled={isLoading}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn-primary"
+              onClick={handleSendInvite}
+              disabled={isLoading}
+            >
+              {isLoading ? "Sending..." : "Send Invite"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+
     </div>
   );
 };

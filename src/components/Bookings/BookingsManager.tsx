@@ -1,9 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import { Search, Calendar, Users, MapPin, DollarSign, Clock } from 'lucide-react';
-import ProfileImage from '../common/ProfileImage';
-import '../../styles/components.css';
-import { apiClient } from '../../services/apiClient';
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../../contexts/AuthContext";
+import {
+  Search,
+  Calendar,
+  Users,
+  MapPin,
+  DollarSign,
+  Clock,
+} from "lucide-react";
+import ProfileImage from "../common/ProfileImage";
+import "../../styles/components.css";
+import { apiClient } from "../../services/apiClient";
 
 interface Booking {
   id: string;
@@ -27,22 +34,23 @@ interface Booking {
 
 const BookingsManager: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'event-tickets' | 'table-bookings'>('event-tickets');
+  const [activeTab, setActiveTab] = useState<
+    "event-tickets" | "table-bookings"
+  >("event-tickets");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [pageLoading, setPageLoading] = useState(true);  // for events
+  const [pageLoading, setPageLoading] = useState(true); // for events
   const [tableLoading, setTableLoading] = useState(false); // for bookings
-
 
   // 🔹 Event Dropdown State
   const [clubEvents, setClubEvents] = useState<any[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>("");
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [clubFilter, setClubFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('pending');
-  const [dateFilter, setDateFilter] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [clubFilter, setClubFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("pending");
+  const [dateFilter, setDateFilter] = useState("");
 
   // 🔹 Fetch Club Events once
   useEffect(() => {
@@ -59,10 +67,10 @@ const BookingsManager: React.FC = () => {
         const allEvents = [
           ...(upcomingRes.payLoad || []),
           ...(pastRes.payLoad || []),
-        ].map(ev => ({
+        ].map((ev) => ({
           ...ev,
-          name: ev.eventName,   // 👈 map eventName → name
-          value: ev.id          // 👈 for dropdown value
+          name: ev.eventName, // 👈 map eventName → name
+          value: ev.id, // 👈 for dropdown value
         }));
 
         setClubEvents(allEvents);
@@ -73,8 +81,7 @@ const BookingsManager: React.FC = () => {
         }
       } catch (err) {
         console.error("Failed to fetch club events", err);
-      }
-      finally {
+      } finally {
         setPageLoading(false);
       }
     };
@@ -82,8 +89,7 @@ const BookingsManager: React.FC = () => {
     fetchClubEvents();
   }, []);
 
-
-useEffect(() => {
+  useEffect(() => {
     const fetchBookings = async () => {
       try {
         setTableLoading(true);
@@ -97,7 +103,6 @@ useEffect(() => {
             user?.club?.id || "",
             statusFilter !== "all" ? statusFilter : undefined,
             dateFilter || undefined
-            
           );
         } else if (activeTab === "table-bookings" && user?.club?.id) {
           res = await apiClient.getBookingsByClubId(
@@ -110,27 +115,34 @@ useEffect(() => {
         const allBookings = [
           ...(res?.payLoad?.tickets || []),
           ...(res?.payLoad?.tables || []),
-        ].map((item: any): Booking => ({
-          id: item._id || item.id,
-          bookingType:
-            item.bookingType?.toLowerCase() ||
-            (item.ticket ? "event-ticket" : item.tableNumber ? "general-table" : "unknown"),
-          eventName: item.ticket?.eventName || item.eventName || "N/A",
-          customerName: item.bookedBy?.fullName || "Unknown",
-          customerEmail: item.bookedBy?.email || "",
-          customerPhone: item.bookedBy?.phone || "",
-          customerImage: item.bookedBy?.imageUrl,
-          totalAmount: item.transaction?.price || item.totalAmount || 0,
-          eventDate: item.transaction?.purchaseDate || item.purchaseDate || "",
-          paymentStatus: item.transaction?.paymentStatus || "N/A",
-          status: item.checkedInStatus || item.status || "pending",
-          ticketType: item.ticket?.name,
-          quantity: item.transaction?.tickets || 0,
-          tableNumber: item.tableNumber,
-          tableCapacity: item.tableCapacity,
-          clubName: item.clubName || "N/A",
-          specialRequests: item.specialRequests || "",
-        }));
+        ].map(
+          (item: any): Booking => ({
+            id: item._id || item.id,
+            bookingType:
+              item.bookingType?.toLowerCase() ||
+              (item.ticket
+                ? "event-ticket"
+                : item.tableNumber
+                ? "general-table"
+                : "unknown"),
+            eventName: item.ticket?.eventName || item.eventName || "N/A",
+            customerName: item.bookedBy?.fullName || "Unknown",
+            customerEmail: item.bookedBy?.email || "",
+            customerPhone: item.bookedBy?.phone || "",
+            customerImage: item.bookedBy?.imageUrl,
+            totalAmount: item.transaction?.price || item.totalAmount || 0,
+            eventDate:
+              item.transaction?.purchaseDate || item.purchaseDate || "",
+            paymentStatus: item.transaction?.paymentStatus || "N/A",
+            status: item.checkedInStatus || item.status || "pending",
+            ticketType: item.ticket?.name,
+            quantity: item.transaction?.tickets || 0,
+            tableNumber: item.tableNumber,
+            tableCapacity: item.tableCapacity,
+            clubName: item.clubName || "N/A",
+            specialRequests: item.specialRequests || "",
+          })
+        );
 
         setBookings(allBookings);
       } catch (err) {
@@ -143,7 +155,6 @@ useEffect(() => {
     fetchBookings();
   }, [activeTab, selectedEventId, statusFilter, dateFilter]);
 
-
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     // trigger API only when YYYY-MM-DD (full date) is chosen
@@ -152,10 +163,7 @@ useEffect(() => {
     }
   };
 
-
-
   // ...rest of your existing code for filters, rendering etc.
-
 
   // const filteredBookings = bookings.filter((booking) => {
   //   const matchesSearch =
@@ -176,18 +184,18 @@ useEffect(() => {
   //   return matchesSearch && matchesClub && matchesStatus && matchesDate && matchesTab;
   // });
 
-
   const filteredBookings = bookings.filter((booking) => {
-    console.log('Filtering booking:', booking);
+    console.log("Filtering booking:", booking);
     const matchesSearch =
       booking.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.customerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (user?.userType === "super_admin" &&
         booking.clubName?.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const matchesStatus = statusFilter === "all" || booking.status === statusFilter;
-    const matchesDate = !dateFilter || booking.eventDate?.startsWith(dateFilter);
-
+    const matchesStatus =
+      statusFilter === "all" || booking.status === statusFilter;
+    const matchesDate =
+      !dateFilter || booking.eventDate?.startsWith(dateFilter);
 
     const matchesTab =
       activeTab === "event-tickets"
@@ -196,7 +204,6 @@ useEffect(() => {
 
     return matchesSearch && matchesTab && matchesStatus && matchesDate;
   });
-
 
   // ✅ Badge Helpers
   const getStatusBadgeClass = (status: string) => {
@@ -230,114 +237,111 @@ useEffect(() => {
     newStatus: "confirmed" | "pending" | "cancelled" | "checked_in"
   ) => {
     setBookings((prev) =>
-      prev.map((b) =>
-        b.id === bookingId ? { ...b, status: newStatus } : b
-      )
+      prev.map((b) => (b.id === bookingId ? { ...b, status: newStatus } : b))
     );
   };
   if (pageLoading) {
     return <div className="loading-spinner"></div>;
   }
 
-
   return (
     <div>
-        <div className="card">
-          {/* Header */}
-          <div className="card-header">
-            <h2 className="card-title">Bookings Management</h2>
-            <p className="card-subtitle">
-              Manage event tickets and table reservations
-            </p>
-          </div>
+      <div className="card">
+        {/* Header */}
+        <div className="card-header">
+          <h2 className="card-title">Bookings Management</h2>
+          <p className="card-subtitle">
+            Manage event tickets and table reservations
+          </p>
+        </div>
 
-          {/* Tabs */}
-          <div
-            className="modal-tabs"
-            style={{ borderBottom: "1px solid #e2e8f0", marginBottom: "24px" }}
+        {/* Tabs */}
+        <div
+          className="modal-tabs"
+          style={{ borderBottom: "2px solid #4b4b4b", marginBottom: "24px" }}
+        >
+          <button
+            type="button"
+            onClick={() => setActiveTab("event-tickets")}
+            className={`modal-tab-button ${
+              activeTab === "event-tickets" ? "active" : ""
+            }`}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px", // adds space between icon and text
+              paddingRight: "12px", // extra right space for neatness
+            }}
           >
-            <button
-              type="button"
-              onClick={() => setActiveTab("event-tickets")}
-              className={`modal-tab-button ${
-                activeTab === "event-tickets" ? "active" : ""
-              }`}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px", // adds space between icon and text
-                paddingRight: "12px", // extra right space for neatness
-              }}
-            >
-              <Calendar size={16} />
-              <span>
-                Event Bookings
-                {activeTab === "event-tickets" && (
-                  <>
-                    {" ("}
-                    {
-                      bookings.filter(
-                        (b) => b.bookingType === "ticket" || b.bookingType === "table"
-                      ).length
-                    }
-                    {")"}
-                  </>
-                )}
-              </span>
-            </button>
+            <Calendar size={16} />
+            <span>
+              Event Bookings
+              {activeTab === "event-tickets" && (
+                <>
+                  {" ("}
+                  {
+                    bookings.filter(
+                      (b) =>
+                        b.bookingType === "ticket" || b.bookingType === "table"
+                    ).length
+                  }
+                  {")"}
+                </>
+              )}
+            </span>
+          </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab("table-bookings")}
-              className={`modal-tab-button ${
-                activeTab === "table-bookings" ? "active" : ""
-              }`}
+          <button
+            type="button"
+            onClick={() => setActiveTab("table-bookings")}
+            className={`modal-tab-button ${
+              activeTab === "table-bookings" ? "active" : ""
+            }`}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              paddingRight: "12px",
+            }}
+          >
+            <MapPin size={16} />
+            <span>
+              Table Reservations
+              {activeTab === "table-bookings" && (
+                <>
+                  {" ("}
+                  {bookings.filter((b) => b.bookingType === "unknown").length}
+                  {")"}
+                </>
+              )}
+            </span>
+          </button>
+        </div>
+
+        {/* Filters */}
+        <div className="search-filter-container">
+          {/* Search Input */}
+          <div style={{ position: "relative", flex: 1, maxWidth: "250px" }}>
+            <Search
+              size={16}
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                paddingRight: "12px",
+                position: "absolute",
+                left: "12px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "#64748b",
               }}
-            >
-              <MapPin size={16} />
-              <span>
-                Table Reservations
-                {activeTab === "table-bookings" && (
-                  <>
-                    {" ("}
-                    {bookings.filter((b) => b.bookingType === "unknown").length}
-                    {")"}
-                  </>
-                )}
-              </span>
-            </button>
+            />
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search bookings..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ paddingLeft: "40px" }}
+            />
           </div>
-
-
-          {/* Filters */}
-          <div className="search-filter-container">
-            {/* Search Input */}
-            <div style={{ position: "relative", flex: 1, maxWidth: "250px" }}>
-              <Search
-                size={16}
-                style={{
-                  position: "absolute",
-                  left: "12px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  color: "#64748b",
-                }}
-              />
-              <input
-                type="text"
-                className="search-input"
-                placeholder="Search bookings..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ paddingLeft: "40px" }}
-              />
-            </div>
-
+          <div style={{ display: "flex", gap: "10px" }}>
             {/* Status Filter */}
             <select
               className="filter-select"
@@ -351,12 +355,12 @@ useEffect(() => {
             </select>
 
             {/* Date Filter */}
-           <input
+            <input
               type="date"
               className="filter-select"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              style={{ minWidth: '150px' }}
+              style={{ minWidth: "150px" }}
             />
 
             {activeTab === "event-tickets" && (
@@ -373,161 +377,147 @@ useEffect(() => {
                 ))}
               </select>
             )}
-
           </div>
+        </div>
 
-          {/* Table */}
-          <div
-            className="table-section"
-            style={{ position: "relative", minHeight: "200px" }}
-          >
-            {tableLoading  && (
-              <div className="table-loader-overlay">
-                <div className="loading-spinner"></div>
-              </div>
-            )}
-            {!tableLoading  && filteredBookings.length > 0 && (
-              <div className="table-container">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Customer</th>
-                      <th>
-                        {activeTab === "event-tickets"
-                          ? "Event"
-                          : "Reservation"}
-                      </th>
-                      {user?.userType === "super_admin" && <th>Club</th>}
-                      <th>Booking Details</th>
-                      <th>Amount</th>
-                      <th>
-                        {activeTab === "event-tickets"
-                          ? "Event Date"
-                          : "Reservation Date"}
-                      </th>
-                      <th>Status</th>
-                      <th>Payment</th>
-                      {/* <th>Actions</th> */}
-                    </tr>
-                  </thead>
+        {/* Table */}
+        <div
+          className="table-section"
+          style={{ position: "relative", minHeight: "200px" }}
+        >
+          {tableLoading && (
+            <div className="table-loader-overlay">
+              <div className="loading-spinner"></div>
+            </div>
+          )}
+          {!tableLoading && filteredBookings.length > 0 && (
+            <div className="table-container">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Customer</th>
+                    <th>
+                      {activeTab === "event-tickets" ? "Event" : "Reservation"}
+                    </th>
+                    {user?.userType === "super_admin" && <th>Club</th>}
+                    <th>Booking Details</th>
+                    <th>Amount</th>
+                    <th>
+                      {activeTab === "event-tickets"
+                        ? "Event Date"
+                        : "Reservation Date"}
+                    </th>
+                    <th>Status</th>
+                    <th>Payment</th>
+                    {/* <th>Actions</th> */}
+                  </tr>
+                </thead>
 
-                  <tbody>
-                    {filteredBookings.map((booking) => (
-                      <tr key={booking.id}>
-                        {/* Customer Info */}
-                        <td>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "12px",
-                            }}
-                          >
-                            <ProfileImage
-                              firstName={booking.customerName.split(" ")[0]}
-                              lastName={
-                                booking.customerName.split(" ")[1] || ""
-                              }
-                              imageUrl={booking.customerImage}
-                              size="sm"
-                            />
-                            <div>
-                              <div
-                                style={{ fontWeight: "600", color: "#1e293b" }}
-                              >
-                                {booking.customerName}
-                              </div>
-                              <div
-                                style={{ fontSize: "12px", color: "#64748b" }}
-                              >
-                                {booking.customerEmail}
-                              </div>
-                              <div
-                                style={{ fontSize: "11px", color: "#9ca3af" }}
-                              >
-                                {booking.customerPhone}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Event/Reservation */}
-                        <td>
-                          {activeTab === "event-tickets"
-                            ? booking.eventName
-                            : booking.bookingType === "general-table"
-                            ? "Table Reservation"
-                            : booking.eventName}
-                        </td>
-
-                        {/* Club (admin only) */}
-                        {user?.userType === "super_admin" && (
-                          <td>{booking.clubName}</td>
-                        )}
-
-                        {/* Booking Details */}
-                        <td>
+                <tbody>
+                  {filteredBookings.map((booking) => (
+                    <tr key={booking.id}>
+                      {/* Customer Info */}
+                      <td>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "12px",
+                          }}
+                        >
+                          <ProfileImage
+                            firstName={booking.customerName.split(" ")[0]}
+                            lastName={booking.customerName.split(" ")[1] || ""}
+                            imageUrl={booking.customerImage}
+                            size="sm"
+                          />
                           <div>
-                            <div
-                              style={{ fontWeight: "600", color: "#1e293b" }}
-                            >
-                              {booking.bookingType === "event-ticket"
-                                ? booking.ticketType
-                                : `Table ${booking.tableNumber || "N/A"}`}
+                            <div style={{ fontWeight: "600", color: "#fff" }}>
+                              {booking.customerName}
                             </div>
-                            <div style={{ fontSize: "12px", color: "#64748b" }}>
-                              {booking.bookingType === "event-ticket"
-                                ? `${booking.quantity} tickets`
-                                : `Capacity: ${
-                                    booking.tableCapacity || "?"
-                                  } people`}
+                            <div style={{ fontSize: "12px", color: "#808080" }}>
+                              {booking.customerEmail}
                             </div>
-                            {booking.specialRequests && (
-                              <div
-                                style={{ fontSize: "11px", color: "#9ca3af" }}
-                              >
-                                {booking.specialRequests}
-                              </div>
-                            )}
+                            <div style={{ fontSize: "11px", color: "#808080" }}>
+                              {booking.customerPhone}
+                            </div>
                           </div>
-                        </td>
+                        </div>
+                      </td>
 
-                        {/* Amount */}
-                        <td style={{ fontWeight: "600", color: "#1e293b" }}>
-                          ${booking.totalAmount}
-                        </td>
+                      {/* Event/Reservation */}
+                      <td>
+                        {activeTab === "event-tickets"
+                          ? booking.eventName
+                          : booking.bookingType === "general-table"
+                          ? "Table Reservation"
+                          : booking.eventName}
+                      </td>
 
-                        {/* Date */}
-                        <td>
-                          {booking.eventDate
-                            ? new Date(booking.eventDate).toLocaleDateString()
-                            : "N/A"}
-                        </td>
+                      {/* Club (admin only) */}
+                      {user?.userType === "super_admin" && (
+                        <td>{booking.clubName}</td>
+                      )}
 
-                        {/* Status */}
-                        <td>
-                          <span
-                            className={`badge ${getStatusBadgeClass(
-                              booking.status
-                            )}`}
-                          >
-                            {booking.status.replace("_", " ")}
-                          </span>
-                        </td>
+                      {/* Booking Details */}
+                      <td>
+                        <div>
+                          <div style={{ fontWeight: "600", color: "#fff" }}>
+                            {booking.bookingType === "event-ticket"
+                              ? booking.ticketType
+                              : `Table ${booking.tableNumber || "N/A"}`}
+                          </div>
+                          <div style={{ fontSize: "12px", color: "#808080" }}>
+                            {booking.bookingType === "event-ticket"
+                              ? `${booking.quantity} tickets`
+                              : `Capacity: ${
+                                  booking.tableCapacity || "?"
+                                } people`}
+                          </div>
+                          {booking.specialRequests && (
+                            <div style={{ fontSize: "11px", color: "#808080" }}>
+                              {booking.specialRequests}
+                            </div>
+                          )}
+                        </div>
+                      </td>
 
-                        {/* Payment */}
-                        <td>
-                          <span
-                            className={`badge ${getPaymentBadgeClass(
-                              booking.paymentStatus
-                            )}`}
-                          >
-                            {booking.paymentStatus}
-                          </span>
-                        </td>
+                      {/* Amount */}
+                      <td style={{ fontWeight: "600", color: "#fff" }}>
+                        ${booking.totalAmount}
+                      </td>
 
-                        {/* Actions */}
-                        {/* <td>
+                      {/* Date */}
+                      <td>
+                        {booking.eventDate
+                          ? new Date(booking.eventDate).toLocaleDateString()
+                          : "N/A"}
+                      </td>
+
+                      {/* Status */}
+                      <td>
+                        <span
+                          className={`badge ${getStatusBadgeClass(
+                            booking.status
+                          )}`}
+                        >
+                          {booking.status.replace("_", " ")}
+                        </span>
+                      </td>
+
+                      {/* Payment */}
+                      <td>
+                        <span
+                          className={`badge ${getPaymentBadgeClass(
+                            booking.paymentStatus
+                          )}`}
+                        >
+                          {booking.paymentStatus}
+                        </span>
+                      </td>
+
+                      {/* Actions */}
+                      {/* <td>
                           <select
                             value={booking.status}
                             onChange={(e) =>
@@ -547,34 +537,34 @@ useEffect(() => {
                             <option value="checked_in">Checked In</option>
                           </select>
                         </td> */}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
-            {!tableLoading  && filteredBookings.length === 0 && (
-              <div className="empty-state">
-                <Calendar
-                  size={48}
-                  style={{ color: "#9ca3af", margin: "0 auto 16px" }}
-                />
-                <div className="empty-state-title">No Bookings Found</div>
-                <div className="empty-state-description">
-                  {searchTerm ||
-                  clubFilter !== "all" ||
-                  statusFilter !== "all" ||
-                  dateFilter
-                    ? "Try adjusting your search or filter criteria"
-                    : activeTab === "event-tickets"
-                    ? "No event bookings available yet"
-                    : "No table reservations available yet"}
-                </div>
+          {!tableLoading && filteredBookings.length === 0 && (
+            <div className="empty-state">
+              <Calendar
+                size={48}
+                style={{ color: "#fff", margin: "0 auto 16px" }}
+              />
+              <div className="empty-state-title">No Bookings Found</div>
+              <div className="empty-state-description">
+                {searchTerm ||
+                clubFilter !== "all" ||
+                statusFilter !== "all" ||
+                dateFilter
+                  ? "Try adjusting your search or filter criteria"
+                  : activeTab === "event-tickets"
+                  ? "No event bookings available yet"
+                  : "No table reservations available yet"}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
+      </div>
     </div>
   );
 };

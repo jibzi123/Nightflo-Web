@@ -256,7 +256,23 @@ export const apiClient = {
       method: "POST",
       body: JSON.stringify({ email }),
     });
-  }
+  },
+
+  async getMyClub() {
+    return request("/club/getMyClub", { method: "GET" });
+  },
+
+  async toggleAutoRenewal(clubId: string, enabled: boolean) {
+    return request("/stripe/toggleAutoRenewal", {
+      method: "POST",
+      body: JSON.stringify({ clubId, enabled }),
+    });
+  },
+
+  async getAutoRenewalStatus(clubId: string) {
+    return request(`/stripe/autoRenewal/${clubId}`, { method: "GET" });
+  },
+
 
 
 };

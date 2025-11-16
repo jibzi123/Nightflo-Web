@@ -2,29 +2,9 @@ import React, { useState } from 'react';
 import { Upload, Camera, Clock, MapPin, Phone, Mail, Globe, FileText, Download, Eye, X, AlertTriangle, CheckCircle } from 'lucide-react';
 import ProfileImage from '../common/ProfileImage';
 import SubscriptionSettings from './SubscriptionSettings';
+import { useAuth } from "../../contexts/AuthContext";
+import { toast } from 'react-toastify';
 
-interface ClubData {
-  name: string;
-  address: string;
-  phone: string;
-  email: string;
-  website: string;
-  capacity: number;
-  description: string;
-  profileImage: string;
-  gallery: string[];
-  operatingHours: {
-    [key: string]: string;
-  };
-  owner: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    profileImage: string;
-  };
-  complianceDocuments: ComplianceDocument[];
-}
 
 interface ComplianceDocument {
   id: string;
@@ -38,75 +18,20 @@ interface ComplianceDocument {
   notes?: string;
 }
 
+interface GalleryImage {
+  file: File;
+  preview: string;
+}
+
 const ClubSettings: React.FC = () => {
-  const [clubData, setClubData] = useState<ClubData>({
-    name: 'Club Paradise',
-    address: '123 Main Street, Downtown',
-    phone: '+1 555-0100',
-    email: 'info@clubparadise.com',
-    website: 'https://www.clubparadise.com',
-    capacity: 500,
-    description: 'Premium nightclub experience with world-class DJs and VIP services.',
-    profileImage: 'https://images.pexels.com/photos/1763075/pexels-photo-1763075.jpeg?auto=compress&cs=tinysrgb&w=300',
-    gallery: [
-      'https://images.pexels.com/photos/1763075/pexels-photo-1763075.jpeg?auto=compress&cs=tinysrgb&w=400',
-      'https://images.pexels.com/photos/2747449/pexels-photo-2747449.jpeg?auto=compress&cs=tinysrgb&w=400',
-      'https://images.pexels.com/photos/1190298/pexels-photo-1190298.jpeg?auto=compress&cs=tinysrgb&w=400',
-      'https://images.pexels.com/photos/1540406/pexels-photo-1540406.jpeg?auto=compress&cs=tinysrgb&w=400'
-    ],
-    operatingHours: {
-      monday: 'Closed',
-      tuesday: 'Closed',
-      wednesday: '9:00 PM - 2:00 AM',
-      thursday: '9:00 PM - 2:00 AM',
-      friday: '9:00 PM - 3:00 AM',
-      saturday: '9:00 PM - 3:00 AM',
-      sunday: '8:00 PM - 1:00 AM'
-    },
-    owner: {
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'john.doe@clubparadise.com',
-      phone: '+1 555-0150',
-      profileImage: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150'
-    },
-    complianceDocuments: [
-      {
-        id: '1',
-        name: 'Liquor License',
-        type: 'liquor_license',
-        uploadDate: '2024-01-15',
-        expiryDate: '2025-01-15',
-        status: 'approved',
-        fileUrl: '#',
-        adminComments: 'Document approved. Valid until expiry date.',
-        notes: 'Annual renewal required'
-      },
-      {
-        id: '2',
-        name: 'Fire Safety Certificate',
-        type: 'fire_safety',
-        uploadDate: '2024-03-10',
-        expiryDate: '2025-03-10',
-        status: 'pending',
-        fileUrl: '#',
-        notes: 'Updated after recent inspection'
-      },
-      {
-        id: '3',
-        name: 'Business Insurance',
-        type: 'insurance',
-        uploadDate: '2024-02-01',
-        expiryDate: '2025-02-01',
-        status: 'rejected',
-        fileUrl: '#',
-        adminComments: 'Coverage amount insufficient. Please update policy to minimum $2M liability.',
-        notes: 'Need to increase coverage'
-      }
-    ]
-  });
+  const { user } = useAuth();
+  debugger;
+  user;
+  const [clubData, setClubData] = useState<any>();
 
   const [activeTab, setActiveTab] = useState('club');
+  const MAX_IMAGES = 10;
+  const [gallery, setGallery] = useState<GalleryImage[]>([]);
 
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [newDocument, setNewDocument] = useState({
@@ -117,30 +42,43 @@ const ClubSettings: React.FC = () => {
     file: null as File | null
   });
 
-  const handleImageUpload = (type: 'club' | 'owner' | 'gallery') => {
-    const mockImageUrl = `https://images.pexels.com/photos/${Math.floor(Math.random() * 1000000)}/pexels-photo.jpeg?auto=compress&cs=tinysrgb&w=400`;
-    
-    if (type === 'club') {
-      setClubData(prev => ({ ...prev, profileImage: mockImageUrl }));
-    } else if (type === 'owner') {
-      setClubData(prev => ({ 
-        ...prev, 
-        owner: { ...prev.owner, profileImage: mockImageUrl }
-      }));
-    } else if (type === 'gallery') {
-      setClubData(prev => ({
-        ...prev,
-        gallery: [...prev.gallery, mockImageUrl]
-      }));
+  // ===== Upload gallery images (limit = 10) =====
+  const handleGalleryUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const selectedFiles = Array.from(files);
+
+    // Check remaining capacity
+    const remainingSlots = MAX_IMAGES - gallery.length;
+
+    if (remainingSlots <= 0) {
+      alert("You can upload a maximum of 10 images.");
+      return;
     }
+
+    // Slice extra images
+    const allowedFiles = selectedFiles.slice(0, remainingSlots);
+
+    // Create preview URLs
+    const newImages = allowedFiles.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+
+    // Update state
+    setGallery((prev) => [...prev, ...newImages]);
   };
 
+  // ===== Remove image =====
   const removeGalleryImage = (index: number) => {
-    setClubData(prev => ({
-      ...prev,
-      gallery: prev.gallery.filter((_, i) => i !== index)
-    }));
+    setGallery((prev) => {
+      // Revoke preview URL to avoid memory leaks
+      URL.revokeObjectURL(prev[index].preview);
+      return prev.filter((_, i) => i !== index);
+    });
   };
+
 
   const handleDocumentUpload = () => {
     if (!newDocument.name || !newDocument.file) {
@@ -251,115 +189,201 @@ const ClubSettings: React.FC = () => {
           ))}
         </div>
 
-        {activeTab === 'club' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
+       {activeTab === 'club' && user?.club && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          
+          {/* ─────────────── CLUB BASIC INFO (Your Existing Code) ─────────────── */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+            gap: '16px' 
+          }}>
+
+            {/* Club Image */}
             <div style={{ gridColumn: '1 / -1', textAlign: 'center', marginBottom: '20px' }}>
-              <div style={{
-                width: '120px',
-                height: '120px',
-                borderRadius: '12px',
-                margin: '0 auto 12px',
-                background: clubData.profileImage ? `url(${clubData.profileImage})` : '#f1f5f9',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '2px solid #e2e8f0'
-              }}>
-                {!clubData.profileImage && (
+              <div
+                style={{
+                  width: '120px',
+                  height: '120px',
+                  borderRadius: '12px',
+                  margin: '0 auto 12px',
+                  background: user.club.imageUrl ? `url(${user.club.imageUrl})` : '#f1f5f9',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid #e2e8f0'
+                }}
+              >
+                {!user.club.imageUrl && (
                   <span style={{ color: '#9ca3af', fontSize: '12px' }}>No Image</span>
                 )}
               </div>
               <button
                 type="button"
                 onClick={() => handleImageUpload('club')}
-                className="btn btn-secondary" /* Keep as is */
+                className="btn btn-secondary"
               >
                 <Upload size={16} />
-                Upload Club Photo
+                Change Club Photo
               </button>
             </div>
 
+            {/* Club Name */}
             <div className="form-group">
               <label className="form-label">Club Name</label>
               <input
                 type="text"
                 className="form-input"
-                value={clubData.name}
-                onChange={(e) => setClubData(prev => ({ ...prev, name: e.target.value }))}
+                value={user.club.name || ''}
+                readOnly
               />
             </div>
 
+            {/* Club City */}
             <div className="form-group">
-              <label className="form-label">Capacity</label>
-              <input
-                type="number"
-                className="form-input"
-                value={clubData.capacity}
-                onChange={(e) => setClubData(prev => ({ ...prev, capacity: parseInt(e.target.value) || 0 }))}
-              />
-            </div>
-
-            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-              <label className="form-label">Address</label>
+              <label className="form-label">City</label>
               <input
                 type="text"
                 className="form-input"
-                value={clubData.address}
-                onChange={(e) => setClubData(prev => ({ ...prev, address: e.target.value }))}
+                value={user.club.city || ''}
+                readOnly
               />
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Phone</label>
-              <input
-                type="tel"
-                className="form-input"
-                value={clubData.phone}
-                onChange={(e) => setClubData(prev => ({ ...prev, phone: e.target.value }))}
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Email</label>
-              <input
-                type="email"
-                className="form-input"
-                value={clubData.email}
-                onChange={(e) => setClubData(prev => ({ ...prev, email: e.target.value }))}
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Website</label>
-              <input
-                type="url"
-                className="form-input"
-                value={clubData.website}
-                onChange={(e) => setClubData(prev => ({ ...prev, website: e.target.value }))}
-              />
-            </div>
-
+            {/* Club Location */}
             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-              <label className="form-label">Description</label>
-              <textarea
-                className="form-input form-textarea"
-                value={clubData.description}
-                onChange={(e) => setClubData(prev => ({ ...prev, description: e.target.value }))}
-                rows={3}
+              <label className="form-label">Location</label>
+              <input
+                type="text"
+                className="form-input"
+                value={user.club.location || ''}
+                readOnly
+              />
+            </div>
+
+            {/* Opening Hours */}
+            <div className="form-group">
+              <label className="form-label">Opens At</label>
+              <input
+                type="text"
+                className="form-input"
+                value={user.club.openTime || ''}
+                readOnly
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Closes At</label>
+              <input
+                type="text"
+                className="form-input"
+                value={user.club.closeTime || ''}
+                readOnly
+              />
+            </div>
+
+            {/* Subscription Info */}
+            <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+  <label className="form-label">Subscribed Plan</label>
+
+  <div
+    className="plan-button"
+    onClick={() => setActiveTab("subscription")} // your handler here
+  >
+    <span className="plan-title">
+      {user.club.subscribedPlan?.planName || "No Active Plan"}
+    </span>
+
+    {user.club.subscribedPlan?.planPrice && (
+      <span className="plan-price">
+        ${user.club.subscribedPlan.planPrice}
+      </span>
+    )}
+
+    <span className="plan-arrow">→</span>
+  </div>
+</div>
+
+
+            {/* Subscription Expiry */}
+            <div className="form-group">
+              <label className="form-label">Subscription Ends</label>
+              <input
+                type="text"
+                className="form-input"
+                value={
+                  user.club.subscriptionExpiryDate
+                    ? new Date(user.club.subscriptionExpiryDate).toLocaleDateString()
+                    : '—'
+                }
+                readOnly
+              />
+            </div>
+
+            {/* Status */}
+            <div className="form-group">
+              <label className="form-label">Status</label>
+              <input
+                type="text"
+                className="form-input"
+                value={user.club.status || 'inactive'}
+                readOnly
               />
             </div>
           </div>
-        )}
+
+
+          {/* ─────────────── MERGED GALLERY (Your Gallery Tab Merged Here) ─────────────── */}
+
+          <div style={styles.container}>
+      <h2 style={styles.title}>Gallery (Max 10 Images)</h2>
+
+      {/* Upload Button */}
+      <input
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleGalleryUpload}
+        style={styles.fileInput}
+      />
+
+      {/* Gallery Grid */}
+      <div style={styles.grid}>
+        {gallery.map((img, index) => (
+          <div key={index} style={styles.card}>
+            <img src={img.preview} alt="gallery" style={styles.image} />
+
+            <button
+              onClick={() => removeGalleryImage(index)}
+              style={styles.deleteBtn}
+            >
+              Remove
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Debug Section */}
+      <pre style={styles.debug}>
+        Files ready to upload: {gallery.length}
+      </pre>
+    </div>
+
+
+        </div>
+      )}
+
+
 
         {activeTab === 'owner' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
             <div style={{ gridColumn: '1 / -1', textAlign: 'center', marginBottom: '20px' }}>
               <ProfileImage 
-                firstName={clubData.owner.firstName}
-                lastName={clubData.owner.lastName}
-                imageUrl={clubData.owner.profileImage}
+                firstName={user?.fullName.split(' ')[0] || ''}
+                lastName={user?.fullName.split(' ')[1] || ''}
+                imageUrl={user?.imageUrl || ''}
                 size="lg"
                 className="mx-auto mb-3"
               />
@@ -378,7 +402,7 @@ const ClubSettings: React.FC = () => {
               <input
                 type="text"
                 className="form-input"
-                value={clubData.owner.firstName}
+                value={user?.fullName.split(' ')[0] || ''}
                 onChange={(e) => setClubData(prev => ({ 
                   ...prev, 
                   owner: { ...prev.owner, firstName: e.target.value }
@@ -391,7 +415,7 @@ const ClubSettings: React.FC = () => {
               <input
                 type="text"
                 className="form-input"
-                value={clubData.owner.lastName}
+                value={user?.fullName.split(' ')[1] || ''}
                 onChange={(e) => setClubData(prev => ({ 
                   ...prev, 
                   owner: { ...prev.owner, lastName: e.target.value }
@@ -404,7 +428,7 @@ const ClubSettings: React.FC = () => {
               <input
                 type="email"
                 className="form-input"
-                value={clubData.owner.email}
+                value={user?.email || ''}
                 onChange={(e) => setClubData(prev => ({ 
                   ...prev, 
                   owner: { ...prev.owner, email: e.target.value }
@@ -412,7 +436,7 @@ const ClubSettings: React.FC = () => {
               />
             </div>
 
-            <div className="form-group">
+            {/* <div className="form-group">
               <label className="form-label">Phone</label>
               <input
                 type="tel"
@@ -423,7 +447,7 @@ const ClubSettings: React.FC = () => {
                   owner: { ...prev.owner, phone: e.target.value }
                 }))}
               />
-            </div>
+            </div> */}
           </div>
         )}
 
@@ -431,7 +455,7 @@ const ClubSettings: React.FC = () => {
           <SubscriptionSettings />
         )}
 
-        {activeTab === 'hours' && (
+        {/* {activeTab === 'hours' && (
           <div>
             <h3 style={{ color: '#1e293b', fontSize: '16px', fontWeight: '600', marginBottom: '16px' }}>
               Operating Hours
@@ -463,7 +487,7 @@ const ClubSettings: React.FC = () => {
               ))}
             </div>
           </div>
-        )}
+        )} */}
 
         {activeTab === 'gallery' && (
           <div>
@@ -486,7 +510,7 @@ const ClubSettings: React.FC = () => {
               gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
               gap: '16px'
             }}>
-              {clubData.gallery.map((image, index) => (
+              {clubData?.gallery?.map((image, index) => (
                 <div key={index} style={{ position: 'relative' }}>
                   <div style={{
                     width: '100%',
@@ -523,7 +547,7 @@ const ClubSettings: React.FC = () => {
               ))}
             </div>
             
-            {clubData.gallery.length === 0 && (
+            {clubData?.gallery?.length === 0 && (
               <div style={{
                 padding: '40px',
                 textAlign: 'center',
@@ -811,3 +835,61 @@ const ClubSettings: React.FC = () => {
 };
 
 export default ClubSettings;
+
+const styles: any = {
+  container: {
+    padding: "20px",
+    maxWidth: "600px",
+    margin: "auto",
+    fontFamily: "sans-serif",
+  },
+  title: {
+    fontSize: "20px",
+    marginBottom: "10px",
+  },
+  fileInput: {
+    padding: "10px",
+    marginBottom: "15px",
+    border: "1px solid #ccc",
+    borderRadius: "6px",
+  },
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
+    gap: "12px",
+  },
+  card: {
+    position: "relative",
+    border: "1px solid #ddd",
+    borderRadius: "8px",
+    overflow: "hidden",
+  },
+  image: {
+    width: "100%",
+    height: "100px",
+    objectFit: "cover",
+  },
+  deleteBtn: {
+    position: "absolute",
+    bottom: "6px",
+    left: "6px",
+    right: "6px",
+    background: "red",
+    color: "white",
+    padding: "4px 6px",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer",
+    fontSize: "12px",
+  },
+  debug: {
+    marginTop: "20px",
+    fontSize: "12px",
+    color: "#555",
+    background: "#f7f7f7",
+    padding: "10px",
+    borderRadius: "6px",
+  },
+  
+  
+};

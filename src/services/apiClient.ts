@@ -232,5 +232,31 @@ export const apiClient = {
       method: "GET",
     });
   },
+  async deleteStaffById(staffId: string, eventId: string, userType: string) {
+    return request("/staff/addStaffById", {
+      method: "DELETE",
+      body: JSON.stringify({ staffId, eventId, userType }),
+    });
+  },
+  async getPromotersByClubId(
+    clubId: string,
+    eventId?: string,
+    status?: string
+  ) {
+    let query = `clubId=${encodeURIComponent(clubId)}`;
+    if (status) query += `&status=${encodeURIComponent(status)}`;
+    if (eventId) query += `&eventId=${encodeURIComponent(eventId)}`;
+
+    return request(`/promoter/getPromotersByFilters?${query}`, {
+      method: "GET",
+    });
+  },
+  async invitePromoterByEmail(email: string) {
+    return request("/eventsorganizers/inviteByEmail", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  }
+
 
 };

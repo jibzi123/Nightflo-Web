@@ -520,11 +520,28 @@ const StaffManager: React.FC = () => {
     setSelectedStaff(null);
   };
 
-  const handleDeleteStaff = (staffId: string) => {
+  const handleDeleteStaff = async (staff: any) => {
+    const staffId = staff?.id;
+    const eventId = staff?.event?.id;
+    const userType = staff?.role;
+
+    if (!staffId || !eventId || !userType) {
+      //alert("Missing required data to remove staff.");
+      return;
+    }
+
     if (confirm("Are you sure you want to remove this staff member?")) {
-      setStaff((prev) => prev.filter((s) => s.id !== staffId));
+      try {
+        await apiClient.deleteStaffById(staffId, eventId, userType);
+        setStaff((prev) => prev.filter((s) => s.id !== staffId));
+        alert("Staff member removed successfully.");
+      } catch (error) {
+        console.error("Error removing staff:", error);
+        alert("Failed to remove staff member. Please try again.");
+      }
     }
   };
+
 
   return (
     <div>
@@ -690,12 +707,10 @@ const StaffManager: React.FC = () => {
                             <Edit size={12} />
                             Edit
                           </button>
-                          <button
-                            className="btn btn-danger"
-                            style={{ padding: "6px 12px", fontSize: "12px" }}
-                            onClick={() =>
-                              handleDeleteStaff(member.id)
-                            } /* Keep as is */
+                          <button 
+                            className="btn btn-danger" 
+                            style={{ padding: '6px 12px', fontSize: '12px' }}
+                            onClick={() => handleDeleteStaff(member)} /* Keep as is */
                           >
                             <Trash2 size={12} />
                             Remove

@@ -6,22 +6,20 @@ import { apiClient } from "../../services/apiClient";
 import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "react-toastify";
 
-
 interface EventCreatorProps {
   mode: "create" | "edit";
   eventData?: any;
   onEventCreated?: () => void;
-  onEventUpdated?: (updatedEvent: any) => void;  // ✅ updated
+  onEventUpdated?: (updatedEvent: any) => void; // ✅ updated
   onBack: () => void;
 }
 
-
-const EventCreator: React.FC<EventCreatorProps> = ({ 
-  eventData, 
-  mode = "create", 
-  onEventCreated, 
+const EventCreator: React.FC<EventCreatorProps> = ({
+  eventData,
+  mode = "create",
+  onEventCreated,
   onEventUpdated,
-  onBack
+  onBack,
 }) => {
   const { user, token } = useAuth();
   const [eventName, setEventName] = useState("");
@@ -38,21 +36,22 @@ const EventCreator: React.FC<EventCreatorProps> = ({
     if (mode === "edit" && eventData) {
       setEventName(eventData?.eventName || "");
       setLocation(eventData?.location || "");
-      setStartTime(eventData?.startTime ? new Date(eventData?.startTime) : null);
+      setStartTime(
+        eventData?.startTime ? new Date(eventData?.startTime) : null
+      );
       setEndTime(eventData?.endTime ? new Date(eventData?.endTime) : null);
       setDescription(eventData?.description || "");
       setImageFile(eventData?.imageUrl || "");
     }
   }, [mode, eventData]);
 
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setImageFile(e.target.files[0]);
     }
   };
-  
-// helper: convert File -> Blob (like mobile's fetchImageFromUri)
+
+  // helper: convert File -> Blob (like mobile's fetchImageFromUri)
   const fetchImageFromFile = async (file: File): Promise<Blob> => {
     return file instanceof Blob ? file : new Blob([file]);
   };
@@ -99,35 +98,32 @@ const EventCreator: React.FC<EventCreatorProps> = ({
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
+    if (!eventName || !location || !startTime || !endTime) {
+      toast.error("Please fill all required fields");
+      return;
+    }
 
- const handleSubmit = async (e: React.FormEvent) => {
-   e.preventDefault();
+    try {
+      setLoading(true);
 
-   if (!eventName || !location || !startTime || !endTime) {
-     toast.error("Please fill all required fields");
-     return;
-   }
+      const payload = {
+        eventName,
+        description,
+        location,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        socialMedia: {},
+        clubId: user?.club?.id || "default-club-id",
+        facebookUrl: "",
+        instagramUrl: "",
+        youtubeUrl: "",
+        tiktokUrl: "",
+      };
 
-   try {
-     setLoading(true);
-
-     const payload = {
-       eventName,
-       description,
-       location,
-       startTime: startTime.toISOString(),
-       endTime: endTime.toISOString(),
-       socialMedia: {},
-       clubId: user?.club?.id || "default-club-id",
-       facebookUrl: "",
-       instagramUrl: "",
-       youtubeUrl: "",
-       tiktokUrl: "",
-     };
-
-
-     if (mode === "create") {
+      if (mode === "create") {
         // 🔹 Create event
         const createdEvent = await apiClient.createEvent(payload);
         onEventCreated?.();
@@ -153,43 +149,59 @@ const EventCreator: React.FC<EventCreatorProps> = ({
           location,
           startTime: startTime?.toISOString(),
           endTime: endTime?.toISOString(),
-          imageUrl: imageFile 
+          imageUrl: imageFile
             ? undefined // will be replaced after upload
             : eventData.imageUrl, // keep old one if not changed
         });
         //onEventUpdated?.();
         eventRef.current = updatedEvent?.payLoad; // ✅ ensure we store payload not whole response
-      if (imageFile && eventRef.current?.id && imageFile !== eventData.imageUrl) {
-        await handleImagePicked(
-          imageFile,
-          updatedEvent?.payLoad?.signedUrl || null,
-          eventRef.current.id
-        );
-      }
+        if (
+          imageFile &&
+          eventRef.current?.id &&
+          imageFile !== eventData.imageUrl
+        ) {
+          await handleImagePicked(
+            imageFile,
+            updatedEvent?.payLoad?.signedUrl || null,
+            eventRef.current.id
+          );
+        }
         if (onEventUpdated) {
           toast.success("Event updated successfully!");
           setTimeout(() => {
-            onEventUpdated(eventRef.current)
+            onEventUpdated(eventRef.current);
           }, 1000);
         }
       }
-     
-   } catch (err: any) {
-     console.error("❌ Event creation failed", err);
-
-   } finally {
-     setLoading(false);
-   }
- };
-
+    } catch (err: any) {
+      console.error("❌ Event creation failed", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    
-    <div className="card" style={{ maxWidth: 600, margin: "20px auto", padding: "20px" }}>
-      <button className="btn btn-secondary mb-3" onClick={onBack}>
+    <div
+      className="card"
+      style={{
+        maxWidth: 600,
+        margin: "20px auto",
+        padding: "20px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "12px",
+      }}
+    >
+      <button
+        className="btn btn-secondary-outlined mb-3"
+        style={{ width: "30%" }}
+        onClick={onBack}
+      >
         ⬅ Back to Events
       </button>
-      <h2>{mode === "create" ? "Create Event" : "Update Event"}</h2>
+      <h2 style={{ color: "#fff" }}>
+        {mode === "create" ? "Create Event" : "Update Event"}
+      </h2>
 
       <form onSubmit={handleSubmit}>
         <div className="form-group">
@@ -241,7 +253,7 @@ const EventCreator: React.FC<EventCreatorProps> = ({
             style={{
               width: "100%",
               padding: "10px 12px",
-              border: "1px solid #ccc",
+              border: "1px solid #323232",
               borderRadius: "8px",
               resize: "vertical",
               fontSize: "14px",
@@ -253,7 +265,6 @@ const EventCreator: React.FC<EventCreatorProps> = ({
             onBlur={(e) => (e.target.style.borderColor = "#ccc")}
           />
         </div>
-
 
         <div className="form-group">
           <label className="form-label">Event Flyer *</label>
@@ -271,30 +282,26 @@ const EventCreator: React.FC<EventCreatorProps> = ({
                 src={
                   typeof imageFile === "string"
                     ? `${imageFile}?t=${new Date().getTime()}` // 👈 force refresh if it's a DB URL
-                    : URL.createObjectURL(imageFile)          // 👈 still works for new uploads
+                    : URL.createObjectURL(imageFile) // 👈 still works for new uploads
                 }
                 alt="Event Flyer Preview"
                 style={{ maxWidth: "200px", borderRadius: "8px" }}
               />
             </div>
           )}
-
         </div>
 
-
         <button className="btn btn-primary" type="submit" disabled={loading}>
-          {loading 
-            ? mode === "create" 
-              ? "Creating..." 
+          {loading
+            ? mode === "create"
+              ? "Creating..."
               : "Updating..."
-            : mode === "create" 
-              ? "Create Event" 
-              : "Update Event"}
+            : mode === "create"
+            ? "Create Event"
+            : "Update Event"}
         </button>
-
       </form>
     </div>
-
   );
 };
 

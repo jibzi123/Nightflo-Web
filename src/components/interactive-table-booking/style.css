@@ -249,9 +249,6 @@ body {
   font-weight: 600;
 }
 
-.btn-danger:hover {
-  background: #ff5252;
-}
 
 .btn-danger-small {
   padding: 4px 8px;

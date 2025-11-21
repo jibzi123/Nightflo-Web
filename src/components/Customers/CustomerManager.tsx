@@ -70,29 +70,42 @@ const CustomerManager: React.FC = () => {
   return (
     <div>
       <div className="card">
-        <div className="card-header">
-          <h2 className="card-title">Customer Management</h2>
-          <p className="card-subtitle">
-            Manage your customer database and loyalty programs
-          </p>
+        <div>
+          <div
+            className="card-header"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              width: "100%",
+            }}
+          >
+            <div>
+              <h2 className="card-title">Customer Management</h2>
+              <p className="card-subtitle">
+                Manage your customer database and loyalty programs
+              </p>
+            </div>
+
+            <div
+              style={{
+                marginBottom: "20px",
+                display: "flex",
+                gap: "16px",
+                flexWrap: "wrap",
+              }}
+            >
+              <button className="btn btn-primary">
+                <span>+</span>
+                Add Customer
+              </button>
+            </div>
+          </div>
         </div>
 
         <div
-          style={{
-            marginBottom: "20px",
-            display: "flex",
-            gap: "16px",
-            flexWrap: "wrap",
-          }}
+          className="search-filter-container"
+          style={{ justifyContent: "space-between" }}
         >
-          <button className="btn btn-primary">
-            <span>+</span>
-            Add Customer
-          </button>
-          <button className="btn btn-secondary">Export Data</button>
-        </div>
-
-        <div className="search-filter-container">
           <div style={{ position: "relative", flex: 1, maxWidth: "300px" }}>
             <Search
               size={16}
@@ -101,9 +114,10 @@ const CustomerManager: React.FC = () => {
                 left: "12px",
                 top: "50%",
                 transform: "translateY(-50%)",
-                color: "#64748b",
+                color: "#fff",
               }}
             />
+
             <input
               type="text"
               className="search-input"
@@ -113,16 +127,18 @@ const CustomerManager: React.FC = () => {
               style={{ paddingLeft: "40px" }}
             />
           </div>
-
-          <select
-            className="filter-select"
-            value={vipFilter}
-            onChange={(e) => setVipFilter(e.target.value)}
-          >
-            <option value="all">All Customers</option>
-            <option value="vip">VIP (Spent ≥ $1000)</option>
-            <option value="regular">Regular (Spent &lt; $1000)</option>
-          </select>
+          <div className="filter-export-container">
+            <select
+              className="filter-select"
+              value={vipFilter}
+              onChange={(e) => setVipFilter(e.target.value)}
+            >
+              <option value="all">All Customers</option>
+              <option value="vip">VIP (Spent ≥ $1000)</option>
+              <option value="regular">Regular (Spent &lt; $1000)</option>
+            </select>
+            <button className="btn btn-secondary-outlined">Export Data</button>
+          </div>
         </div>
 
         <div className="table-container">
@@ -158,14 +174,10 @@ const CustomerManager: React.FC = () => {
                           size="sm"
                         />
                         <div>
-                          <div
-                            style={{ fontWeight: "600", color: "#1e293b" }}
-                          >
+                          <div style={{ fontWeight: "600", color: "#fff" }}>
                             {customer.fullName}
                           </div>
-                          <div
-                            style={{ fontSize: "12px", color: "#64748b" }}
-                          >
+                          <div style={{ fontSize: "12px", color: "#A5A5A5" }}>
                             {customer.email}
                           </div>
                         </div>
@@ -179,15 +191,11 @@ const CustomerManager: React.FC = () => {
                       {customer.tableCount} (${customer.tableTotal})
                     </td>
                     <td>${customer.totalSpent.toLocaleString()}</td>
-                    <td>
-                      {new Date(customer.createdAt).toLocaleDateString()}
-                    </td>
+                    <td>{new Date(customer.createdAt).toLocaleDateString()}</td>
                     <td>
                       <span
                         className={`badge ${
-                          customer.isVerified
-                            ? "badge-success"
-                            : "badge-info"
+                          customer.isVerified ? "badge-success" : "badge-info"
                         }`}
                       >
                         {customer.isVerified ? "Verified" : "Unverified"}
@@ -196,13 +204,13 @@ const CustomerManager: React.FC = () => {
                     <td>
                       <div style={{ display: "flex", gap: "8px" }}>
                         <button
-                          className="btn btn-secondary"
+                          className="btn btn-secondary-outlined"
                           style={{ padding: "6px 12px", fontSize: "12px" }}
                         >
                           View
                         </button>
                         <button
-                          className="btn btn-secondary"
+                          className="btn btn-secondary-outlined"
                           style={{ padding: "6px 12px", fontSize: "12px" }}
                         >
                           Edit

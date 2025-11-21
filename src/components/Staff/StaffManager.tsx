@@ -40,7 +40,12 @@ interface StaffEditorProps {
   onSave: (staff: StaffItem) => void;
 }
 
-const StaffEditor: React.FC<StaffEditorProps> = ({ staff, isOpen, onClose, onSave }) => {
+const StaffEditor: React.FC<StaffEditorProps> = ({
+  staff,
+  isOpen,
+  onClose,
+  onSave,
+}) => {
   // flat form model used in the modal
   const [formData, setFormData] = useState<StaffItem>({
     id: "",
@@ -70,12 +75,16 @@ const StaffEditor: React.FC<StaffEditorProps> = ({ staff, isOpen, onClose, onSav
         lastName,
         email: staff.staff?.email || "",
         phone: staff["phone"] || "",
-        role: staff.role || (staff.staff?.userType || "Bartender"),
+        role: staff.role || staff.staff?.userType || "Bartender",
         department: (staff["department"] as any) || "Bar",
         salary: (staff["salary"] as any) || 35000,
         workingHours: (staff["workingHours"] as any) || "Part-time",
-        hireDate: (staff["hireDate"] as any) || new Date().toISOString().split("T")[0],
-        status: staff.status?.toLowerCase() === "accepted" ? "active" : (staff.status || "active"),
+        hireDate:
+          (staff["hireDate"] as any) || new Date().toISOString().split("T")[0],
+        status:
+          staff.status?.toLowerCase() === "accepted"
+            ? "active"
+            : staff.status || "active",
         emergencyContact: staff["emergencyContact"] || "",
         address: staff.staff?.address || staff["address"] || "",
       });
@@ -103,7 +112,9 @@ const StaffEditor: React.FC<StaffEditorProps> = ({ staff, isOpen, onClose, onSav
     e.preventDefault();
 
     // build a StaffMember shaped object to return
-    const fullName = `${(formData.firstName || "").trim()} ${(formData.lastName || "").trim()}`.trim();
+    const fullName = `${(formData.firstName || "").trim()} ${(
+      formData.lastName || ""
+    ).trim()}`.trim();
     const newStaff: StaffItem = {
       id: formData.id || Date.now().toString(),
       role: formData.role,
@@ -143,7 +154,9 @@ const StaffEditor: React.FC<StaffEditorProps> = ({ staff, isOpen, onClose, onSav
     <div className="modal-overlay">
       <div className="modal-content" style={{ maxWidth: "700px" }}>
         <div className="modal-header">
-          <h2 className="modal-title">{staff ? "Edit Staff Member" : "Add New Staff Member"}</h2>
+          <h2 className="modal-title">
+            {staff ? "Edit Staff Member" : "Add New Staff Member"}
+          </h2>
           <button className="modal-close" onClick={onClose}>
             <X size={16} />
           </button>
@@ -151,14 +164,22 @@ const StaffEditor: React.FC<StaffEditorProps> = ({ staff, isOpen, onClose, onSav
 
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "16px",
+              }}
+            >
               <div className="form-group">
                 <label className="form-label">First Name *</label>
                 <input
                   type="text"
                   className="form-input"
                   value={formData.firstName}
-                  onChange={(e) => setFormData((p) => ({ ...p, firstName: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, firstName: e.target.value }))
+                  }
                   required
                 />
               </div>
@@ -168,20 +189,30 @@ const StaffEditor: React.FC<StaffEditorProps> = ({ staff, isOpen, onClose, onSav
                   type="text"
                   className="form-input"
                   value={formData.lastName}
-                  onChange={(e) => setFormData((p) => ({ ...p, lastName: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, lastName: e.target.value }))
+                  }
                   required
                 />
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "16px",
+              }}
+            >
               <div className="form-group">
                 <label className="form-label">Email *</label>
                 <input
                   type="email"
                   className="form-input"
                   value={(formData as any).email || ""}
-                  onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, email: e.target.value }))
+                  }
                   required
                 />
               </div>
@@ -191,18 +222,28 @@ const StaffEditor: React.FC<StaffEditorProps> = ({ staff, isOpen, onClose, onSav
                   type="tel"
                   className="form-input"
                   value={formData.phone || ""}
-                  onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, phone: e.target.value }))
+                  }
                 />
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "16px",
+              }}
+            >
               <div className="form-group">
                 <label className="form-label">Role *</label>
                 <select
                   className="form-select"
                   value={formData.role}
-                  onChange={(e) => setFormData((p) => ({ ...p, role: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, role: e.target.value }))
+                  }
                 >
                   <option value="Bartender">Bartender</option>
                   <option value="Security">Security</option>
@@ -218,7 +259,9 @@ const StaffEditor: React.FC<StaffEditorProps> = ({ staff, isOpen, onClose, onSav
                 <select
                   className="form-select"
                   value={formData.department}
-                  onChange={(e) => setFormData((p) => ({ ...p, department: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, department: e.target.value }))
+                  }
                 >
                   <option value="Bar">Bar</option>
                   <option value="Security">Security</option>
@@ -231,14 +274,25 @@ const StaffEditor: React.FC<StaffEditorProps> = ({ staff, isOpen, onClose, onSav
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "16px",
+              }}
+            >
               <div className="form-group">
                 <label className="form-label">Annual Salary ($)</label>
                 <input
                   type="number"
                   className="form-input"
                   value={formData.salary || 0}
-                  onChange={(e) => setFormData((p) => ({ ...p, salary: parseInt(e.target.value || "0", 10) }))}
+                  onChange={(e) =>
+                    setFormData((p) => ({
+                      ...p,
+                      salary: parseInt(e.target.value || "0", 10),
+                    }))
+                  }
                 />
               </div>
               <div className="form-group">
@@ -246,7 +300,9 @@ const StaffEditor: React.FC<StaffEditorProps> = ({ staff, isOpen, onClose, onSav
                 <select
                   className="form-select"
                   value={formData.workingHours}
-                  onChange={(e) => setFormData((p) => ({ ...p, workingHours: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, workingHours: e.target.value }))
+                  }
                 >
                   <option value="Full-time">Full-time</option>
                   <option value="Part-time">Part-time</option>
@@ -257,14 +313,24 @@ const StaffEditor: React.FC<StaffEditorProps> = ({ staff, isOpen, onClose, onSav
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "16px",
+              }}
+            >
               <div className="form-group">
                 <label className="form-label">Hire Date</label>
                 <input
                   type="date"
                   className="form-input"
-                  value={formData.hireDate || new Date().toISOString().split("T")[0]}
-                  onChange={(e) => setFormData((p) => ({ ...p, hireDate: e.target.value }))}
+                  value={
+                    formData.hireDate || new Date().toISOString().split("T")[0]
+                  }
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, hireDate: e.target.value }))
+                  }
                 />
               </div>
               <div className="form-group">
@@ -272,7 +338,12 @@ const StaffEditor: React.FC<StaffEditorProps> = ({ staff, isOpen, onClose, onSav
                 <select
                   className="form-select"
                   value={formData.status}
-                  onChange={(e) => setFormData((p) => ({ ...p, status: e.target.value as any }))}
+                  onChange={(e) =>
+                    setFormData((p) => ({
+                      ...p,
+                      status: e.target.value as any,
+                    }))
+                  }
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
@@ -286,7 +357,9 @@ const StaffEditor: React.FC<StaffEditorProps> = ({ staff, isOpen, onClose, onSav
                 type="text"
                 className="form-input"
                 value={formData.address || ""}
-                onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, address: e.target.value }))
+                }
                 placeholder="123 Main Street, City, State"
               />
             </div>
@@ -297,14 +370,23 @@ const StaffEditor: React.FC<StaffEditorProps> = ({ staff, isOpen, onClose, onSav
                 type="text"
                 className="form-input"
                 value={formData.emergencyContact || ""}
-                onChange={(e) => setFormData((p) => ({ ...p, emergencyContact: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((p) => ({
+                    ...p,
+                    emergencyContact: e.target.value,
+                  }))
+                }
                 placeholder="Name and phone number"
               />
             </div>
           </div>
 
           <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={onClose}
+            >
               Cancel
             </button>
             <button type="submit" className="btn btn-primary">
@@ -378,7 +460,8 @@ const StaffManager: React.FC = () => {
 
         const role = roleFilter !== "all" ? roleFilter : undefined;
         const status = statusFilter !== "all" ? statusFilter : undefined;
-        const eventId = eventFilter == "All Events" ? undefined : eventFilter || undefined;
+        const eventId =
+          eventFilter == "All Events" ? undefined : eventFilter || undefined;
 
         const res = await apiClient.getStaffByClubId(
           user.club.id,
@@ -416,7 +499,7 @@ const StaffManager: React.FC = () => {
       })
     : [];
 
-      const handleCreateStaff = () => {
+  const handleCreateStaff = () => {
     setSelectedStaff(null);
     setShowStaffEditor(true);
   };
@@ -466,17 +549,25 @@ const StaffManager: React.FC = () => {
         <div className="card-header">
           <h2 className="card-title">Staff Management</h2>
           <p className="card-subtitle">Manage your club staff members</p>
-          <div style={{ display: "none", gap: 8, marginBottom: 16, justifyContent: "flex-end" }}>
+          <div
+            style={{
+              display: "none",
+              gap: 8,
+              marginBottom: 16,
+              justifyContent: "flex-end",
+            }}
+          >
             <button className="btn btn-primary" onClick={handleCreateStaff}>
               <Plus size={14} style={{ marginRight: 6 }} /> Add Staff Member
             </button>
-            <button className="btn btn-secondary" onClick={() => alert("Send invitations (implement)")}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => alert("Send invitations (implement)")}
+            >
               <Mail size={14} style={{ marginRight: 6 }} /> Send Invitations
             </button>
           </div>
         </div>
-
-        
 
         {/* Filters */}
         <div className="search-filter-container">
@@ -488,7 +579,7 @@ const StaffManager: React.FC = () => {
                 left: "12px",
                 top: "50%",
                 transform: "translateY(-50%)",
-                color: "#64748b",
+                color: "#fff",
               }}
             />
             <input
@@ -500,48 +591,47 @@ const StaffManager: React.FC = () => {
               style={{ paddingLeft: "40px" }}
             />
           </div>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <select
+              className="filter-select"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+            >
+              <option value="all">All Roles</option>
+              <option value="BARTENDER">Bartender</option>
+              <option value="SECURITY">Security</option>
+              <option value="DJ">DJ</option>
+              <option value="SERVER">Server</option>
+              <option value="MANAGER">Manager</option>
+            </select>
 
-          <select
-            className="filter-select"
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-          >
-            <option value="all">All Roles</option>
-            <option value="BARTENDER">Bartender</option>
-            <option value="SECURITY">Security</option>
-            <option value="DJ">DJ</option>
-            <option value="SERVER">Server</option>
-            <option value="MANAGER">Manager</option>
-          </select>
+            <select
+              className="filter-select"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="all">All Status</option>
+              <option value="ACCEPTED">Accepted</option>
+              <option value="PENDING">Pending</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
 
-          <select
-            className="filter-select"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">All Status</option>
-            <option value="ACCEPTED">Accepted</option>
-            <option value="PENDING">Pending</option>
-            <option value="REJECTED">Rejected</option>
-          </select>
-
-          <select
-            className="filter-select"
-            value={eventFilter || ""}
-            onChange={(e) =>
-              setEventFilter(e.target.value || undefined)
-            }
-          >
-            {clubEvents.length === 0 ? (
-              <option value="">No Events Found</option>
-            ) : (
-              clubEvents.map((ev) => (
-                <option key={ev.id} value={ev.id}>
-                  {ev.eventName}
-                </option>
-              ))
-            )}
-          </select>
+            <select
+              className="filter-select"
+              value={eventFilter || ""}
+              onChange={(e) => setEventFilter(e.target.value || undefined)}
+            >
+              {clubEvents.length === 0 ? (
+                <option value="">No Events Found</option>
+              ) : (
+                clubEvents.map((ev) => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.eventName}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
         </div>
 
         {/* Table */}
@@ -608,10 +698,10 @@ const StaffManager: React.FC = () => {
                           : "-"}
                       </td>
                       <td>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button 
-                            className="btn btn-secondary" 
-                            style={{ padding: '6px 12px', fontSize: '12px' }}
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          <button
+                            className="btn btn-secondary-outlined"
+                            style={{ padding: "6px 12px", fontSize: "12px" }}
                             onClick={() => handleEditStaff(member)}
                           >
                             <Edit size={12} />
@@ -642,7 +732,12 @@ const StaffManager: React.FC = () => {
         )}
       </div>
 
-      <StaffEditor staff={selectedStaff} isOpen={showStaffEditor} onClose={() => setShowStaffEditor(false)} onSave={handleSaveStaff} />
+      <StaffEditor
+        staff={selectedStaff}
+        isOpen={showStaffEditor}
+        onClose={() => setShowStaffEditor(false)}
+        onSave={handleSaveStaff}
+      />
     </div>
   );
 };

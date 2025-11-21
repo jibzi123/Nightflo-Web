@@ -418,7 +418,7 @@ const ComplianceManager: React.FC = () => {
               left: '12px', 
               top: '50%', 
               transform: 'translateY(-50%)', 
-              color: '#64748b' 
+              color: '#fff' 
             }} />
             <input
               type="text"

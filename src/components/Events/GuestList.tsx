@@ -40,7 +40,6 @@ const GuestList: React.FC<GuestListProps> = ({ event, isOpen, onClose }) => {
     const fetchGuests = async () => {
       if (!event) return;
       try {
-        debugger;
         setLoading(true);
 
         // mimic mobile logic
@@ -177,7 +176,7 @@ const GuestList: React.FC<GuestListProps> = ({ event, isOpen, onClose }) => {
                 left: '12px', 
                 top: '50%', 
                 transform: 'translateY(-50%)', 
-                color: '#64748b' 
+                color: '#fff' 
               }} />
               <input
                 type="text"

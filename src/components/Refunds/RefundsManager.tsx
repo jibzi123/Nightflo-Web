@@ -3,14 +3,17 @@ import { useAuth } from "../../contexts/AuthContext";
 import { Search, DollarSign } from "lucide-react";
 import ProfileImage from "../common/ProfileImage";
 import "../../styles/components.css";
+import { apiClient } from "../../services/apiClient";
 
 interface Refund {
   id: string;
   customerName: string;
   customerEmail: string;
   customerImage?: string;
+  name: string;
+
   eventName: string;
-  ticketType: string;
+  bookingType: string;
   originalAmount: number;
   refundAmount: number;
   reason: string;
@@ -18,121 +21,99 @@ interface Refund {
   requestDate: string;
   processedDate?: string;
 }
-
+interface ClubEvent {
+  id?: string;
+  eventName: string;
+}
 const RefundsManager: React.FC = () => {
   const { user } = useAuth();
   const [refunds, setRefunds] = useState<Refund[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [eventFilter, setEventFilter] = useState<string | undefined>(undefined);
+  const [clubEvents, setClubEvents] = useState<ClubEvent[]>([]);
+  const [pageLoading, setPageLoading] = useState(false);
 
+  // Fetch all club events (upcoming + past)
   useEffect(() => {
-    fetchRefunds();
+    const fetchClubEvents = async () => {
+      try {
+        setPageLoading(true);
+        const [upcomingRes, pastRes] = await Promise.all([
+          apiClient.getUpcomingEvents(),
+          apiClient.getPastEvents(),
+        ]);
+
+        const allEvents = [
+          ...(upcomingRes?.payLoad || []),
+          ...(pastRes?.payLoad || []),
+        ].map((ev: any) => ({
+          id: ev.id,
+          eventName: ev.eventName,
+        }));
+
+        // Insert "All Events" option at the top
+        allEvents.unshift({ id: undefined, eventName: "All Events" });
+        setClubEvents(allEvents);
+        setEventFilter(undefined);
+      } catch (err) {
+        console.error("Failed to fetch events:", err);
+      } finally {
+        setPageLoading(false);
+      }
+    };
+
+    fetchClubEvents();
   }, []);
 
   const fetchRefunds = async () => {
     try {
       setLoading(true);
-      // Mock data
-      setRefunds([
-        {
-          id: "1",
-          customerName: "Alice Smith",
-          customerEmail: "alice.smith@email.com",
-          customerImage:
-            "https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150",
-          eventName: "Saturday Night Fever",
-          ticketType: "VIP",
-          originalAmount: 75,
-          refundAmount: 75,
-          reason: "Event cancelled due to weather",
-          status: "pending",
-          requestDate: "2025-01-20",
-        },
-        {
-          id: "2",
-          customerName: "Bob Johnson",
-          customerEmail: "bob.johnson@email.com",
-          eventName: "EDM Explosion",
-          ticketType: "General",
-          originalAmount: 30,
-          refundAmount: 25,
-          reason: "Unable to attend due to illness",
-          status: "approved",
-          requestDate: "2025-01-18",
-          processedDate: "2025-01-19",
-        },
-        {
-          id: "3",
-          customerName: "Carol Williams",
-          customerEmail: "carol.w@email.com",
-          customerImage:
-            "https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=150",
-          eventName: "Hip Hop Night",
-          ticketType: "Premium",
-          originalAmount: 50,
-          refundAmount: 0,
-          reason: "Requested refund after event started",
-          status: "rejected",
-          requestDate: "2025-01-15",
-          processedDate: "2025-01-16",
-        },
-        // Additional refunds for super admin view
-        ...(user?.userType === "super_admin"
-          ? [
-              {
-                id: "4",
-                customerName: "Daniel Kim",
-                customerEmail: "daniel.k@email.com",
-                customerImage:
-                  "https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=150",
-                eventName: "Techno Underground",
-                ticketType: "VIP",
-                originalAmount: 85,
-                refundAmount: 85,
-                reason: "Double booking error",
-                status: "pending",
-                requestDate: "2025-01-21",
-              },
-              {
-                id: "5",
-                customerName: "Maria Garcia",
-                customerEmail: "maria.g@email.com",
-                eventName: "Latin Night",
-                ticketType: "General",
-                originalAmount: 25,
-                refundAmount: 20,
-                reason: "Partial refund for late start",
-                status: "approved",
-                requestDate: "2025-01-17",
-                processedDate: "2025-01-18",
-              },
-            ]
-          : []),
-      ]);
+      const statusParam = statusFilter === "all" ? undefined : statusFilter;
+      const eventParam =
+        eventFilter === undefined || eventFilter === ""
+          ? undefined
+          : eventFilter;
+
+      const response = await apiClient.getRefundBookingsList(
+        user?.club?.id || "",
+        // "6825dfdc873bb4f6540042f6",
+        eventParam || ""
+      );
+      console.log(response, "response");
+      const refundsData = response?.payLoad || [];
+      const mappedRefunds: Refund[] = refundsData.map(
+        (p: any, index: string) => {
+          return {
+            id: index + 1,
+            customerName: p.customerName,
+            customerEmail: p.customerEmail,
+            name: p.ticketName || p.tableNumber,
+            customerImage:
+              "https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150",
+            eventName: p.eventName,
+            bookingType: p.bookingType,
+            originalAmount: p.originalPrice,
+            refundAmount: p.amountRefunded,
+            // reason: "Event cancelled due to weather",
+            status: p.checkedInStatus,
+            requestDate: p.refundDate,
+          };
+        }
+      );
+      setRefunds(mappedRefunds);
     } catch (error) {
       console.error("Failed to fetch refunds:", error);
     } finally {
       setLoading(false);
     }
   };
-
-  const handleRefundAction = (
-    refundId: string,
-    action: "approve" | "reject"
-  ) => {
-    setRefunds((prev) =>
-      prev.map((refund) =>
-        refund.id === refundId
-          ? {
-              ...refund,
-              status: action === "approve" ? "approved" : "rejected",
-              processedDate: new Date().toISOString().split("T")[0],
-            }
-          : refund
-      )
-    );
-  };
+  useEffect(() => {
+    if (user?.club?.id) {
+      fetchRefunds();
+    }
+  }, [statusFilter, eventFilter]);
 
   const filteredRefunds = refunds.filter((refund) => {
     const matchesSearch =
@@ -161,9 +142,9 @@ const RefundsManager: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return <div className="loading-spinner"></div>;
-  }
+  // if (loading) {
+  //   return <div className="loading-spinner"></div>;
+  // }
 
   return (
     <div>
@@ -174,40 +155,64 @@ const RefundsManager: React.FC = () => {
             Process customer refund requests and track refund history
           </p>
         </div>
-
-        <div className="search-filter-container">
-          <div style={{ position: "relative", flex: 1, maxWidth: "300px" }}>
-            <Search
-              size={16}
-              style={{
-                position: "absolute",
-                left: "12px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                color: "#fff",
-              }}
-            />
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Search refunds..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ paddingLeft: "40px" }}
-            />
-          </div>
-
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: "20px",
+          }}
+        >
           <select
             className="filter-select"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            value={eventFilter || ""}
+            onChange={(e) => setEventFilter(e.target.value || undefined)}
           >
-            <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-            <option value="processed">Processed</option>
+            {clubEvents.length === 0 ? (
+              <option value="">No Events Found</option>
+            ) : (
+              clubEvents.map((ev) => (
+                <option key={ev.id} value={ev.id || ""}>
+                  {ev.eventName}
+                </option>
+              ))
+            )}
           </select>
+          <div className="search-filter-container">
+            {/* Event dropdown */}
+
+            <div style={{ position: "relative", flex: 1, maxWidth: "300px" }}>
+              <Search
+                size={16}
+                style={{
+                  position: "absolute",
+                  left: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "#fff",
+                }}
+              />
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Search refunds..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ paddingLeft: "40px" }}
+              />
+            </div>
+
+            {/* <select
+              className="filter-select"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="all">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+              <option value="processed">Processed</option>
+            </select> */}
+          </div>
         </div>
 
         <div className="table-container">
@@ -216,12 +221,12 @@ const RefundsManager: React.FC = () => {
               <tr>
                 <th>Customer</th>
                 <th>Event</th>
-                <th>Ticket</th>
+                <th>Booking Type</th>
+                <th>Name</th>
                 <th>Amount</th>
-                <th>Reason</th>
                 <th>Status</th>
                 <th>Date</th>
-                <th>Actions</th>
+                {/*  <th>Actions</th> */}
               </tr>
             </thead>
             <tbody>
@@ -252,7 +257,8 @@ const RefundsManager: React.FC = () => {
                     </div>
                   </td>
                   <td>{refund.eventName}</td>
-                  <td>{refund.ticketType}</td>
+                  <td>{refund.bookingType}</td>
+                  <td>{refund.name}</td>
                   <td>
                     <div>
                       <div style={{ fontWeight: "600", color: "#fff" }}>
@@ -263,11 +269,11 @@ const RefundsManager: React.FC = () => {
                       </div>
                     </div>
                   </td>
-                  <td style={{ maxWidth: "200px" }}>
+                  {/* <td style={{ maxWidth: "200px" }}>
                     <div style={{ fontSize: "12px", color: "#fff" }}>
                       {refund.reason}
                     </div>
-                  </td>
+                  </td> */}
                   <td>
                     <span
                       className={`badge ${getStatusBadgeClass(refund.status)}`}
@@ -288,7 +294,7 @@ const RefundsManager: React.FC = () => {
                       )}
                     </div>
                   </td>
-                  <td>
+                  {/* <td>
                     {refund.status === "pending" && (
                       <div style={{ display: "flex", gap: "6px" }}>
                         <button
@@ -320,7 +326,7 @@ const RefundsManager: React.FC = () => {
                           : "Processed"}
                       </span>
                     )}
-                  </td>
+                  </td> */}
                 </tr>
               ))}
             </tbody>

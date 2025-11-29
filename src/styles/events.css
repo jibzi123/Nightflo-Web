@@ -195,16 +195,18 @@
 }
 
 .event-actions {
-  display: inline-flex;
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;   /* Allow wrapping into multiple rows */
+  gap: 8px;          /* Keep spacing */
+  width: 100%;
 }
 
 .event-action-button {
-  flex: 1;
-  padding: 8px 12px; /* Keep as is */
-  background: #f8f8fa;
-  border: 1px solid #e9ecef;
-  color: #84909f;
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  background: #444;
+  border: none;
+  color: #fff;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -217,6 +219,7 @@
   min-width: 76px;
   max-width: 76px;
 }
+
 
 .event-action-button:hover {
   background: #e9ecef;

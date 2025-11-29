@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { Upload, Camera, Clock, MapPin, Phone, Mail, Globe, FileText, Download, Eye, X, AlertTriangle, CheckCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Upload, Camera, Clock, MapPin, Phone, Mail, Globe, FileText, Download, Eye, X, AlertTriangle, CheckCircle, MessageSquare } from 'lucide-react';
 import ProfileImage from '../common/ProfileImage';
 import SubscriptionSettings from './SubscriptionSettings';
 import { useAuth } from "../../contexts/AuthContext";
 import { toast } from 'react-toastify';
+import { apiClient } from '../../services/apiClient';
 
 
 interface ComplianceDocument {
@@ -25,15 +26,20 @@ interface GalleryImage {
 
 const ClubSettings: React.FC = () => {
   const { user } = useAuth();
-  debugger;
-  user;
   const [clubData, setClubData] = useState<any>();
+
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState(null);
+  const [reviewStatus, setReviewStatus] = useState("approved");
+  const [reviewComments, setReviewComments] = useState("");
+
 
   const [activeTab, setActiveTab] = useState('club');
   const MAX_IMAGES = 10;
   const [gallery, setGallery] = useState<GalleryImage[]>([]);
 
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [normalizedDocuments, setNormalizedDocuments] = useState([]);
   const [newDocument, setNewDocument] = useState({
     name: "",
     type: "liquor_license",
@@ -41,6 +47,132 @@ const ClubSettings: React.FC = () => {
     notes: "",
     file: null as File | null,
   });
+
+  useEffect(() => {
+  if (activeTab === "compliance" && user?.club?.id) {
+    loadDocuments();
+  }
+}, [activeTab, user?.club?.id]);
+
+  const loadDocuments = async () => {
+    try {
+      const res = await apiClient.getComplianceDocuments(user?.club?.id);
+
+      // Update raw data
+      setClubData(prev => ({
+        ...prev,
+        complianceDocuments: res.payLoad,
+      }));
+
+      // Normalize using the fresh API data (NOT clubData)
+      const normalized = res.payLoad.map(doc => ({
+        id: doc.id,
+        name: doc.documentTitle,
+        type: doc.documentType,
+        uploadDate: doc.uploadDate,
+        expiryDate: doc.expiryDate,
+        status: doc.status?.toLowerCase(),
+        fileUrl: doc.documentUrl,
+        notes: doc.clubComments,
+        adminComments: doc.adminComments || null,
+        clubName: doc.clubName,
+        ownerName: doc.ownerName,
+      }));
+
+      setNormalizedDocuments(normalized);
+
+    } catch (error) {
+      console.error("Failed to load documents", error);
+    }
+  };
+
+  const viewDocument = (url: string) => {
+  if (!url) {
+    alert("Document URL is missing.");
+    return;
+  }
+
+  window.open(url, "_blank", "noopener,noreferrer");
+};
+
+const downloadDocument = async (url: string, fileName = "document") => {
+  try {
+    if (!url) {
+      alert("Document not available.");
+      return;
+    }
+
+    const response = await fetch(url);
+
+    if (!response.ok) throw new Error("Failed to download");
+
+    const blob = await response.blob();
+
+    const downloadUrl = window.URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+
+    // Try to use correct extension
+    const ext = url.split(".").pop().split("?")[0];
+    link.download = `${fileName}.${ext || "pdf"}`;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    window.URL.revokeObjectURL(downloadUrl);
+  } catch (error) {
+    console.error("Download error:", error);
+    alert("Failed to download document.");
+  }
+};
+
+const openReviewModal = (doc) => {
+  setSelectedDocument(doc);
+  setReviewStatus("approved");           // default
+  setReviewComments(doc.adminComments || "");
+  setShowReviewModal(true);
+};
+
+const submitReview = async () => {
+  if (!selectedDocument) return;
+
+  try {
+    const payload = {
+      reviewDecision: reviewStatus === "approved" ? "Approve" : "Reject",
+      adminComments: reviewComments,
+      reviewedDate: new Date().toISOString(),
+    };
+
+    const response = await apiClient.reviewComplianceDocument(
+      selectedDocument.id,
+      payload
+    );
+
+    // Update list UI
+    setNormalizedDocuments(prev =>
+      prev.map(doc =>
+        doc.id === selectedDocument.id
+          ? {
+              ...doc,
+              status: reviewStatus,
+              adminComments: reviewComments
+            }
+          : doc
+      )
+    );
+
+    setShowReviewModal(false);
+    alert("Document reviewed successfully!");
+
+  } catch (err) {
+    console.error("Review failed:", err);
+    alert("Failed to update review status.");
+  }
+};
+
+
 
   // ===== Upload gallery images (limit = 10) =====
   const handleGalleryUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,28 +212,57 @@ const ClubSettings: React.FC = () => {
   };
 
 
-  const handleDocumentUpload = () => {
-    if (!newDocument.name || !newDocument.file) {
-      alert("Please fill in all required fields and select a file.");
+const handleDocumentUpload = async () => {
+  if (!newDocument.name || !newDocument.file) {
+    alert("Please select a file and enter a title.");
+    return;
+  }
+
+  try {
+    const fileExt = newDocument.file.name.split(".").pop().toLowerCase();
+
+    // STEP 1 — Build FormData EXACTLY like your cURL request
+    const formData = new FormData();
+    formData.append("document", newDocument.file);
+    formData.append("documentType", newDocument.type);
+    formData.append("clubId", user?.club?.id);
+    formData.append("fileExtension", fileExt);
+
+    // STEP 2 — Upload file FIRST
+    const uploadRes = await apiClient.uploadComplianceDocument(formData);
+
+    const uploadedFileUrl = uploadRes?.payLoad?.documentUrl;
+
+    if (!uploadedFileUrl) {
+      alert("Upload failed (no file URL returned).");
       return;
     }
 
-    const document: ComplianceDocument = {
-      id: Date.now().toString(),
-      name: newDocument.name,
-      type: newDocument.type,
-      uploadDate: new Date().toISOString().split("T")[0],
-      expiryDate: newDocument.expiryDate || undefined,
-      status: "pending",
-      fileUrl: "#",
+    // STEP 3 — Save metadata record in your database
+    const createPayload = {
+      clubId: user?.club?.id,
+      documentTitle: newDocument.name,
+      documentType: newDocument.type,
+      documentUrl: uploadedFileUrl,
+      uploadDate: new Date().toISOString(),
+      expiryDate: newDocument.expiryDate || null,
       notes: newDocument.notes,
+      clubComments: newDocument.notes || "",
     };
 
-    setClubData((prev) => ({
+    const createRes = await apiClient.createComplianceDocument(createPayload);
+
+    // STEP 4 — Update UI
+    setClubData(prev => ({
       ...prev,
-      complianceDocuments: [...prev.complianceDocuments, document],
+      complianceDocuments: [
+        ...(prev?.complianceDocuments || []),   // <— FIX HERE
+        createRes.data,
+      ]
     }));
 
+
+    // STEP 5 — Reset upload form
     setNewDocument({
       name: "",
       type: "liquor_license",
@@ -109,22 +270,42 @@ const ClubSettings: React.FC = () => {
       notes: "",
       file: null,
     });
-    setShowUploadModal(false);
-    alert(
-      "Document uploaded successfully! It will be reviewed by our compliance team."
-    );
-  };
 
-  const removeDocument = (documentId: string) => {
-    if (confirm("Are you sure you want to remove this document?")) {
-      setClubData((prev) => ({
-        ...prev,
-        complianceDocuments: prev.complianceDocuments.filter(
-          (doc) => doc.id !== documentId
-        ),
-      }));
-    }
-  };
+    setShowUploadModal(false);
+    alert("Document uploaded successfully!");
+
+  } catch (error) {
+    console.error(error);
+    alert("Document upload failed.");
+  }
+};
+
+
+
+
+
+
+
+const removeDocument = async (documentId: string) => {
+  if (!confirm("Are you sure you want to remove this document?")) return;
+
+  try {
+    await apiClient.deleteComplianceDocument(documentId);
+
+    setClubData((prev) => ({
+      ...prev,
+      complianceDocuments: prev.complianceDocuments.filter(
+        (doc) => doc.id !== documentId
+      ),
+    }));
+
+    alert("Document deleted successfully.");
+  } catch (error) {
+    console.error("Delete failed", error);
+    alert("Failed to delete document.");
+  }
+};
+
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
@@ -173,8 +354,6 @@ const ClubSettings: React.FC = () => {
     { id: "club", label: "Club Details", icon: <MapPin size={16} /> },
     { id: "owner", label: "Owner Profile", icon: <Camera size={16} /> },
     { id: "subscription", label: "Subscription", icon: <FileText size={16} /> },
-    { id: "hours", label: "Operating Hours", icon: <Clock size={16} /> },
-    { id: "gallery", label: "Gallery", icon: <Upload size={16} /> },
     { id: "compliance", label: "Compliance", icon: <FileText size={16} /> },
   ];
 
@@ -526,95 +705,9 @@ const ClubSettings: React.FC = () => {
           </div>
         )} */}
 
-        {activeTab === "gallery" && (
-          <div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "16px",
-              }}
-            >
-              <h3
-                style={{
-                  color: "#818181",
-                  fontSize: "16px",
-                  fontWeight: "600",
-                  margin: 0,
-                }}
-              >
-                Club Photo Gallery
-              </h3>
-              <button
-                type="button"
-                onClick={() => handleImageUpload("gallery")}
-                className="btn btn-primary"
-              >
-                <Upload size={16} />
-                Add Photo
-              </button>
-            </div>
-            
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-              gap: '16px'
-            }}>
-              {clubData?.gallery?.map((image, index) => (
-                <div key={index} style={{ position: 'relative' }}>
-                  <div style={{
-                    width: '100%',
-                    height: '150px',
-                    borderRadius: '8px',
-                    background: `url(${image})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    border: '1px solid #e2e8f0'
-                  }} />
-                  <button
-                    type="button"
-                    onClick={() => removeGalleryImage(index)}
-                    style={{
-                      position: "absolute",
-                      top: "8px",
-                      right: "8px",
-                      background: "rgba(239, 68, 68, 0.9)",
-                      border: "none",
-                      borderRadius: "50%",
-                      width: "24px",
-                      height: "24px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "pointer",
-                      color: "white",
-                      fontSize: "14px",
-                    }}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-            
-            {clubData?.gallery?.length === 0 && (
-              <div style={{
-                padding: '40px',
-                textAlign: 'center',
-                border: '2px dashed #d1d5db',
-                borderRadius: '8px',
-                color: '#9ca3af',
-                fontSize: '14px'
-              }}>
-                No photos in gallery. Click "Add Photo" to upload images.
-              </div>
-            )}
-          </div>
-        )}
-
         {activeTab === "compliance" && (
           <div>
+            {/* Header */}
             <div
               style={{
                 display: "flex",
@@ -638,6 +731,7 @@ const ClubSettings: React.FC = () => {
                   Upload and manage required compliance documents for your club
                 </p>
               </div>
+
               <button
                 type="button"
                 onClick={() => setShowUploadModal(true)}
@@ -649,176 +743,197 @@ const ClubSettings: React.FC = () => {
             </div>
 
             {/* Documents List */}
-            <div style={{ display: "grid", gap: "16px" }}>
-              {clubData.complianceDocuments.map((document) => (
+            <div style={{ display: "grid", gap: "20px" }}>
+              {normalizedDocuments.map((document) => (
                 <div
                   key={document.id}
                   style={{
-                    // border: '1px solid #e2e8f0',
-                    borderRadius: "8px",
-                    padding: "20px",
-                    background: "#222222",
+                    background: "#1E1E1E",
+                    borderRadius: "10px",
+                    padding: "22px",
+                    border: "1px solid #333",
                   }}
                 >
                   <div
                     style={{
                       display: "flex",
                       justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      marginBottom: "12px",
+                      gap: "20px",
                     }}
                   >
+                    {/* LEFT SIDE — Document Info */}
                     <div style={{ flex: 1 }}>
+                      {/* Name + Status */}
                       <div
                         style={{
                           display: "flex",
                           alignItems: "center",
                           gap: "12px",
-                          marginBottom: "8px",
+                          marginBottom: "10px",
                         }}
                       >
-                        <h4
+                        <h3
                           style={{
-                            color: "#fff",
-                            fontSize: "16px",
-                            fontWeight: "600",
                             margin: 0,
+                            color: "#FFF",
+                            fontSize: "18px",
+                            fontWeight: "600",
                           }}
                         >
                           {document.name}
-                        </h4>
-                        <span
-                          className={`badge ${getStatusBadgeClass(
-                            document.status
-                          )}`}
-                        >
+                        </h3>
+
+                        {/* Status Badge */}
+                        <span className={`badge ${getStatusBadgeClass(document.status)}`}>
                           {document.status}
                         </span>
+
+                        {/* Expiring Soon */}
                         {document.expiryDate &&
                           isDocumentExpiringSoon(document.expiryDate) && (
                             <div
                               style={{
                                 display: "flex",
                                 alignItems: "center",
-                                gap: "4px",
-                                color: "#f59e0b",
+                                gap: "6px",
+                                color: "#F59E0B",
+                                fontWeight: "600",
+                                fontSize: "12px",
                               }}
                             >
                               <AlertTriangle size={14} />
-                              <span
-                                style={{ fontSize: "11px", fontWeight: "600" }}
-                              >
-                                Expires Soon
-                              </span>
+                              Expires Soon
                             </div>
                           )}
                       </div>
+
+                      {/* Metadata Grid */}
                       <div
                         style={{
                           display: "grid",
-                          gridTemplateColumns:
-                            "repeat(auto-fit, minmax(200px, 1fr))",
-                          gap: "12px",
-                          fontSize: "13px",
-                          color: "#fff",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                          gap: "10px",
+                          color: "#CCC",
+                          fontSize: "14px",
                         }}
                       >
                         <div>
-                          <strong>Type:</strong>{" "}
+                          <strong style={{ color: "#FFF" }}>Type:</strong>{" "}
                           {getDocumentTypeLabel(document.type)}
                         </div>
+
                         <div>
-                          <strong>Uploaded:</strong>{" "}
+                          <strong style={{ color: "#FFF" }}>Uploaded:</strong>{" "}
                           {new Date(document.uploadDate).toLocaleDateString()}
                         </div>
+
                         {document.expiryDate && (
                           <div>
-                            <strong>Expires:</strong>{" "}
+                            <strong style={{ color: "#FFF" }}>Expires:</strong>{" "}
                             {new Date(document.expiryDate).toLocaleDateString()}
                           </div>
                         )}
                       </div>
+
+                      {/* Notes */}
                       {document.notes && (
                         <div
                           style={{
-                            marginTop: "8px",
-                            fontSize: "13px",
-                            color: "#fff",
+                            marginTop: "12px",
+                            color: "#DDD",
+                            fontSize: "14px",
                           }}
                         >
-                          <strong>Notes:</strong> {document.notes}
+                          <strong style={{ color: "#FFF" }}>Notes:</strong>{" "}
+                          {document.notes}
                         </div>
                       )}
+
+                      {/* Admin Comments */}
                       {document.adminComments && (
                         <div
                           style={{
-                            marginTop: "12px",
+                            marginTop: "14px",
                             padding: "12px",
                             background:
                               document.status === "rejected"
-                                ? "rgb(82 53 53)"
-                                : "rgba(0, 231, 190, 0.05)",
-
-                            borderRadius: "6px",
-                            borderLeft: `3px solid ${
-                              document.status === "rejected"
-                                ? "#ef4444"
-                                : "#00E7BE"
+                                ? "rgba(239, 68, 68, 0.15)"
+                                : "rgba(0, 231, 190, 0.1)",
+                            borderLeft: `4px solid ${
+                              document.status === "rejected" ? "#EF4444" : "#00E7BE"
                             }`,
+                            borderRadius: "6px",
                           }}
                         >
                           <div
                             style={{
-                              fontSize: "11px",
-                              color:
-                                document.status === "rejected"
-                                  ? "#dc2626"
-                                  : "#00E7BE",
-                              fontWeight: "600",
-                              marginBottom: "4px",
+                              fontSize: "12px",
+                              fontWeight: "700",
+                              color: document.status === "rejected" ? "#EF4444" : "#00E7BE",
+                              marginBottom: "5px",
                             }}
                           >
-                            Admin Comments:
+                            Admin Comments
                           </div>
-                          <div style={{ fontSize: "13px", color: "#A5A5A5" }}>
+
+                          <div style={{ color: "#BBB", fontSize: "14px" }}>
                             {document.adminComments}
                           </div>
                         </div>
                       )}
                     </div>
+
+                    {/* RIGHT SIDE — Buttons */}
                     <div
                       style={{
                         display: "flex",
-                        gap: "8px",
-                        marginLeft: "16px",
+                        flexDirection: "column",
+                        gap: "10px",
+                        minWidth: "140px",
                       }}
                     >
                       <button
-                        type="button"
-                        className="btn btn-secondary-outlined"
-                        style={{ padding: "6px 12px", fontSize: "12px" }}
-                        onClick={() => window.open(document.fileUrl, "_blank")}
-                      >
-                        <Eye size={12} />
-                        View
-                      </button>
+                      type="button"
+                      className="btn btn-secondary-outlined"
+                      style={{ fontSize: "12px", padding: "8px 10px" }}
+                      onClick={() => viewDocument(document.fileUrl)}
+                    >
+                      <Eye size={12} /> View
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      style={{ fontSize: "12px", padding: "8px 10px" }}
+                      onClick={() => openReviewModal(document)}
+                    >
+                      <MessageSquare size={12} /> Review
+                    </button>
+
+
+                    <button
+                      type="button"
+                      className="btn btn-secondary-outlined"
+                      style={{ fontSize: "12px", padding: "8px 10px" }}
+                      onClick={() => downloadDocument(document.fileUrl, document.name)}
+                    >
+                      <Download size={12} /> Download
+                    </button>
+
+
                       <button
                         type="button"
+                        disabled={document.status === "pending"}
                         className="btn btn-secondary-outlined"
-                        style={{ padding: "6px 12px", fontSize: "12px" }}
-                      >
-                        <Download size={12} />
-                        Download
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeDocument(document.id)}
-                        className="btn-secondary-outlined"
                         style={{
-                          padding: "6px 8px",
+                          fontSize: "12px",
+                          padding: "8px 10px",
+                          color: "#FF4D4D",
+                          borderColor: "#FF4D4D",
                         }}
+                        onClick={() => removeDocument(document.id)}
                       >
-                        <X size={12} />
+                        <X size={12} /> Delete
                       </button>
                     </div>
                   </div>
@@ -826,7 +941,9 @@ const ClubSettings: React.FC = () => {
               ))}
             </div>
 
-            {clubData.complianceDocuments.length === 0 && (
+
+            {/* Empty State */}
+            {clubData?.complianceDocuments?.length === 0 && (
               <div
                 style={{
                   padding: "40px",
@@ -836,10 +953,8 @@ const ClubSettings: React.FC = () => {
                   color: "#9ca3af",
                 }}
               >
-                <FileText
-                  size={48}
-                  style={{ margin: "0 auto 16px", color: "#9ca3af" }}
-                />
+                <FileText size={48} style={{ margin: "0 auto 16px" }} />
+
                 <h3
                   style={{
                     color: "#374151",
@@ -850,9 +965,11 @@ const ClubSettings: React.FC = () => {
                 >
                   No Compliance Documents
                 </h3>
+
                 <p style={{ fontSize: "14px", marginBottom: "16px" }}>
                   Upload your required compliance documents to get started
                 </p>
+
                 <button
                   type="button"
                   onClick={() => setShowUploadModal(true)}
@@ -865,6 +982,7 @@ const ClubSettings: React.FC = () => {
             )}
           </div>
         )}
+
         <div
           style={{
             marginTop: "24px",
@@ -955,7 +1073,7 @@ const ClubSettings: React.FC = () => {
                   onChange={(e) =>
                     setNewDocument((prev) => ({
                       ...prev,
-                      file: e.target.files?.[0] || null,
+                      file: e.target.files?.[0] ?? null,
                     }))
                   }
                 />
@@ -1037,6 +1155,82 @@ const ClubSettings: React.FC = () => {
           </div>
         </div>
       )}
+
+      {showReviewModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: "600px" }}>
+            <div className="modal-header">
+              <h2 className="modal-title">Review Document</h2>
+              <button className="modal-close" onClick={() => setShowReviewModal(false)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+
+              {/* Review Decision */}
+              <label className="form-label">Review Decision</label>
+              <div style={{ display: "flex", gap: "20px", marginBottom: "16px" }}>
+                <label style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <input
+                    type="radio"
+                    name="decision"
+                    value="approved"
+                    checked={reviewStatus === "approved"}
+                    onChange={() => setReviewStatus("approved")}
+                    style={{ accentColor: "#10b981" }}
+                  />
+                  <span style={{ color: "#10b981", fontWeight: 600 }}>Approve</span>
+                </label>
+
+                <label style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <input
+                    type="radio"
+                    name="decision"
+                    value="rejected"
+                    checked={reviewStatus === "rejected"}
+                    onChange={() => setReviewStatus("rejected")}
+                    style={{ accentColor: "#ef4444" }}
+                  />
+                  <span style={{ color: "#ef4444", fontWeight: 600 }}>Reject</span>
+                </label>
+              </div>
+
+              {/* Comments */}
+              <label className="form-label">
+                Admin Comments {reviewStatus === "rejected" && <span style={{ color: "#ef4444" }}>*</span>}
+              </label>
+              <textarea
+                className="form-input form-textarea"
+                rows={4}
+                value={reviewComments}
+                onChange={e => setReviewComments(e.target.value)}
+                placeholder={
+                  reviewStatus === "approved"
+                    ? "Optional comment for approval..."
+                    : "Required: Explain reason for rejection..."
+                }
+              />
+
+            </div>
+
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowReviewModal(false)}>
+                Cancel
+              </button>
+
+              <button
+                className={`btn ${reviewStatus === "approved" ? "btn-success" : "btn-danger"}`}
+                onClick={submitReview}
+                disabled={reviewStatus === "rejected" && !reviewComments.trim()}
+              >
+                {reviewStatus === "approved" ? "Approve" : "Reject"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

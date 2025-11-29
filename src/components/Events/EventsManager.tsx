@@ -913,59 +913,32 @@ const EventsManager: React.FC<EventsManagerProps> = ({
                   </div>
 
                   <div className="event-actions">
-                    <button
-                      className="btn btn-secondary-outlined"
-                      onClick={() => handleViewSummary(event)}
-                    >
-                      <Eye size={14} />
-                      Summary
+                    <button className="btn btn-secondary-outlined event-action-button">
+                       Summary
                     </button>
-                    <button
-                      className="btn btn-secondary-outlined"
-                      onClick={() => handleViewTickets(event)}
-                    >
-                      <Eye size={14} />
-                      Tickets
+                    <button className="btn btn-secondary-outlined event-action-button">
+                      <Eye size={14} /> Tickets
                     </button>
-                    <button
-                      className="btn btn-secondary-outlined"
-                      onClick={() => handleViewGuestList(event)}
-                    >
-                      <Users size={14} />
-                      Guests
+                    <button className="btn btn-secondary-outlined event-action-button">
+                      <Users size={14} /> Guests
                     </button>
-                    <button
-                      className="btn btn-secondary-outlined"
-                      onClick={() => handleViewTables(event)}
-                    >
-                      <MapPin size={14} />
-                      Tables
+                    <button className="btn btn-secondary-outlined event-action-button">
+                      <MapPin size={14} /> Tables
                     </button>
                   </div>
+
                   <div className="event-actions" style={{ marginTop: "8px" }}>
-                    <button
-                      className="btn btn-secondary-outlined"
-                      onClick={() => handleManageStaff(event)}
-                    >
-                      <Users size={14} />
-                      Staff
+                    <button className="btn btn-secondary-outlined event-action-button">
+                      <Users size={14} /> Staff
                     </button>
-                    <button
-                      className="btn btn-secondary-outlined"
-                      onClick={() => onEditEvent(event)}
-                    >
-                      <Edit size={14} />
-                      Edit
+                    <button className="btn btn-secondary-outlined event-action-button">
+                      <Edit size={14} /> Edit
                     </button>
-                    <button
-                      className="btn btn-secondary-outlined"
-                      onClick={() => deleteEvent(event.id)}
-                      disabled={loadingDeleteId === event.id}
-                    >
-                      <Delete size={14} />
-                      Delete
+                    <button className="btn btn-secondary-outlined event-action-button">
+                      <Delete size={14} /> Delete
                     </button>
                   </div>
+
                 </div>
               </div>
             ))

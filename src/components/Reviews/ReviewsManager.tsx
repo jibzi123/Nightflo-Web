@@ -3,6 +3,8 @@ import { useAuth } from "../../contexts/AuthContext";
 import { Search, Star, Filter, Eye, MessageSquare, Pencil } from "lucide-react";
 import ProfileImage from "../common/ProfileImage";
 import "../../styles/components.css";
+import { apiClient } from "../../services/apiClient";
+import { toast } from "react-toastify";
 
 interface Review {
   id: string;
@@ -19,6 +21,10 @@ interface Review {
   response?: string;
   responseDate?: string;
 }
+interface ClubEvent {
+  id?: string;
+  eventName: string;
+}
 
 const ReviewsManager: React.FC = () => {
   const { user } = useAuth();
@@ -30,116 +36,105 @@ const ReviewsManager: React.FC = () => {
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
   const [showResponseModal, setShowResponseModal] = useState(false);
   const [responseText, setResponseText] = useState("");
+  const [eventFilter, setEventFilter] = useState<string | undefined>(undefined);
+  const [clubEvents, setClubEvents] = useState<ClubEvent[]>([]);
 
+  // Fetch all club events (upcoming + past)
   useEffect(() => {
-    fetchReviews();
+    const fetchClubEvents = async () => {
+      try {
+        const [upcomingRes, pastRes] = await Promise.all([
+          apiClient.getUpcomingEvents(),
+          apiClient.getPastEvents(),
+        ]);
+
+        const allEvents = [
+          ...(upcomingRes?.payLoad || []),
+          ...(pastRes?.payLoad || []),
+        ].map((ev: any) => ({
+          id: ev.id,
+          eventName: ev.eventName,
+        }));
+
+        // Insert "All Events" option at the top
+        allEvents.unshift({ id: undefined, eventName: "All Events" });
+        setClubEvents(allEvents);
+        setEventFilter(undefined);
+      } catch (err) {
+        console.error("Failed to fetch events:", err);
+      } finally {
+      }
+    };
+
+    fetchClubEvents();
   }, []);
+  // Fetch promoters whenever statusFilter or eventFilter changes
+  useEffect(() => {
+    if (user?.club?.id) {
+      fetchReviews();
+    }
+  }, [statusFilter, eventFilter]);
 
   const fetchReviews = async () => {
     try {
       setLoading(true);
-      // Mock data for demonstration
-      setReviews([
-        {
-          id: "1",
-          customerName: "Alice Smith",
-          customerEmail: "alice.smith@email.com",
-          customerImage:
-            "https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150",
-          eventName: "Saturday Night Fever",
-          clubName: "Club Paradise",
-          rating: 5,
-          comment:
-            "Amazing night! The DJ was incredible and the VIP service was top-notch. Will definitely be back!",
-          reviewDate: "2025-01-20",
-          status: "published",
-          helpful: 12,
-          response:
-            "Thank you so much for the wonderful review! We're thrilled you had such a great time.",
-          responseDate: "2025-01-21",
-        },
-        {
-          id: "2",
-          customerName: "Bob Johnson",
-          customerEmail: "bob.johnson@email.com",
-          eventName: "EDM Explosion",
-          clubName: "Club Paradise",
-          rating: 4,
-          comment:
-            "Great music and atmosphere. The only downside was the long wait at the bar during peak hours.",
-          reviewDate: "2025-01-18",
-          status: "published",
-          helpful: 8,
-        },
-        {
-          id: "3",
-          customerName: "Carol Williams",
-          customerEmail: "carol.w@email.com",
-          customerImage:
-            "https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=150",
-          eventName: "Hip Hop Night",
-          clubName: "Club Paradise",
-          rating: 2,
-          comment:
-            "Very disappointed with the service. The staff was rude and the drinks were overpriced.",
-          reviewDate: "2025-01-15",
-          status: "pending",
-          helpful: 3,
-        },
-        // Additional reviews for super admin view
-        ...(user?.userType === "super_admin"
-          ? [
-              {
-                id: "4",
-                customerName: "Daniel Kim",
-                customerEmail: "daniel.k@email.com",
-                customerImage:
-                  "https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=150",
-                eventName: "Techno Underground",
-                clubName: "Electric Nights",
-                rating: 5,
-                comment:
-                  "Best techno event in the city! The sound system was perfect and the crowd was amazing.",
-                reviewDate: "2025-01-19",
-                status: "published",
-                helpful: 15,
-              },
-              {
-                id: "5",
-                customerName: "Maria Garcia",
-                customerEmail: "maria.g@email.com",
-                eventName: "Latin Night",
-                clubName: "Neon Dreams",
-                rating: 3,
-                comment:
-                  "Good music but the venue was too crowded. Hard to move around or get drinks.",
-                reviewDate: "2025-01-17",
-                status: "published",
-                helpful: 5,
-                response:
-                  "Thank you for your feedback. We're working on better crowd management for future events.",
-                responseDate: "2025-01-18",
-              },
-            ]
-          : []),
-      ]);
+      const statusParam = statusFilter === "all" ? undefined : statusFilter;
+      const eventParam =
+        eventFilter === undefined || eventFilter === ""
+          ? undefined
+          : eventFilter;
+
+      const response = await apiClient.getReviews(
+        user?.club?.id || "",
+        eventParam || "",
+        statusParam || ""
+      );
+
+      const reviewsData = response?.payLoad.items || [];
+      console.log(reviewsData, "reviewsData");
+      const mappedReviews: Review[] = reviewsData.map((p: any) => {
+        const rawEmail = p.user?.email || "-";
+        const getEventName = (id: string) => {
+          const event = clubEvents?.find((e) => e.id === id);
+          return event ? event.eventName : null;
+        };
+        return {
+          id: p?.id,
+          customerName: p.user?.fullName || "Unnamed",
+          customerEmail: rawEmail,
+          customerImage: p.user?.imageUrl,
+          ticketsSold: p.stats?.ticketsSold || 0,
+          totalEarnings: p.stats?.totalEarnings || 0,
+          eventsCount: p.stats?.eventsCount || 0,
+          eventName: getEventName(p?.event),
+          clubName: user?.club?.id,
+          status: p?.status,
+          rating: p?.rating,
+          comment: p?.comment,
+          reviewDate: p?.createdAt,
+          response: p?.response?.message,
+          responseDate: p?.response?.respondedAt,
+        };
+      });
+
+      setReviews(mappedReviews);
     } catch (error) {
       console.error("Failed to fetch reviews:", error);
+      setReviews([]);
     } finally {
       setLoading(false);
     }
   };
-
-  const handleStatusChange = (
-    reviewId: string,
-    newStatus: "published" | "pending" | "hidden"
-  ) => {
-    setReviews((prev) =>
-      prev.map((review) =>
-        review.id === reviewId ? { ...review, status: newStatus } : review
-      )
-    );
-  };
+  // const handleStatusChange = (
+  //   reviewId: string,
+  //   newStatus: "published" | "pending" | "hidden"
+  // ) => {
+  //   setReviews((prev) =>
+  //     prev.map((review) =>
+  //       review.id === reviewId ? { ...review, status: newStatus } : review
+  //     )
+  //   );
+  // };
 
   const handleRespondToReview = (review: Review) => {
     setSelectedReview(review);
@@ -147,26 +142,47 @@ const ReviewsManager: React.FC = () => {
     setShowResponseModal(true);
   };
 
-  const handleSaveResponse = () => {
-    if (!selectedReview) return;
+  const handleSaveResponse = async () => {
+    try {
+      // setIsLoading(true);
 
-    setReviews((prev) =>
-      prev.map((review) =>
-        review.id === selectedReview.id
-          ? {
-              ...review,
-              response: responseText,
-              responseDate: new Date().toISOString().split("T")[0],
-            }
-          : review
-      )
-    );
-
-    setShowResponseModal(false);
-    setSelectedReview(null);
-    setResponseText("");
+      const res = selectedReview?.response
+        ? await apiClient.sendUpdatedResponseForReview(
+            selectedReview.id,
+            responseText
+          )
+        : await apiClient.sendResponseForReview(
+            selectedReview?.id,
+            responseText
+          );
+      setReviews((prev) =>
+        prev.map((review) =>
+          review.id === selectedReview?.id
+            ? {
+                ...review,
+                response: responseText,
+                responseDate: new Date().toISOString().split("T")[0],
+              }
+            : review
+        )
+      );
+      toast.success(
+        res.message ||
+          `Resonse ${
+            selectedReview.response ? "updated" : "sent"
+          } successfully!`
+      );
+      setShowResponseModal(false);
+      setSelectedReview(null);
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.message ||
+          `Failed to ${selectedReview.response ? "updated" : "sent"} response`
+      );
+    } finally {
+      setShowResponseModal(false);
+    }
   };
-
   const filteredReviews = reviews.filter((review) => {
     const matchesSearch =
       review.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -210,9 +226,9 @@ const ReviewsManager: React.FC = () => {
     ));
   };
 
-  if (loading) {
-    return <div className="loading-spinner"></div>;
-  }
+  // if (loading) {
+  //   return <div className="loading-spinner"></div>;
+  // }
 
   return (
     <div>
@@ -226,7 +242,10 @@ const ReviewsManager: React.FC = () => {
           </p>
         </div>
 
-        <div className="search-filter-container">
+        <div
+          className="search-filter-container"
+          style={{ marginBottom: "20px" }}
+        >
           <div style={{ position: "relative", flex: 1, maxWidth: "300px" }}>
             <Search
               size={16}
@@ -250,6 +269,21 @@ const ReviewsManager: React.FC = () => {
           <div style={{ display: "flex", gap: "10px" }}>
             <select
               className="filter-select"
+              value={eventFilter || ""}
+              onChange={(e) => setEventFilter(e.target.value || undefined)}
+            >
+              {clubEvents.length === 0 ? (
+                <option value="">No Events Found</option>
+              ) : (
+                clubEvents.map((ev) => (
+                  <option key={ev.id} value={ev.id || ""}>
+                    {ev.eventName}
+                  </option>
+                ))
+              )}
+            </select>
+            <select
+              className="filter-select"
               value={ratingFilter}
               onChange={(e) => setRatingFilter(e.target.value)}
             >
@@ -267,173 +301,186 @@ const ReviewsManager: React.FC = () => {
               onChange={(e) => setStatusFilter(e.target.value)}
             >
               <option value="all">All Status</option>
-              <option value="published">Published</option>
-              <option value="pending">Pending</option>
-              <option value="hidden">Hidden</option>
+              <option value="flagged">Flagged</option>
+              <option value="normal">Normal</option>
+              <option value="removed">Removed</option>
             </select>
           </div>
         </div>
 
-        <div className="table-container">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Customer</th>
-                <th>Event</th>
-                {user?.userType === "super_admin" && <th>Club</th>}
-                <th>Rating</th>
-                <th>Review</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredReviews.map((review) => (
-                <tr key={review.id}>
-                  <td>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "12px",
-                      }}
-                    >
-                      <ProfileImage
-                        firstName={review.customerName.split(" ")[0]}
-                        lastName={review.customerName.split(" ")[1] || ""}
-                        imageUrl={review.customerImage}
-                        size="sm"
-                      />
-                      <div>
-                        <div style={{ fontWeight: "600", color: "#FFF" }}>
-                          {review.customerName}
-                        </div>
-                        <div style={{ fontSize: "12px", color: "#A5A5A5" }}>
-                          {review.customerEmail}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>{review.eventName}</td>
-                  {user?.userType === "super_admin" && (
-                    <td>{review.clubName}</td>
-                  )}
-                  <td>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                      }}
-                    >
-                      {renderStars(review.rating)}
-                      <span
-                        style={{
-                          marginLeft: "4px",
-                          fontSize: "12px",
-                          color: "#A5A5A5",
-                        }}
-                      >
-                        ({review.rating}/5)
-                      </span>
-                    </div>
-                  </td>
-                  <td style={{ maxWidth: "300px" }}>
-                    <div style={{ fontSize: "13px", color: "#FFF" }}>
-                      {review.comment.length > 100
-                        ? `${review.comment.substring(0, 100)}...`
-                        : review.comment}
-                    </div>
-                    {review.response && (
+        {!loading ? (
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Event</th>
+                  {user?.userType === "super_admin" && <th>Club</th>}
+                  <th>Rating</th>
+                  <th>Review</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredReviews.map((review) => (
+                  <tr key={review.id}>
+                    <td>
                       <div
                         style={{
-                          marginTop: "8px",
-                          padding: "8px",
-                          borderLeft: "2px solid #00E7BE",
-                          background: "rgba(0, 231, 190, 0.05)",
-                          borderRadius: "6px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "12px",
                         }}
                       >
-                        <div
+                        <ProfileImage
+                          firstName={review.customerName.split(" ")[0]}
+                          lastName={review.customerName.split(" ")[1] || ""}
+                          imageUrl={review.customerImage}
+                          size="sm"
+                        />
+                        <div>
+                          <div style={{ fontWeight: "600", color: "#FFF" }}>
+                            {review.customerName}
+                          </div>
+                          <div style={{ fontSize: "12px", color: "#A5A5A5" }}>
+                            {review.customerEmail}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>{review.eventName}</td>
+                    {user?.userType === "super_admin" && (
+                      <td>{review.clubName}</td>
+                    )}
+                    <td>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        {renderStars(review.rating)}
+                        <span
                           style={{
-                            fontSize: "11px",
-                            color: "#00E7BE",
-                            fontWeight: "600",
-                            marginBottom: "4px",
+                            marginLeft: "4px",
+                            fontSize: "12px",
+                            color: "#A5A5A5",
                           }}
                         >
-                          Club Response:
+                          ({review.rating}/5)
+                        </span>
+                      </div>
+                    </td>
+                    <td style={{ maxWidth: "300px" }}>
+                      <div style={{ fontSize: "13px", color: "#FFF" }}>
+                        {review.comment.length > 100
+                          ? `${review.comment.substring(0, 100)}...`
+                          : review.comment}
+                      </div>
+                      {review.response && (
+                        <div
+                          style={{
+                            marginTop: "8px",
+                            padding: "8px",
+                            borderLeft: "2px solid #00E7BE",
+                            background: "rgba(0, 231, 190, 0.05)",
+                            borderRadius: "6px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: "11px",
+                              color: "#00E7BE",
+                              fontWeight: "600",
+                              marginBottom: "4px",
+                            }}
+                          >
+                            Club Response:
+                          </div>
+                          <div style={{ fontSize: "12px", color: "#FFF" }}>
+                            {review.response}
+                          </div>
                         </div>
-                        <div style={{ fontSize: "12px", color: "#FFF" }}>
-                          {review.response}
+                      )}
+                    </td>{" "}
+                    {/* Keep as is */}
+                    <td>
+                      <div style={{ fontSize: "12px" }}>
+                        <div style={{ color: "#FFF" }}>
+                          {new Date(review.reviewDate).toLocaleDateString()}
                         </div>
+                        {/* <div style={{ color: "#A5A5A5", fontSize: "11px" }}>
+                          {review.helpful} helpful
+                        </div> */}
                       </div>
-                    )}
-                  </td>{" "}
-                  {/* Keep as is */}
-                  <td>
-                    <div style={{ fontSize: "12px" }}>
-                      <div style={{ color: "#FFF" }}>
-                        {new Date(review.reviewDate).toLocaleDateString()}
-                      </div>
-                      <div style={{ color: "#A5A5A5", fontSize: "11px" }}>
-                        {review.helpful} helpful
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <span
-                      className={`badge ${getStatusBadgeClass(review.status)}`}
-                    >
-                      {review.status}
-                    </span>
-                  </td>
-                  <td>
-                    <div
-                      style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}
-                    >
-                      <button
-                        className="btn btn-secondary-outlined"
-                        style={{
-                          padding: "4px 8px",
-                          fontSize: "11px",
-                          background: "unset",
-                          border: "unset",
-                          boxShadow: "unset",
-                        }}
-                        onClick={() => handleRespondToReview(review)}
+                    </td>
+                    <td>
+                      <span
+                        className={`badge ${getStatusBadgeClass(
+                          review.status
+                        )}`}
                       >
-                        <Pencil size={14} />
-                        {/* {review.response ? "Edit" : "Reply"} */}
-                      </button>
-                      <select
-                        value={review.status}
-                        onChange={(e) =>
-                          handleStatusChange(review.id, e.target.value as any)
-                        }
+                        {review.status}
+                      </span>
+                    </td>
+                    <td>
+                      <div
                         style={{
-                          fontSize: "12px",
-                          borderRadius: "4px",
-                          border: "1px solid rgb(75, 75, 75)",
-                          background: "#111111",
-                          color: "#fff",
-                          padding: "5px 12px",
+                          display: "flex",
+                          gap: "6px",
+                          flexWrap: "wrap",
                         }}
                       >
-                        <option value="published">Publish</option>
-                        <option value="pending">Pending</option>
-                        <option value="hidden">Hide</option>
-                      </select>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                        <button
+                          className="btn btn-secondary-outlined"
+                          style={{
+                            padding: "4px 8px",
+                            fontSize: "11px",
+                            background: "unset",
+                            border: "unset",
+                            boxShadow: "unset",
+                          }}
+                          onClick={() => handleRespondToReview(review)}
+                        >
+                          <Pencil size={14} />
+                          {/* {review.response ? "Edit" : "Reply"} */}
+                        </button>
 
-        {filteredReviews.length === 0 && (
+                        {/*  SUPER ADMIN
+                        
+                        
+                        <select  
+                          value={review.status}
+                          onChange={(e) =>
+                            handleStatusChange(review.id, e.target.value as any)
+                          }
+                          style={{
+                            fontSize: "12px",
+                            borderRadius: "4px",
+                            border: "1px solid rgb(75, 75, 75)",
+                            background: "#111111",
+                            color: "#fff",
+                            padding: "5px 12px",
+                          }}
+                        >
+                          <option value="flagged">Flagged</option>
+                          <option value="removed">Removed</option>
+                          <option value="normal">Normal</option>
+                        </select> */}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="loading-spinner"></div>
+        )}
+        {!loading && filteredReviews.length === 0 && (
           <div className="empty-state">
             <Star
               size={48}
@@ -515,8 +562,7 @@ const ReviewsManager: React.FC = () => {
                 <textarea
                   className="form-input form-textarea"
                   value={responseText}
-                  style={{background: "#323232"
-}}
+                  style={{ background: "#323232" }}
                   onChange={(e) => setResponseText(e.target.value)}
                   placeholder="Write a professional response to this review..."
                   rows={4}

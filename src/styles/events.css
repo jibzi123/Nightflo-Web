@@ -220,6 +220,17 @@
   max-width: 76px;
 }
 
+.BannerTop{
+  padding: 16px; 
+  background: #444; 
+  color: #fff;
+  border-radius: 8px; 
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 
 .event-action-button:hover {
   background: #e9ecef;

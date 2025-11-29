@@ -119,20 +119,12 @@ const EventSummary: React.FC<EventSummaryProps> = ({ event, isOpen, onClose }) =
 
         <div className="modal-body">
           {/* Event Info */}
-          <div style={{ 
-            padding: '16px', 
-            background: '#f8fafc', 
-            borderRadius: '8px', 
-            marginBottom: '24px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
+          <div className='BannerTop'>
             <div>
-              <h3 style={{ color: '#1e293b', fontSize: '18px', fontWeight: '600', marginBottom: '4px' }}>
+              <h3 style={{fontSize: '18px', fontWeight: '600', marginBottom: '4px' }}>
                 {event.name}
               </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '13px', color: '#64748b' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '13px'}}>
                 <span>
                   <Calendar size={14} style={{ display: 'inline-block', marginRight: '4px' }} />
                   {new Date(event?.eventDate).toLocaleDateString()}
@@ -203,7 +195,8 @@ const EventSummary: React.FC<EventSummaryProps> = ({ event, isOpen, onClose }) =
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 {summaryData?.admins?.map((admin) => (
-                  <div key={admin.id} style={{ display: "flex", alignItems: "center", padding: "12px", background: "#f8fafc", borderRadius: "6px" }}>
+                  <div key={admin.id} style={{ display: "flex", alignItems: "center", padding: "12px", background: "#444", borderRadius: "6px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <ProfileImage
                       firstName={admin.name.split(" ")[0]}
                       lastName={admin.name.split(" ")[1] || ""}
@@ -211,8 +204,9 @@ const EventSummary: React.FC<EventSummaryProps> = ({ event, isOpen, onClose }) =
                       size="sm"
                     />
                     <div>
-                      <div style={{ fontWeight: "600" }}>{admin.name}</div>
-                      <div style={{ fontSize: "11px", color: "#64748b" }}>{admin.email}</div>
+                      <div style={{ fontWeight: "600", color: "#fff" }}>{admin.name}</div>
+                      <div style={{ fontSize: "11px", color: "#fff" }}>{admin.email}</div>
+                    </div>
                     </div>
                   </div>
                 ))}
@@ -225,7 +219,7 @@ const EventSummary: React.FC<EventSummaryProps> = ({ event, isOpen, onClose }) =
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 {summaryData?.promoters?.map((promoter) => (
-                  <div key={promoter.id} style={{ display: "flex", justifyContent: "space-between", padding: "12px", background: "#f8fafc", borderRadius: "6px" }}>
+                  <div key={promoter.id} style={{ display: "flex", justifyContent: "space-between", padding: "12px", background: "#444", borderRadius: "6px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       <ProfileImage
                         firstName={promoter.name.split(" ")[0]}
@@ -234,13 +228,13 @@ const EventSummary: React.FC<EventSummaryProps> = ({ event, isOpen, onClose }) =
                         size="sm"
                       />
                       <div>
-                        <div style={{ fontWeight: "600" }}>{promoter.name}</div>
-                        <div style={{ fontSize: "11px", color: "#64748b" }}>{promoter.email}</div>
+                        <div style={{ fontWeight: "600", color: "#fff" }}>{promoter.name}</div>
+                        <div style={{ fontSize: "11px", color: "#fff" }}>{promoter.email}</div>
                       </div>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontWeight: "600" }}>{promoter.tablesSold} tables</div>
-                      <div style={{ fontSize: "12px", color: "#64748b" }}>{promoter.ticketsSold} tickets</div>
+                      <div style={{ fontWeight: "600", color: "#fff" }}>{promoter.tablesSold} tables</div>
+                      <div style={{ fontSize: "12px", color: "#fff" }}>{promoter.ticketsSold} tickets</div>
                     </div>
                   </div>
                 ))}
@@ -254,7 +248,7 @@ const EventSummary: React.FC<EventSummaryProps> = ({ event, isOpen, onClose }) =
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 {summaryData?.doormen?.map((member) => (
-                  <div key={member.id} style={{ display: "flex", justifyContent: "space-between", padding: "12px", background: "#f8fafc", borderRadius: "6px" }}>
+                  <div key={member.id} style={{ display: "flex", justifyContent: "space-between", padding: "12px", background: "#444", borderRadius: "6px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       <ProfileImage
                         firstName={member.name.split(" ")[0]}
@@ -263,13 +257,13 @@ const EventSummary: React.FC<EventSummaryProps> = ({ event, isOpen, onClose }) =
                         size="sm"
                       />
                       <div>
-                        <div style={{ fontWeight: "600" }}>{member.name}</div>
-                        <div style={{ fontSize: "11px", color: "#64748b" }}>{member.role}</div>
+                        <div style={{ fontWeight: "600", color: "#fff" }}>{member.name}</div>
+                        <div style={{ fontSize: "11px", color: "#fff" }}>{member.role}</div>
                       </div>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontWeight: "600" }}>{member.scansCompleted || 0}</div>
-                      <div style={{ fontSize: "10px", color: "#64748b" }}>scans</div>
+                      <div style={{ fontWeight: "600", color: "#fff" }}>{member.scansCompleted || 0}</div>
+                      <div style={{ fontSize: "10px", color: "#fff" }}>scans</div>
                     </div>
                   </div>
                 ))}
@@ -282,7 +276,8 @@ const EventSummary: React.FC<EventSummaryProps> = ({ event, isOpen, onClose }) =
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 {summaryData?.staff?.map((member) => (
-                  <div key={member.id} style={{ display: "flex", alignItems: "center", padding: "12px", background: "#f8fafc", borderRadius: "6px" }}>
+                  <div key={member.id} style={{ display: "flex", alignItems: "center", padding: "12px", background: "#444", borderRadius: "6px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <ProfileImage
                       firstName={member.name.split(" ")[0]}
                       lastName={member.name.split(" ")[1] || ""}
@@ -290,8 +285,9 @@ const EventSummary: React.FC<EventSummaryProps> = ({ event, isOpen, onClose }) =
                       size="sm"
                     />
                     <div>
-                      <div style={{ fontWeight: "600" }}>{member.name}</div>
-                      <div style={{ fontSize: "11px", color: "#64748b" }}>{member.email}</div>
+                      <div style={{ fontWeight: "600", color: "#fff" }}>{member.name}</div>
+                      <div style={{ fontSize: "11px", color: "#fff" }}>{member.email}</div>
+                    </div>
                     </div>
                   </div>
                 ))}

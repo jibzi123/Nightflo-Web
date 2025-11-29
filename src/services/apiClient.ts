@@ -44,7 +44,7 @@ async function request(path: string, options: RequestInit = {}) {
   }
 
   return response.json();
-}
+};
 
 
 export const apiClient = {
@@ -385,7 +385,34 @@ async reviewComplianceDocument(documentId: string, payload: any) {
     method: "POST",
     body: JSON.stringify(payload),
   });
-}
+},
 
+async getReviews(clubId: string, eventId: string) {
+        let query = `clubId=${encodeURIComponent(clubId)}`;
+        if (eventId) query += `&eventId=${encodeURIComponent(eventId)}`;
 
+    return request(`/reviews?${query}`, {
+      method: "GET",
+    });
+  },
+  async sendResponseForReview(reviewId: string, param: string) {
+    return request(`/reviews/${reviewId}/response`, {
+      method: "POST",
+      body: JSON.stringify({ message: param }),
+    });
+  },
+   async sendUpdatedResponseForReview(reviewId: string, param: string) {
+    return request(`/reviews/${reviewId}/response`, {
+      method: "PUT",
+      body: JSON.stringify({ message: param }),
+    });
+  },
+async getRefundBookingsList(clubId: string, eventId: string) {
+    let query = `clubId=${encodeURIComponent(clubId)}`;
+    if (eventId) query += `&eventId=${encodeURIComponent(eventId)}`;
+
+    return request(`/bookings/getRefundedBookings?${query}`, {
+      method: "GET",
+    });
+  },
 };

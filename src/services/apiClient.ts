@@ -415,4 +415,20 @@ async getRefundBookingsList(clubId: string, eventId: string) {
       method: "GET",
     });
   },
+
+  async getDashboardStats(
+    clubId: string,
+    eventId?: string,
+    startDate?: string,
+    endDate?: string
+  ) {
+    let query = `clubId=${encodeURIComponent(clubId)}`;
+    if (eventId) query += `&eventId=${encodeURIComponent(eventId)}`;
+    if (startDate) query += `&startDate=${encodeURIComponent(startDate)}`;
+    if (endDate) query += `&endDate=${encodeURIComponent(endDate)}`;
+
+    return request(`/dashboard/getClubOwnerStats?${query}`, {
+      method: "GET",
+    });
+  },
 };

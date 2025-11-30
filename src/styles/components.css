@@ -520,6 +520,9 @@
   line-height: normal;
   text-transform: uppercase;
 }
+.stat-title-unde-transform {
+  text-transform: none !important;
+}
 
 .stat-icon {
   width: 20px; /* Adjusted size */
@@ -632,4 +635,3 @@
   color: #555;
   opacity: 0.7;
 }
-

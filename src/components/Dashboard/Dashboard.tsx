@@ -189,8 +189,7 @@ const Dashboard: React.FC = () => {
         <div className="stat-card">
           <div className="stat-header">
             <span className="stat-title stat-title-unde-transform">
-              No. of booked Tickets bought / Total Tickerts Number across all
-              events
+              Total vs Capacity All Events
             </span>
             <Calendar size={20} style={{ color: "#405189" }} />
           </div>
@@ -202,7 +201,7 @@ const Dashboard: React.FC = () => {
         <div className="stat-card">
           <div className="stat-header">
             <span className="stat-title stat-title-unde-transform">
-              No. of booked Tables / Total Tables across the club
+              Tables Booked{" "}
             </span>
             <Users size={20} style={{ color: "#ffc107" }} />
           </div>

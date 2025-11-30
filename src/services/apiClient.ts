@@ -4,7 +4,7 @@ import { API_BASE_URL } from "../config";
 
 const getDefaultHeaders = () => {
   const token = localStorage.getItem("authToken");
-  //console.log("Using token:", token);
+  console.log("Using token:", token);
   const appVersion = "1.0.0"; // could be read from package.json
   const platform = "web";
 
@@ -17,10 +17,23 @@ const getDefaultHeaders = () => {
 };
 
 async function request(path: string, options: RequestInit = {}) {
+  const isFormData = options.body instanceof FormData;
+
+  const defaultHeaders = getDefaultHeaders();
+
+  // Remove JSON content-type OR any content-type if FormData
+  if (isFormData && defaultHeaders["Content-Type"]) {
+    delete defaultHeaders["Content-Type"];
+  }
+
+  if (isFormData && options.headers && options.headers["Content-Type"]) {
+    delete options.headers["Content-Type"];
+  }
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
-      ...getDefaultHeaders(),
+      ...defaultHeaders,
       ...(options.headers || {}),
     },
   });
@@ -31,7 +44,8 @@ async function request(path: string, options: RequestInit = {}) {
   }
 
   return response.json();
-}
+};
+
 
 export const apiClient = {
   // ✅ login keeps custom handling
@@ -272,10 +286,110 @@ export const apiClient = {
   async getAutoRenewalStatus(clubId: string) {
     return request(`/stripe/autoRenewal/${clubId}`, { method: "GET" });
   },
+    // Toggle auto-renewal (example you gave)
+  // async toggleAutoRenewal(clubId: string, enabled: boolean) {
+  //   return request("/stripe/toggleAutoRenewal", {
+  //     method: "POST",
+  //     body: JSON.stringify({ clubId, enabled }),
+  //   });
+  // },
+
+  // // Check auto-renewal status
+  // async getAutoRenewalStatus(clubId: string) {
+  //   return request(`/stripe/autoRenewal/${encodeURIComponent(clubId)}`, {
+  //     method: "GET",
+  //   });
+  // },
+
+  // Scheduled plan info
+  async getScheduledPlan(clubId: string) {
+    return request(`/stripe/scheduledPlan/${clubId}`, {
+      method: "GET",
+    });
+  },
+
+  // Change plan (downgrade scheduled)
+  async changeAutoRenewalPlan(clubId: string, planId: string) {
+    return request("/stripe/changeAutoRenewalPlan", {
+      method: "POST",
+      body: JSON.stringify({ clubId, planId }),
+    });
+  },
+
+  // Release scheduled plan change
+  async releaseSchedule(clubId: string) {
+    return request("/stripe/releaseSchedule", {
+      method: "POST",
+      body: JSON.stringify({ clubId }),
+    });
+  },
+  async getAllPlans() {
+    return request("/clubPaymentPlans/getAll", {
+      method: "GET",
+    });
+  },
+
+async  getCurrentSubscription(clubId: string) {
+  return request(`/stripe/subscription/${clubId}`, {
+    method: "GET",
+  });
+},
+
+async  changeSubscriptionPlan(clubId: string, newPlanId: string) {
+  return request("/stripe/changePlan", {
+    method: "POST",
+    body: JSON.stringify({ clubId, newPlanId }),
+  });
+},
+
+async cancelSubscription(clubId: string) {
+  return request("/stripe/cancelSubscription", {
+    method: "POST",
+    body: JSON.stringify({ clubId }),
+  });
+},
+// ----------------------------
+// Compliance Documents APIs
+// ----------------------------
+
+// GET all compliance documents for a club
+async getComplianceDocuments(clubId: string) {
+  return request(`/compliance/documents?clubId=${clubId}`, {
+    method: "GET",
+  });
+},
+
+// CREATE / upload a compliance document
+async createComplianceDocument(payload: any) {
+  return request("/compliance/documents", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+},
+
+// DELETE a specific compliance document
+async deleteComplianceDocument(documentId: string) {
+  return request(`/compliance/documents/${documentId}`, {
+    method: "DELETE",
+  });
+},
+
+async uploadComplianceDocument(formData: FormData) {
+  return request("/compliance/upload", {
+    method: "POST",
+    body: formData,   // <-- MUST NOT BE STRINGIFIED
+  });
+},
+async reviewComplianceDocument(documentId: string, payload: any) {
+  return request(`/compliance/documents/${documentId}/review`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+},
 
 async getReviews(clubId: string, eventId: string) {
-    let query =`clubId=${encodeURIComponent(clubId)}`;
-    if (eventId) query += `&eventId=${encodeURIComponent(eventId)}`;
+        let query = `clubId=${encodeURIComponent(clubId)}`;
+        if (eventId) query += `&eventId=${encodeURIComponent(eventId)}`;
 
     return request(`/reviews?${query}`, {
       method: "GET",

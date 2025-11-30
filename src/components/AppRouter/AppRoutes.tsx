@@ -90,7 +90,7 @@ const AppRoutes: React.FC = () => {
   /* ----------------- Keep activeModule synced -------------------- */
   useEffect(() => {
     const pathParts = location.pathname.split("/").filter(Boolean);
-    if (pathParts[0] === "app") {
+    if (pathParts[0] === "admin-portal") {
       setActiveModule(pathParts[1] || "dashboard");
     } else {
       setActiveModule("dashboard");

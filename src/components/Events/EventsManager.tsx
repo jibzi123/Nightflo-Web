@@ -914,28 +914,28 @@ const EventsManager: React.FC<EventsManagerProps> = ({
 
                   <div className="event-actions">
                     <button
-                      className="btn btn-secondary-outlined"
+                      className="btn btn-secondary-outlined event-action-button"
                       onClick={() => handleViewSummary(event)}
                     >
                       <Eye size={14} />
                       Summary
                     </button>
                     <button
-                      className="btn btn-secondary-outlined"
+                      className="btn btn-secondary-outlined event-action-button"
                       onClick={() => handleViewTickets(event)}
                     >
                       <Eye size={14} />
                       Tickets
                     </button>
                     <button
-                      className="btn btn-secondary-outlined"
+                      className="btn btn-secondary-outlined event-action-button"
                       onClick={() => handleViewGuestList(event)}
                     >
                       <Users size={14} />
                       Guests
                     </button>
                     <button
-                      className="btn btn-secondary-outlined"
+                      className="btn btn-secondary-outlined event-action-button"
                       onClick={() => handleViewTables(event)}
                     >
                       <MapPin size={14} />
@@ -944,21 +944,21 @@ const EventsManager: React.FC<EventsManagerProps> = ({
                   </div>
                   <div className="event-actions" style={{ marginTop: "8px" }}>
                     <button
-                      className="btn btn-secondary-outlined"
+                      className="btn btn-secondary-outlined event-action-button"
                       onClick={() => handleManageStaff(event)}
                     >
                       <Users size={14} />
                       Staff
                     </button>
                     <button
-                      className="btn btn-secondary-outlined"
+                      className="btn btn-secondary-outlined event-action-button"
                       onClick={() => onEditEvent(event)}
                     >
                       <Edit size={14} />
                       Edit
                     </button>
                     <button
-                      className="btn btn-secondary-outlined"
+                      className="btn btn-secondary-outlined event-action-button"
                       onClick={() => deleteEvent(event.id)}
                       disabled={loadingDeleteId === event.id}
                     >

@@ -27,18 +27,6 @@
   box-shadow: 0 6px 15px rgba(32, 201, 151, 0.4);
 }
 
-.btn-secondary {
-  background: #f8f8fa;
-  color: #495057;
-  border: 1px solid #e9ecef;
-}
-
-.btn-secondary:hover {
-  background: #e9ecef;
-  color: #212529;
-  border-color: #ced4da;
-  transform: translateY(-1px);
-}
 .btn-secondary-outlined {
   border-radius: 8px;
   border: 1px solid #4b4b4b;

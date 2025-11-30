@@ -189,7 +189,7 @@ const Dashboard: React.FC = () => {
         <div className="stat-card">
           <div className="stat-header">
             <span className="stat-title stat-title-unde-transform">
-              Total vs Capacity All Events
+              Tickets vs Capacity All Events
             </span>
             <Calendar size={20} style={{ color: "#405189" }} />
           </div>

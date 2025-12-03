@@ -25,8 +25,11 @@ interface GalleryImage {
 }
 
 const ClubSettings: React.FC = () => {
-  const { user } = useAuth();
-  const [clubData, setClubData] = useState<any>();
+  const { user, setUser } = useAuth();
+  const [clubData, setClubData] = useState({
+    owner: { firstName: "", lastName: "" },
+    // ...other fields
+  });
 
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
@@ -38,8 +41,13 @@ const ClubSettings: React.FC = () => {
   const MAX_IMAGES = 10;
   const [gallery, setGallery] = useState<GalleryImage[]>([]);
 
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [normalizedDocuments, setNormalizedDocuments] = useState([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [newDocument, setNewDocument] = useState({
     name: "",
     type: "liquor_license",
@@ -53,6 +61,86 @@ const ClubSettings: React.FC = () => {
     loadDocuments();
   }
 }, [activeTab, user?.club?.id]);
+
+  useEffect(() => {
+    if (!user?.fullName) return;
+    const parts = user.fullName.split(" ");
+    setClubData(prev => ({
+      ...prev,
+      owner: {
+        firstName: parts[0] ?? "",
+        lastName: parts.slice(1).join(" ") ?? "" // keep rest as last name if multiple words
+      }
+    }));
+  }, [user]);
+
+  const handleSave = async () => {
+      debugger
+
+    const firstName = clubData?.owner?.firstName?.trim() || "";
+    const lastName = clubData?.owner?.lastName?.trim() || "";
+    const fullName = `${firstName} ${lastName}`.trim();
+
+    if (!firstName || !lastName) {
+      toast.error("Please enter both first and last names.");
+      return;
+    }
+
+    if (!newPassword || !confirmPassword) {
+      toast.error("Please enter Password and Confirm Password fields.");
+      return;
+    }
+    // Email is not editable, so no need to send email.
+
+    // Password validation
+    if (newPassword || confirmPassword) {
+      if (newPassword !== confirmPassword) {
+        toast.error("Passwords do not match.");
+        return;
+      }
+      if (newPassword.length < 6) {
+        toast.info("Password must be at least 6 characters.");
+        return;
+      }
+    }
+
+    try {
+      setLoading(true);
+      debugger
+      const payload: any = {
+        fullName,
+        password: newPassword ? newPassword : undefined,
+      };
+
+      const apiResponse = await apiClient.updateProfile(payload);
+
+      if (!apiResponse?.payLoad) {
+        throw new Error("Invalid API response structure");
+      }
+
+      const updatedUser = {
+        ...user,
+        fullName: apiResponse.payLoad.fullName || fullName,
+        token: apiResponse.payLoad.token || user.token,
+      };
+
+      setUser(updatedUser);
+      localStorage.setItem("userData", JSON.stringify(updatedUser));
+      if (updatedUser.token) {
+        localStorage.setItem("authToken", updatedUser.token);
+      }
+
+
+
+
+      toast.success("Profile updated successfully");
+    } catch (error) {
+      console.error("Update profile error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const loadDocuments = async () => {
     try {
@@ -345,11 +433,6 @@ const removeDocument = async (documentId: string) => {
     return expiry <= thirtyDaysFromNow;
   };
 
-  const handleSave = () => {
-    // Mock save functionality
-    alert("Club settings saved successfully!");
-  };
-
   const tabs = [
     { id: "club", label: "Club Details", icon: <MapPin size={16} /> },
     { id: "owner", label: "Owner Profile", icon: <Camera size={16} /> },
@@ -386,324 +469,334 @@ const removeDocument = async (documentId: string) => {
           ))}
         </div>
 
-       {activeTab === 'club' && user?.club && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-          
-          {/* ─────────────── CLUB BASIC INFO (Your Existing Code) ─────────────── */}
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-            gap: '16px' 
-          }}>
-
-            {/* Club Image */}
-            <div style={{ gridColumn: '1 / -1', textAlign: 'center', marginBottom: '20px' }}>
+        {activeTab === "club" && user?.club && (
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "32px" }}
+          >
+            {/* ─────────────── CLUB BASIC INFO (Your Existing Code) ─────────────── */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+                gap: "16px",
+              }}
+            >
+              {/* Club Image */}
               <div
                 style={{
-                  width: '120px',
-                  height: '120px',
-                  borderRadius: '12px',
-                  margin: '0 auto 12px',
-                  background: user.club.imageUrl ? `url(${user.club.imageUrl})` : '#f1f5f9',
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '2px solid #e2e8f0'
+                  gridColumn: "1 / -1",
+                  textAlign: "center",
+                  marginBottom: "20px",
                 }}
               >
-                {!user.club.imageUrl && (
-                  <span style={{ color: '#9ca3af', fontSize: '12px' }}>No Image</span>
-                )}
+                <div
+                  style={{
+                    width: "120px",
+                    height: "120px",
+                    borderRadius: "12px",
+                    margin: "0 auto 12px",
+                    background: user.club.imageUrl
+                      ? `url(${user.club.imageUrl})`
+                      : "#f1f5f9",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: "2px solid #e2e8f0",
+                  }}
+                >
+                  {!user.club.imageUrl && (
+                    <span style={{ color: "#9ca3af", fontSize: "12px" }}>
+                      No Image
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleImageUpload("club")}
+                  className="btn btn-secondary"
+                >
+                  <Upload size={16} />
+                  Change Club Photo
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => handleImageUpload('club')}
-                className="btn btn-secondary"
-              >
-                <Upload size={16} />
-                Change Club Photo
+
+              {/* Club Name */}
+              <div className="form-group">
+                <label className="form-label">Club Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={user.club.name || ""}
+                  readOnly
+                />
+              </div>
+
+              {/* Club City */}
+              <div className="form-group">
+                <label className="form-label">City</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={user.club.city || ""}
+                  readOnly
+                />
+              </div>
+
+              {/* Club Location */}
+              <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+                <label className="form-label">Location</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={user.club.location || ""}
+                  readOnly
+                />
+              </div>
+
+              {/* Opening Hours */}
+              <div className="form-group">
+                <label className="form-label">Opens At</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={user.club.openTime || ""}
+                  readOnly
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Closes At</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={user.club.closeTime || ""}
+                  readOnly
+                />
+              </div>
+
+              {/* Subscription Info */}
+              <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+                <label className="form-label">Subscribed Plan</label>
+
+                <div
+                  className="plan-button"
+                  onClick={() => setActiveTab("subscription")} // your handler here
+                >
+                  <span className="plan-title">
+                    {user.club.subscribedPlan?.planName || "No Active Plan"}
+                  </span>
+
+                  {user.club.subscribedPlan?.planPrice && (
+                    <span className="plan-price">
+                      ${user.club.subscribedPlan.planPrice}
+                    </span>
+                  )}
+
+                  <span className="plan-arrow">→</span>
+                </div>
+              </div>
+
+              {/* Subscription Expiry */}
+              <div className="form-group">
+                <label className="form-label">Subscription Ends</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={
+                    user.club.subscriptionExpiryDate
+                      ? new Date(
+                          user.club.subscriptionExpiryDate
+                        ).toLocaleDateString()
+                      : "—"
+                  }
+                  readOnly
+                />
+              </div>
+
+              {/* Status */}
+              <div className="form-group">
+                <label className="form-label">Status</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={user.club.status || "inactive"}
+                  readOnly
+                />
+              </div>
+            </div>
+
+            {/* ─────────────── MERGED GALLERY (Your Gallery Tab Merged Here) ─────────────── */}
+
+            <div style={styles.container}>
+              <h2 style={styles.title}>Gallery (Max 10 Images)</h2>
+
+              {/* Upload Button */}
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleGalleryUpload}
+                style={styles.fileInput}
+              />
+
+              {/* Gallery Grid */}
+              <div style={styles.grid}>
+                {gallery.map((img, index) => (
+                  <div key={index} style={styles.card}>
+                    <img src={img.preview} alt="gallery" style={styles.image} />
+
+                    <button
+                      onClick={() => removeGalleryImage(index)}
+                      style={styles.deleteBtn}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Debug Section */}
+              <pre style={styles.debug}>
+                Files ready to upload: {gallery.length}
+              </pre>
+            </div>
+
+            <div
+              style={{
+                marginTop: "24px",
+                paddingTop: "20px",
+                borderTop: "1px solid #323232",
+              }}
+            >
+              <button className="btn btn-primary" onClick={handleSave}>
+                Save Changes
               </button>
             </div>
-
-            {/* Club Name */}
-            <div className="form-group">
-              <label className="form-label">Club Name</label>
-              <input
-                type="text"
-                className="form-input"
-                value={user.club.name || ''}
-                readOnly
-              />
-            </div>
-
-            {/* Club City */}
-            <div className="form-group">
-              <label className="form-label">City</label>
-              <input
-                type="text"
-                className="form-input"
-                value={user.club.city || ''}
-                readOnly
-              />
-            </div>
-
-            {/* Club Location */}
-            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-              <label className="form-label">Location</label>
-              <input
-                type="text"
-                className="form-input"
-                value={user.club.location || ''}
-                readOnly
-              />
-            </div>
-
-            {/* Opening Hours */}
-            <div className="form-group">
-              <label className="form-label">Opens At</label>
-              <input
-                type="text"
-                className="form-input"
-                value={user.club.openTime || ''}
-                readOnly
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Closes At</label>
-              <input
-                type="text"
-                className="form-input"
-                value={user.club.closeTime || ''}
-                readOnly
-              />
-            </div>
-
-            {/* Subscription Info */}
-            <div className="form-group" style={{ gridColumn: "1 / -1" }}>
-  <label className="form-label">Subscribed Plan</label>
-
-  <div
-    className="plan-button"
-    onClick={() => setActiveTab("subscription")} // your handler here
-  >
-    <span className="plan-title">
-      {user.club.subscribedPlan?.planName || "No Active Plan"}
-    </span>
-
-    {user.club.subscribedPlan?.planPrice && (
-      <span className="plan-price">
-        ${user.club.subscribedPlan.planPrice}
-      </span>
-    )}
-
-    <span className="plan-arrow">→</span>
-  </div>
-</div>
-
-
-            {/* Subscription Expiry */}
-            <div className="form-group">
-              <label className="form-label">Subscription Ends</label>
-              <input
-                type="text"
-                className="form-input"
-                value={
-                  user.club.subscriptionExpiryDate
-                    ? new Date(user.club.subscriptionExpiryDate).toLocaleDateString()
-                    : '—'
-                }
-                readOnly
-              />
-            </div>
-
-            {/* Status */}
-            <div className="form-group">
-              <label className="form-label">Status</label>
-              <input
-                type="text"
-                className="form-input"
-                value={user.club.status || 'inactive'}
-                readOnly
-              />
-            </div>
           </div>
+        )}
 
-
-          {/* ─────────────── MERGED GALLERY (Your Gallery Tab Merged Here) ─────────────── */}
-
-          <div style={styles.container}>
-      <h2 style={styles.title}>Gallery (Max 10 Images)</h2>
-
-      {/* Upload Button */}
-      <input
-        type="file"
-        accept="image/*"
-        multiple
-        onChange={handleGalleryUpload}
-        style={styles.fileInput}
-      />
-
-      {/* Gallery Grid */}
-      <div style={styles.grid}>
-        {gallery.map((img, index) => (
-          <div key={index} style={styles.card}>
-            <img src={img.preview} alt="gallery" style={styles.image} />
-
-            <button
-              onClick={() => removeGalleryImage(index)}
-              style={styles.deleteBtn}
+        {activeTab === "owner" && (
+        <div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+              gap: "16px",
+            }}
+          >
+            {/* Profile Image */}
+            <div
+              style={{
+                gridColumn: "1 / -1",
+                textAlign: "center",
+                marginBottom: "20px",
+              }}
             >
-              Remove
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {/* Debug Section */}
-      <pre style={styles.debug}>
-        Files ready to upload: {gallery.length}
-      </pre>
-    </div>
-
-
-        </div>
-      )}
-
-
-
-        {activeTab === 'owner' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
-            <div style={{ gridColumn: '1 / -1', textAlign: 'center', marginBottom: '20px' }}>
-              <ProfileImage 
-                firstName={user?.fullName.split(' ')[0] || ''}
-                lastName={user?.fullName.split(' ')[1] || ''}
-                imageUrl={user?.imageUrl || ''}
+              <ProfileImage
+                firstName={user?.fullName.split(" ")[0] || ""}
+                lastName={user?.fullName.split(" ")[1] || ""}
+                imageUrl={user?.imageUrl || ""}
                 size="lg"
                 className="mx-auto mb-3"
               />
+
               <button
                 type="button"
                 onClick={() => handleImageUpload("owner")}
                 className="btn btn-secondary-outlined"
               >
-                {" "}
-                {/* Keep as is */}
                 <Camera size={16} />
                 Update Photo
               </button>
             </div>
 
+            {/* First Name */}
             <div className="form-group">
               <label className="form-label">First Name</label>
               <input
                 type="text"
                 className="form-input"
-                value={user?.fullName.split(' ')[0] || ''}
-                onChange={(e) => setClubData(prev => ({ 
-                  ...prev, 
-                  owner: { ...prev.owner, firstName: e.target.value }
-                }))}
+                value={clubData?.owner?.firstName ?? ""}
+                onChange={(e) =>
+                  setClubData(prev => ({
+                    ...prev,
+                    owner: { ...(prev?.owner ?? {}), firstName: e.target.value }
+                  }))
+                }
               />
             </div>
 
+            {/* Last Name */}
             <div className="form-group">
               <label className="form-label">Last Name</label>
               <input
                 type="text"
                 className="form-input"
-                value={user?.fullName.split(' ')[1] || ''}
-                onChange={(e) => setClubData(prev => ({ 
-                  ...prev, 
-                  owner: { ...prev.owner, lastName: e.target.value }
-                }))}
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Email</label>
-              <input
-                type="email"
-                className="form-input"
-                value={user?.email || ''}
-                onChange={(e) => setClubData(prev => ({ 
-                  ...prev, 
-                  owner: { ...prev.owner, email: e.target.value }
-                }))}
-              />
-            </div>
-
-            {/* <div className="form-group">
-              <label className="form-label">Phone</label>
-              <input
-                type="tel"
-                className="form-input"
-                value={clubData.owner.phone}
+                value={clubData?.owner?.lastName ?? ""}
                 onChange={(e) =>
-                  setClubData((prev) => ({
+                  setClubData(prev => ({
                     ...prev,
-                    owner: { ...prev.owner, phone: e.target.value },
+                    owner: { ...(prev?.owner ?? {}), lastName: e.target.value }
                   }))
                 }
               />
-            </div> */}
-          </div>
-        )}
+            </div>
 
-        {activeTab === "subscription" && <SubscriptionSettings />}
+            {/* Email (READ ONLY) */}
+            <div className="form-group">
+              <label className="form-label">Email (cannot change)</label>
+              <input
+                type="email"
+                className="form-input"
+                value={user?.email || ""}
+                readOnly
+              />
+            </div>
 
-        {/* {activeTab === 'hours' && (
-          <div>
-            <h3
-              style={{
-                color: "#fff",
-                fontSize: "16px",
-                fontWeight: "600",
-                marginBottom: "16px",
-              }}
-            >
-              Operating Hours
-            </h3>
-            <div style={{ display: "grid", gap: "12px" }}>
-              {Object.entries(clubData.operatingHours).map(([day, hours]) => (
-                <div
-                  key={day}
-                  style={{ display: "flex", alignItems: "center", gap: "12px" }}
-                >
-                  <label
-                    style={{
-                      color: "#818181",
-                      fontWeight: "600",
-                      minWidth: "80px",
-                      textTransform: "capitalize",
-                      fontSize: "13px",
-                    }}
-                  >
-                    {day}:
-                  </label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={hours}
-                    onChange={(e) =>
-                      setClubData((prev) => ({
-                        ...prev,
-                        operatingHours: {
-                          ...prev.operatingHours,
-                          [day]: e.target.value,
-                        },
-                      }))
-                    }
-                    placeholder="9:00 PM - 2:00 AM or Closed"
-                    style={{ flex: 1 }}
-                  />
-                </div>
-              ))}
+            {/* New Password */}
+            <div className="form-group">
+              <label className="form-label">New Password</label>
+              <input
+                type="password"
+                className="form-input"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+              />
+            </div>
+
+            {/* Confirm Password */}
+            <div className="form-group">
+              <label className="form-label">Confirm Password</label>
+              <input
+                type="password"
+                className="form-input"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter new password"
+              />
             </div>
           </div>
-        )} */}
+
+          {/* Save Button */}
+          <div
+            style={{
+              marginTop: "24px",
+              paddingTop: "20px",
+              borderTop: "1px solid #323232",
+            }}
+          >
+            <button className="btn btn-primary" onClick={handleSave}>
+              Save Changes
+            </button>
+          </div>
+        </div>
+      )}
+
+
+        {activeTab === "subscription" && <SubscriptionSettings />}
 
         {activeTab === "compliance" && (
           <div>
@@ -784,7 +877,11 @@ const removeDocument = async (documentId: string) => {
                         </h3>
 
                         {/* Status Badge */}
-                        <span className={`badge ${getStatusBadgeClass(document.status)}`}>
+                        <span
+                          className={`badge ${getStatusBadgeClass(
+                            document.status
+                          )}`}
+                        >
                           {document.status}
                         </span>
 
@@ -811,7 +908,8 @@ const removeDocument = async (documentId: string) => {
                       <div
                         style={{
                           display: "grid",
-                          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                          gridTemplateColumns:
+                            "repeat(auto-fit, minmax(220px, 1fr))",
                           gap: "10px",
                           color: "#CCC",
                           fontSize: "14px",
@@ -860,7 +958,9 @@ const removeDocument = async (documentId: string) => {
                                 ? "rgba(239, 68, 68, 0.15)"
                                 : "rgba(0, 231, 190, 0.1)",
                             borderLeft: `4px solid ${
-                              document.status === "rejected" ? "#EF4444" : "#00E7BE"
+                              document.status === "rejected"
+                                ? "#EF4444"
+                                : "#00E7BE"
                             }`,
                             borderRadius: "6px",
                           }}
@@ -869,7 +969,10 @@ const removeDocument = async (documentId: string) => {
                             style={{
                               fontSize: "12px",
                               fontWeight: "700",
-                              color: document.status === "rejected" ? "#EF4444" : "#00E7BE",
+                              color:
+                                document.status === "rejected"
+                                  ? "#EF4444"
+                                  : "#00E7BE",
                               marginBottom: "5px",
                             }}
                           >
@@ -893,33 +996,33 @@ const removeDocument = async (documentId: string) => {
                       }}
                     >
                       <button
-                      type="button"
-                      className="btn btn-secondary-outlined"
-                      style={{ fontSize: "12px", padding: "8px 10px" }}
-                      onClick={() => viewDocument(document.fileUrl)}
-                    >
-                      <Eye size={12} /> View
-                    </button>
+                        type="button"
+                        className="btn btn-secondary-outlined"
+                        style={{ fontSize: "12px", padding: "8px 10px" }}
+                        onClick={() => viewDocument(document.fileUrl)}
+                      >
+                        <Eye size={12} /> View
+                      </button>
 
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      style={{ fontSize: "12px", padding: "8px 10px" }}
-                      onClick={() => openReviewModal(document)}
-                    >
-                      <MessageSquare size={12} /> Review
-                    </button>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        style={{ fontSize: "12px", padding: "8px 10px" }}
+                        onClick={() => openReviewModal(document)}
+                      >
+                        <MessageSquare size={12} /> Review
+                      </button>
 
-
-                    <button
-                      type="button"
-                      className="btn btn-secondary-outlined"
-                      style={{ fontSize: "12px", padding: "8px 10px" }}
-                      onClick={() => downloadDocument(document.fileUrl, document.name)}
-                    >
-                      <Download size={12} /> Download
-                    </button>
-
+                      <button
+                        type="button"
+                        className="btn btn-secondary-outlined"
+                        style={{ fontSize: "12px", padding: "8px 10px" }}
+                        onClick={() =>
+                          downloadDocument(document.fileUrl, document.name)
+                        }
+                      >
+                        <Download size={12} /> Download
+                      </button>
 
                       <button
                         type="button"
@@ -940,7 +1043,6 @@ const removeDocument = async (documentId: string) => {
                 </div>
               ))}
             </div>
-
 
             {/* Empty State */}
             {clubData?.complianceDocuments?.length === 0 && (
@@ -982,18 +1084,6 @@ const removeDocument = async (documentId: string) => {
             )}
           </div>
         )}
-
-        <div
-          style={{
-            marginTop: "24px",
-            paddingTop: "20px",
-            borderTop: "1px solid #323232",
-          }}
-        >
-          <button className="btn btn-primary" onClick={handleSave}>
-            Save Changes
-          </button>
-        </div>
       </div>
 
       {/* Upload Document Modal */}
@@ -1161,17 +1251,23 @@ const removeDocument = async (documentId: string) => {
           <div className="modal-content" style={{ maxWidth: "600px" }}>
             <div className="modal-header">
               <h2 className="modal-title">Review Document</h2>
-              <button className="modal-close" onClick={() => setShowReviewModal(false)}>
+              <button
+                className="modal-close"
+                onClick={() => setShowReviewModal(false)}
+              >
                 <X size={16} />
               </button>
             </div>
 
             <div className="modal-body">
-
               {/* Review Decision */}
               <label className="form-label">Review Decision</label>
-              <div style={{ display: "flex", gap: "20px", marginBottom: "16px" }}>
-                <label style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <div
+                style={{ display: "flex", gap: "20px", marginBottom: "16px" }}
+              >
+                <label
+                  style={{ display: "flex", gap: "8px", alignItems: "center" }}
+                >
                   <input
                     type="radio"
                     name="decision"
@@ -1180,10 +1276,14 @@ const removeDocument = async (documentId: string) => {
                     onChange={() => setReviewStatus("approved")}
                     style={{ accentColor: "#10b981" }}
                   />
-                  <span style={{ color: "#10b981", fontWeight: 600 }}>Approve</span>
+                  <span style={{ color: "#10b981", fontWeight: 600 }}>
+                    Approve
+                  </span>
                 </label>
 
-                <label style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <label
+                  style={{ display: "flex", gap: "8px", alignItems: "center" }}
+                >
                   <input
                     type="radio"
                     name="decision"
@@ -1192,35 +1292,44 @@ const removeDocument = async (documentId: string) => {
                     onChange={() => setReviewStatus("rejected")}
                     style={{ accentColor: "#ef4444" }}
                   />
-                  <span style={{ color: "#ef4444", fontWeight: 600 }}>Reject</span>
+                  <span style={{ color: "#ef4444", fontWeight: 600 }}>
+                    Reject
+                  </span>
                 </label>
               </div>
 
               {/* Comments */}
               <label className="form-label">
-                Admin Comments {reviewStatus === "rejected" && <span style={{ color: "#ef4444" }}>*</span>}
+                Admin Comments{" "}
+                {reviewStatus === "rejected" && (
+                  <span style={{ color: "#ef4444" }}>*</span>
+                )}
               </label>
               <textarea
                 className="form-input form-textarea"
                 rows={4}
                 value={reviewComments}
-                onChange={e => setReviewComments(e.target.value)}
+                onChange={(e) => setReviewComments(e.target.value)}
                 placeholder={
                   reviewStatus === "approved"
                     ? "Optional comment for approval..."
                     : "Required: Explain reason for rejection..."
                 }
               />
-
             </div>
 
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setShowReviewModal(false)}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowReviewModal(false)}
+              >
                 Cancel
               </button>
 
               <button
-                className={`btn ${reviewStatus === "approved" ? "btn-success" : "btn-danger"}`}
+                className={`btn ${
+                  reviewStatus === "approved" ? "btn-success" : "btn-danger"
+                }`}
                 onClick={submitReview}
                 disabled={reviewStatus === "rejected" && !reviewComments.trim()}
               >
@@ -1230,7 +1339,6 @@ const removeDocument = async (documentId: string) => {
           </div>
         </div>
       )}
-
     </div>
   );
 };

@@ -431,4 +431,11 @@ async getRefundBookingsList(clubId: string, eventId: string) {
       method: "GET",
     });
   },
+  async updateProfile(payload: { fullName: string; password?: string }) {
+    return request("/users/editprofile", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
 };

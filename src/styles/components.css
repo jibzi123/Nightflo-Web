@@ -600,31 +600,31 @@
 .plan-button {
   width: 50%;
   padding: 12px 16px;
-  border: 1px solid #dcdcdc;
   border-radius: 6px;
-  background: #fafafa;
+  background: #00b894;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
   transition: 0.2s ease;
+  color: #fff;
 }
 
 .plan-button:hover {
-  background: #f0f0f0;
-  border-color: #c7c7c7;
+  background: #01cca4;
+  box-shadow: #00b894 0px 4px 12px;
 }
 
 .plan-title {
   font-size: 15px;
   font-weight: 500;
-  color: #333;
+  color: #fff;
 }
 
 .plan-price {
   font-size: 14px;
   font-weight: 600;
-  color: #0275ff;
+  color: #fff;
   margin-right: auto;
   margin-left: 12px;
 }
@@ -632,6 +632,6 @@
 .plan-arrow {
   font-size: 18px;
   font-weight: bold;
-  color: #555;
+  color: #fff;
   opacity: 0.7;
 }

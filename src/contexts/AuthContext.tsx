@@ -52,20 +52,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = !!user;
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        login,
-        logout,
-        isLoading,
-        isAuthenticated,
-        isCheckingAuth,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  <AuthContext.Provider
+    value={{
+      user,
+      setUser,      // ⭐ ADD THIS
+      token,
+      setToken,     // ⭐ OPTIONAL BUT RECOMMENDED
+      login,
+      logout,
+      isLoading,
+      isAuthenticated,
+      isCheckingAuth,
+    }}
+  >
+    {children}
+  </AuthContext.Provider>
+);
+
 };
 
 export const useAuth = () => useContext(AuthContext);

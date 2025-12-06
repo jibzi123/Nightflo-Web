@@ -333,7 +333,6 @@ const SubscriptionSettings: React.FC = () => {
     setLoadingPlans(true);
 
     // 1. Get current subscription  
-    debugger
     // const subRes = await apiClient.getCurrentSubscription(user?.club?.id);
     // setSubscription(subRes?.data || null);
 
@@ -352,6 +351,7 @@ const SubscriptionSettings: React.FC = () => {
     try {
       setLoading(true);
       // Support multiple response shapes
+      debugger
       const club = user.club
 
       if (club) {
@@ -377,7 +377,6 @@ const SubscriptionSettings: React.FC = () => {
               idPlan: subscribedPlan.id ?? subscribedPlan._id ?? null,
             }
           : null;
-        debugger;
         setSubscription(mappedSub);
         setPlan(subscribedPlan ?? null);
 
@@ -386,14 +385,14 @@ const SubscriptionSettings: React.FC = () => {
         else setRenewalDate(null);
 
         // update user in context/local storage if provided (mirror mobile logic)
-        try {
-          if (setUser && typeof setUser === "function") {
-            const updatedUser = { ...(user ?? {}), club: c };
-            setUser(updatedUser);
-          }
-        } catch (e) {
-          // ignore if context doesn't provide setter
-        }
+        // try {
+        //   if (setUser && typeof setUser === "function") {
+        //     const updatedUser = { ...(user ?? {}), club: c };
+        //     setUser(updatedUser);
+        //   }
+        // } catch (e) {
+        //   // ignore if context doesn't provide setter
+        // }
 
         // fetch auto-renewal enabled status from stripe endpoint
         try {
@@ -413,7 +412,7 @@ const SubscriptionSettings: React.FC = () => {
         }
 
         // fetch scheduled plan (if any)
-        await fetchScheduledPlan(c, subscribedPlan);
+        //await fetchScheduledPlan(c, subscribedPlan);
         // set available plans if provided by club
         if (Array.isArray(c.availablePlans) && c.availablePlans.length > 0) {
           setAvailablePlans(c.availablePlans);
@@ -610,48 +609,6 @@ const SubscriptionSettings: React.FC = () => {
     }
   };
 
-  // Revoke scheduled change (releaseSchedule) or re-enable auto-renew for cancel banners
-  const handleRevoke = async (type: string) => {
-    if (!clubId) return;
-    try {
-      setLoading(true);
-      if (type === "cancel") {
-        // re-enable auto-renew
-        const res = apiClient?.toggleAutoRenewal ? await apiClient.toggleAutoRenewal(clubId, true) : await fetch("/stripe/toggleAutoRenewal", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ clubId, enabled: true }),
-        }).then(r => r.json());
-        const ok = res?.data?.status === "Success" || res?.status === "Success" || res?.success || res?.data?.success;
-        if (ok) {
-          alert("Auto-renewal re-enabled successfully");
-          await fetchClubDetails();
-        } else {
-          alert("Failed to re-enable auto-renewal");
-        }
-      } else {
-        // release scheduled upgrade/downgrade
-        const res = apiClient?.releaseSchedule ? await apiClient.releaseSchedule(clubId) : await fetch("/stripe/releaseSchedule", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ clubId }),
-        }).then(r => r.json());
-        const ok = res?.data?.status === "Success" || res?.status === "Success" || res?.success || res?.data?.success;
-        if (ok) {
-          alert("Scheduled change revoked successfully");
-          await fetchClubDetails();
-        } else {
-          alert("Failed to revoke scheduled plan change");
-        }
-      }
-    } catch (err) {
-      console.error("handleRevoke error:", err);
-      alert("Error revoking. Try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case "active":
@@ -749,17 +706,6 @@ const SubscriptionSettings: React.FC = () => {
                     : "Package Upgrade Scheduled"}
                 </div>
                 <div style={{ color: "#374151" }}>{statusBanner.message}</div>
-              </div>
-              <div>
-                {(statusBanner.type === "cancel" || statusBanner.type === "upgrade" || statusBanner.type === "downgrade") && (
-                  <button
-                    className="btn btn-secondary-outlined"
-                    onClick={() => handleRevoke(statusBanner.type)}
-                    style={{ marginLeft: 12 }}
-                  >
-                    Revoke
-                  </button>
-                )}
               </div>
             </div>
           </div>

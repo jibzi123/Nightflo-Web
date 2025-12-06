@@ -436,6 +436,22 @@ async getRefundBookingsList(clubId: string, eventId: string) {
       method: "POST",
       body: JSON.stringify(payload),
     });
-  }
+  },
+  async getSignedProfileImage() {
+    return request("/updateImage", { method: "GET" });
+  },
+
+  // GET signed urls for multiple gallery images (pass count)
+  async getGallerySignedUrls(count: number) {
+    return request(`/galleryImage/${count}`, { method: "GET" });
+  },
+
+  // Update club info
+  async updateClub(payload: any) {
+    return request("/club/updateClub", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
 
 };

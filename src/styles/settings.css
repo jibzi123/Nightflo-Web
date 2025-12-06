@@ -1,0 +1,179 @@
+/* ============================= */
+/*        MAIN WRAPPER           */
+/* ============================= */
+
+.settings-wrapper {
+  width: 100%;
+  max-width: 1100px;
+  margin: 24px auto;
+  padding: 20px;
+  color: #e6edf3;
+}
+
+/* Header */
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ============================= */
+/*        FORM GRID              */
+/* ============================= */
+
+.settings-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+/* Form Group */
+.settings-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Error message */
+.settings-error {
+  color: #ef4444;
+  font-size: 12px;
+}
+
+/* ============================= */
+/*        PROFILE IMAGE          */
+/* ============================= */
+
+.settings-avatar-wrap {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f1f5f9;
+  border: 2px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.settings-no-avatar {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+}
+
+/* ============================= */
+/*        GALLERY SECTION        */
+/* ============================= */
+
+.settings-gallery-section {
+  background: #0f1724;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid #222;
+}
+
+/* Gallery grid */
+.settings-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+/* Each card */
+.settings-gallery-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid #2b2b2b;
+  background: #0b0b0b;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-gallery-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Overlay on hover */
+.settings-gallery-card:hover .settings-gallery-overlay {
+  opacity: 1 !important;
+}
+
+.settings-gallery-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 40%,
+    rgba(0, 0, 0, 0.6) 100%
+  );
+  opacity: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 12px;
+  transition: opacity 0.18s ease;
+}
+
+/* Remove Button */
+.settings-delete-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border: none;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* Generic image styling */
+.settings-image {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+}
+
+/* ============================= */
+/*         LOADING OVERLAY       */
+/* ============================= */
+
+.settings-loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.settings-loading-box {
+  background: #0b1220;
+  padding: 28px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #1f2937;
+}
